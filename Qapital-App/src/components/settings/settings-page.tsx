@@ -35,7 +35,9 @@ import {
   Car,
   Trash2,
   Wallet,
+  Database,
 } from "lucide-react";
+import { AccountManager } from "@/components/finance/account-manager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -491,6 +493,31 @@ export function SettingsPage() {
                 Último reinicio: {formatDateShort(settings.lastBudgetReset)}
               </p>
             )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* ===== ACCOUNT MANAGEMENT ===== */}
+      <motion.div variants={itemVariants}>
+        <div className="flex items-center gap-2 mb-2 mt-4">
+          <Database className="size-4 text-teal-600" />
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Gestión de Cuentas</h2>
+        </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <Card className="border-0 shadow-sm rounded-xl">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="size-9 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                <Landmark className="size-4 text-teal-600 dark:text-teal-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Cuentas registradas</p>
+                <p className="text-[11px] text-gray-400">Ver, editar y eliminar cuentas. Incluye cuentas que no aparecen en el dashboard.</p>
+              </div>
+            </div>
+            <AccountManager />
           </CardContent>
         </Card>
       </motion.div>
