@@ -1,0 +1,104 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { createColombiaDate } from "@/lib/api";
+
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string; recordId: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const { id, recordId } = await params;
+    const body = await req.json();
+
+    const vehicle = await db.vehicle.findFirst({
+      where: { id, userId: session.user.id },
+    });
+
+    if (!vehicle) {
+      return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
+    }
+
+    const existing = await db.maintenanceRecord.findFirst({
+      where: { id: recordId, vehicleId: id },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Registro no encontrado" }, { status: 404 });
+    }
+
+    const { type, description, cost, km, date, nextDueKm, nextDueDate, reminderEnabled } = body;
+
+    const record = await db.maintenanceRecord.update({
+      where: { id: recordId },
+      data: {
+        ...(type !== undefined && { type }),
+        ...(description !== undefined && { description }),
+        ...(cost !== undefined && { cost: parseFloat(cost) }),
+        ...(km !== undefined && { km: parseFloat(km) }),
+        ...(date !== undefined && { date: date ? createColombiaDate(date.split("T")[0]) : null }),
+        ...(nextDueKm !== undefined && { nextDueKm: nextDueKm ? parseFloat(nextDueKm) : null }),
+        ...(nextDueDate !== undefined && { nextDueDate: nextDueDate ? createColombiaDate(nextDueDate.split("T")[0]) : null }),
+        ...(reminderEnabled !== undefined && { reminderEnabled }),
+      },
+    });
+
+    // Update the linked finance transaction if cost changed
+    if (cost !== undefined) {
+      await db.transaction.updateMany({
+        where: { sourceModule: "transport", sourceId: recordId },
+        data: {
+          amount: parseFloat(cost),
+          ...(description !== undefined && { description: `Mantenimiento - ${vehicle.name}: ${description}` }),
+        },
+      });
+    }
+
+    return NextResponse.json(record);
+  } catch (error) {
+    console.error("Update maintenance record error:", error);
+    return NextResponse.json({ error: "Error al actualizar registro de mantenimiento" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string; recordId: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const { id, recordId } = await params;
+
+    const vehicle = await db.vehicle.findFirst({
+      where: { id, userId: session.user.id },
+    });
+
+    if (!vehicle) {
+      return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
+    }
+
+    const existing = await db.maintenanceRecord.findFirst({
+      where: { id: recordId, vehicleId: id },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Registro no encontrado" }, { status: 404 });
+    }
+
+    await db.maintenanceRecord.delete({ where: { id: recordId } });
+
+    // Delete the linked finance transaction
+    await db.transaction.deleteMany({
+      where: { sourceModule: "transport", sourceId: recordId },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete maintenance record error:", error);
+    return NextResponse.json({ error: "Error al eliminar registro de mantenimiento" }, { status: 500 });
+  }
+}

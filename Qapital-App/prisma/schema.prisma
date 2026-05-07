@@ -1,0 +1,690 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTH
+// ============================================
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  name                String
+  password            String
+  avatar              String?
+  currency            String    @default("COP")
+  onboardingCompleted Boolean   @default(false)
+  onboardingStep      Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  accounts            Account[]
+  budgets             Budget[]
+  debts               Debt[]
+  abonos              Abono[]
+  savingsGoals        SavingsGoal[]
+  vehicles            Vehicle[]
+  medications         Medication[]
+  appointments        MedicalAppointment[]
+  pantryItems         PantryItem[]
+  shoppingLists       ShoppingList[]
+  healthProfiles      HealthProfile[]
+  sharedAccounts      SharedAccountUser[]
+  transactions        Transaction[]
+  recurringPayments   RecurringPayment[]
+  cdts                CDT[]
+  payrollGroups       PayrollGroup[]
+  settings            UserSettings?
+}
+
+// ============================================
+// FINANCE MODULE - ACCOUNTS
+// ============================================
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  name                  String
+  type                  String    @default("checking") // checking, savings, cash, digital_wallet, other
+  color                 String    @default("#10B981")
+  icon                  String?
+  balance               Float     @default(0)
+  isHighYield           Boolean   @default(false)
+  yieldPercentage       Float?
+  isShared              Boolean   @default(false)
+  excludeFromAvailable  Boolean   @default(false)
+  order                 Int       @default(0)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subAccounts           SubAccount[]
+  transactions          Transaction[]
+  yieldHistory          YieldRecord[]
+  sharedUsers           SharedAccountUser[]
+  recurringPayments     RecurringPayment[]
+  recurringDestPayments RecurringPayment[] @relation("RecurringDestination")
+  cdts                  CDT[]
+  savingsGoalLinks      SavingsGoalAccount[]
+  goalSources           SavingsGoal[] @relation("GoalSourceAccount")
+  goalDestinations      SavingsGoal[] @relation("GoalDestinationAccount")
+  payrollGroups         PayrollGroup[]
+  debts                 Debt[]
+
+  @@map("accounts")
+}
+
+model SubAccount {
+  id                    String    @id @default(cuid())
+  accountId             String
+  name                  String
+  type                  String    @default("pocket") // pocket, piggy_bank, savings_box, other
+  balance               Float     @default(0)
+  isHighYield           Boolean   @default(false)
+  yieldPercentage       Float?
+  icon                  String?
+  color                 String?
+  excludeFromAvailable  Boolean   @default(false)
+  order                 Int       @default(0)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  account               Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  yieldHistory          YieldRecord[]
+  savingsGoalLinks      SavingsGoalAccount[]
+  recurringPayments     RecurringPayment[]
+  payrollGroups         PayrollGroup[]
+  debts                 Debt[]
+
+  @@map("sub_accounts")
+}
+
+model SharedAccountUser {
+  id        String   @id @default(cuid())
+  accountId String
+  userId    String
+  role      String   @default("editor") // viewer, editor
+  createdAt DateTime @default(now())
+
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, userId])
+  @@map("shared_account_users")
+}
+
+model YieldRecord {
+  id              String    @id @default(cuid())
+  accountId       String?
+  subAccountId    String?
+  month           DateTime  // First day of the month
+  projectedYield  Float
+  actualYield     Float?
+  yieldPercentage Float
+  isConfirmed     Boolean   @default(false)
+  transactionId   String?   // Links to the income Transaction created when yield is confirmed
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  account         Account?    @relation(fields: [accountId], references: [id])
+  subAccount      SubAccount? @relation(fields: [subAccountId], references: [id])
+
+  @@map("yield_records")
+}
+
+// ============================================
+// FINANCE MODULE - TRANSACTIONS
+// ============================================
+
+model Transaction {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String?
+  subAccountId          String?
+  type                  String    // income, expense, transfer
+  amount                Float
+  description           String
+  category              String?
+  subCategory           String?
+  date                  DateTime
+  sourceModule          String?   // finance, transport, pantry, health
+  sourceId              String?   // ID of related record in another module
+  isRecurring           Boolean   @default(false)
+  notes                 String?
+  relatedTransactionId  String?   // Links transfer pairs
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         Account?   @relation(fields: [accountId], references: [id])
+  subAccount      SubAccount? @relation(fields: [subAccountId], references: [id])
+
+  @@map("transactions")
+}
+
+// ============================================
+// FINANCE MODULE - BUDGETS
+// ============================================
+
+model Budget {
+  id            String    @id @default(cuid())
+  userId        String
+  type          String    // income, expense
+  category      String
+  subCategory   String?
+  amount        Float     // Total budget amount
+  spent         Float     @default(0) // Amount spent/received so far
+  period        String    @default("monthly") // monthly, weekly, yearly
+  lastResetDate DateTime? // When was spent last reset to 0
+  icon          String?
+  color         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("budgets")
+}
+
+// ============================================
+// FINANCE MODULE - DEBTS
+// ============================================
+
+model Debt {
+  id              String    @id @default(cuid())
+  userId          String
+  type            String    // credit_card, loan, other
+  name            String
+  color           String    @default("#EF4444")
+  icon            String?
+  bank            String?
+  totalAmount     Float     // Total credit limit or loan amount
+  currentBalance  Float     // Current balance owed
+  interestRate    Float?    // Tasa de interés mensual (nominal vencida para préstamos)
+  cutoffDate      Int?      // Day of month for cutoff (credit card)
+  paymentDate     Int?      // Day of month for payment (credit card / loan)
+  monthlyPayment  Float?    // Valor de la cuota fija (para préstamos con cuota fija)
+  remainingPayments Int?    // Cuotas restantes
+  startDate       DateTime?
+  endDate         DateTime?
+  // ── Préstamo (loan) specific fields ──
+  paymentType     String?   // "fixed" (cuota fija) or "variable" (cuota variable), null for credit_card
+  otherCharges    Float?    // Gastos fijos mensuales (seguro, papelería, IVA, etc.)
+  category        String?   // Categoría de presupuesto para préstamos (se propaga a las cuotas)
+  subCategory     String?   // Subcategoría de presupuesto para préstamos
+  accountId       String?   // Cuenta desde donde se pagan las cuotas del préstamo
+  subAccountId    String?   // Subcuenta desde donde se pagan las cuotas del préstamo
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account         Account?  @relation(fields: [accountId], references: [id])
+  subAccount      SubAccount? @relation(fields: [subAccountId], references: [id])
+  installments    Installment[]
+  abonos          Abono[]
+  recurringPayments RecurringPayment[]
+
+  @@map("debts")
+}
+
+model Installment {
+  id                  String    @id @default(cuid())
+  debtId              String
+  description         String
+  totalAmount         Float
+  totalInstallments   Int
+  currentInstallment  Int       @default(1)
+  installmentAmount   Float     // Capital fijo = totalAmount / totalInstallments (TC) o capital del préstamo
+  paidAmount          Float     @default(0) // Total pagado (capital + interés + otros)
+  interestRate        Float?    // Tasa de interés mensual para esta cuota (%), ingresada al pagar
+  interestAmount      Float?    // Monto del interés pagado en esta cuota
+  otherChargesAmount  Float?    // Otros gastos pagados en esta cuota (seguro, papelería, IVA)
+  remainingBalance    Float?    // Saldo pendiente ANTES de pagar esta cuota (para calcular interés)
+  purchaseDate        DateTime
+  nextPaymentDate     DateTime
+  isPaid              Boolean   @default(false)
+  accountId           String?   // Cuenta desde donde se debita el pago
+  subAccountId        String?   // Subcuenta especifica (opcional)
+  category            String?   // Categoria de presupuesto
+  subCategory         String?   // Subcategoria de presupuesto
+  recurringPaymentId  String?   // ID del pago recurrente que origino esta compra
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  debt                Debt      @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  abonoDetails        AbonoDetail[]
+
+  @@map("installments")
+}
+
+model Abono {
+  id              String    @id @default(cuid())
+  userId          String
+  debtId          String
+  transactionId   String?   // Links to the expense Transaction (null if transaction was deleted)
+  totalAmount     Float     // Total amount of the abono
+  accountId       String    // Account from which the abono was paid
+  subAccountId    String?   // Sub-account (optional)
+  date            DateTime  // Date of the abono
+  isReversed      Boolean   @default(false) // Whether this abono has been reversed
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debt            Debt      @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  details         AbonoDetail[]
+
+  @@map("abonos")
+}
+
+model AbonoDetail {
+  id              String  @id @default(cuid())
+  abonoId         String
+  installmentId   String
+  amount          Float   // How much was applied to this installment
+  previousBalance Float   // Balance before the abono
+  newBalance      Float   // Balance after the abono
+
+  abono           Abono       @relation(fields: [abonoId], references: [id], onDelete: Cascade)
+  installment     Installment @relation(fields: [installmentId], references: [id], onDelete: Cascade)
+
+  @@map("abono_details")
+}
+
+// ============================================
+// FINANCE MODULE - RECURRING PAYMENTS
+// ============================================
+
+model RecurringPayment {
+  id                      String    @id @default(cuid())
+  userId                  String
+  description             String
+  amount                  Float     // Expected amount
+  actualAmount            Float?    // Actual amount when confirmed
+  type                    String    @default("expense") // expense, transfer
+  accountId               String?   // Source account (or account that pays TC bill when debtId is set)
+  subAccountId            String?   // Sub-account within the paying account
+  debtId                  String?   // Source debt (for credit card payments)
+  destinationAccountId    String?   // Destination account (for transfer type)
+  destinationSubAccountId String?   // Destination sub-account (for transfer type)
+  category                String?
+  subCategory             String?
+  scheduledDate           DateTime  // When the payment is scheduled
+  confirmedDate           DateTime? // When it was actually confirmed
+  status                  String    @default("pending") // pending, confirmed, cancelled
+  frequency               String    @default("monthly") // monthly, weekly, yearly, one_time
+  notes                   String?
+  isRecurring             Boolean   @default(true)
+  // New fields for savings goal integration
+  savingsGoalId           String?   // Meta de ahorro vinculada
+  customDays              String?   // JSON array de dias personalizados
+  periodAmounts           String?   // JSON array de montos por periodo
+  payrollGroupId          String?   // Link to payroll group (for salary-type recurring payments)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account            Account?   @relation(fields: [accountId], references: [id])
+  subAccount         SubAccount? @relation(fields: [subAccountId], references: [id])
+  debt               Debt?      @relation(fields: [debtId], references: [id])
+  destinationAccount Account?   @relation("RecurringDestination", fields: [destinationAccountId], references: [id])
+  savingsGoal        SavingsGoal? @relation(fields: [savingsGoalId], references: [id])
+  payrollGroup       PayrollGroup? @relation(fields: [payrollGroupId], references: [id], onDelete: Cascade)
+
+  @@map("recurring_payments")
+}
+
+// ============================================
+// FINANCE MODULE - PAYROLL ASSISTANT (NÓMINA)
+// ============================================
+
+model PayrollGroup {
+  id                    String    @id @default(cuid())
+  userId                String
+  description           String    @default("Sueldo")
+  frequency             String    // "monthly", "biweekly", "weekly"
+  totalAmount           Float     // Sum of all schedule amounts
+  accountId             String    // Account where income is received
+  subAccountId          String?   // Optional sub-account
+  category              String    @default("Sueldo")
+  subCategory           String?
+  adjustToBusinessDay   Boolean   @default(false) // Adjust date if falls on weekend/holiday
+  businessDayDirection  String    @default("before") // "before" or "after"
+  schedules             String    // JSON array: [{day: 15, amount: 1500000}, ...] for monthly/biweekly; [{dayOfWeek: 6, amount: 500000}] for weekly
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account           Account    @relation(fields: [accountId], references: [id])
+  subAccount        SubAccount? @relation(fields: [subAccountId], references: [id])
+  recurringPayments  RecurringPayment[]
+
+  @@map("payroll_groups")
+}
+
+// ============================================
+// FINANCE MODULE - SAVINGS & GOALS
+// ============================================
+
+model SavingsGoal {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  description     String?
+  targetAmount    Float
+  currentAmount   Float     @default(0)
+  deadline        DateTime?
+  icon            String?
+  color           String    @default("#8B5CF6")
+  type            String    @default("general") // emergency_fund, education, general, travel, etc
+  aiSuggestion    String?
+  isActive        Boolean   @default(true)
+  // New fields for frequency and scheduling
+  frequency       String    @default("mensual") // "mensual", "quincenal", "semanal"
+  monthlyDay      Int?      // Dia del mes para frecuencia mensual (1-31)
+  biweeklyDays    String?   // JSON array de 2 dias, e.g. "[1,15]"
+  weeklyDay       Int?      // Dia de la semana (0=domingo, 1=lunes...6=sabado)
+  periodAmounts   String?   // JSON array de montos por periodo
+  sourceAccountId       String?   // Cuenta origen de los aportes (de donde sale el dinero)
+  destinationAccountId  String?   // Cuenta destino de los aportes (donde se acumula el ahorro)
+  status          String    @default("activa") // "activa", "completada", "cancelada"
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions   SavingsContribution[]
+  cdts            CDT[]
+  linkedAccounts  SavingsGoalAccount[]
+  sourceAccount       Account?  @relation("GoalSourceAccount", fields: [sourceAccountId], references: [id])
+  destinationAccount  Account?  @relation("GoalDestinationAccount", fields: [destinationAccountId], references: [id])
+  recurringPayments RecurringPayment[]
+
+  @@map("savings_goals")
+}
+
+model SavingsGoalAccount {
+  id              String    @id @default(cuid())
+  goalId          String
+  accountId       String
+  subAccountId    String?   // Optional: specific sub-account within the account
+  createdAt       DateTime  @default(now())
+
+  goal            SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  account         Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  subAccount      SubAccount? @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([goalId, accountId, subAccountId])
+  @@map("savings_goal_accounts")
+}
+
+model SavingsContribution {
+  id            String    @id @default(cuid())
+  goalId        String
+  amount        Float
+  date          DateTime
+  description   String?
+  transactionId String?   // Links to the expense Transaction created when debiting
+  accountId     String?   // Which account was debited
+  createdAt     DateTime  @default(now())
+
+  goal          SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("savings_contributions")
+}
+
+// ============================================
+// FINANCE MODULE - CDT (Certificados de Deposito a Termino)
+// ============================================
+
+model CDT {
+  id              String    @id @default(cuid())
+  userId          String
+  bank            String    // Banco emisor
+  amount          Float     // Monto invertido
+  effectiveRate   Float     // %EA (Tasa Efectiva Anual)
+  startDate       DateTime  // Fecha de apertura
+  endDate         DateTime  // Fecha de vencimiento
+  termDays        Int       // Plazo en dias (30, 60, 90, 180, 360, etc.)
+  interestEarned  Float     @default(0) // Intereses generados hasta la fecha
+  status          String    @default("active") // active, matured, withdrawn, renewed
+  goalId          String?   // Vinculacion opcional a una meta de ahorro
+  accountId       String?   // Cuenta donde se depositan los rendimientos
+  withdrawnAmount Float?    // Monto retirado al vencimiento
+  withdrawnDate   DateTime? // Fecha de retiro
+  notes           String?
+  color           String    @default("#14B8A6")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal            SavingsGoal?  @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  account         Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@map("cdts")
+}
+
+// ============================================
+// TRANSPORT MODULE
+// ============================================
+
+model Vehicle {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  type            String    @default("motorcycle") // motorcycle, car, truck, other
+  brand           String?
+  model           String?
+  year            Int?
+  color           String?
+  tankCapacity    Float?    // in gallons
+  fuelType        String?   // gasoline, diesel, electric
+  currentKm       Float     @default(0)
+  icon            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fuelLogs        FuelLog[]
+  maintenanceRecords MaintenanceRecord[]
+
+  @@map("vehicles")
+}
+
+model FuelLog {
+  id              String    @id @default(cuid())
+  vehicleId       String
+  date            DateTime
+  km              Float
+  amount          Float     // Money paid
+  pricePerGallon  Float     // Fuel price per gallon
+  gallons         Float     // Calculated: amount / pricePerGallon
+  isFullTank      Boolean   @default(true)
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@map("fuel_logs")
+}
+
+model MaintenanceRecord {
+  id              String    @id @default(cuid())
+  vehicleId       String
+  type            String    // oil_change, tire_change, brake_service, general, other
+  description     String
+  cost            Float
+  km              Float
+  date            DateTime
+  nextDueKm       Float?
+  nextDueDate     DateTime?
+  reminderEnabled Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_records")
+}
+
+// ============================================
+// HEALTH MODULE
+// ============================================
+
+model Medication {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  dosage          String
+  frequency       String    @default("daily") // daily, twice_daily, weekly, as_needed, custom
+  customSchedule  String?   // JSON for custom schedule
+  disease         String?
+  howToTake       String?   // with_food, without_food, morning, night
+  startDate       DateTime?
+  endDate         DateTime?
+  isActive        Boolean   @default(true)
+  reminderEnabled Boolean   @default(true)
+  reminderTimes   String?   // JSON array of times e.g. ["08:00","20:00"]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("medications")
+}
+
+model MedicalAppointment {
+  id              String    @id @default(cuid())
+  userId          String
+  doctorName      String?
+  specialty       String?
+  location        String?
+  date            DateTime
+  notes           String?
+  reminderEnabled Boolean   @default(true)
+  status          String    @default("scheduled") // scheduled, completed, cancelled
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("medical_appointments")
+}
+
+// ============================================
+// PANTRY MODULE
+// ============================================
+
+model PantryItem {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  category        String?   // dairy, meat, vegetables, fruits, grains, beverages, snacks, condiments, other
+  quantity        Float
+  unit            String    @default("unit") // unit, lb, kg, g, oz, ml, l, package, bottle, can
+  expirationDate  DateTime?
+  purchaseDate    DateTime?
+  purchasePrice   Float?
+  minStock        Float?    // Minimum stock threshold
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("pantry_items")
+}
+
+model ShoppingList {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String    @default("Lista de Mercado")
+  status          String    @default("draft") // draft, shopping, verified, completed
+  profileId       String?   // Health profile to consider
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           ShoppingListItem[]
+
+  @@map("shopping_lists")
+}
+
+model ShoppingListItem {
+  id              String    @id @default(cuid())
+  shoppingListId  String
+  name            String
+  quantity        Float
+  unit            String    @default("unit")
+  estimatedPrice  Float?
+  actualPrice     Float?
+  isPurchased     Boolean   @default(false)
+  checked         Boolean   @default(false)
+  pantryItemId    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  shoppingList    ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+
+  @@map("shopping_list_items")
+}
+
+model HealthProfile {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  type            String    @default("owner") // owner, guest
+  diseases        String?   // JSON array of diseases
+  restrictions    String?   // JSON array of food restrictions
+  aiRestrictions  String?   // AI-generated restrictions based on diseases
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("health_profiles")
+}
+
+// ============================================
+// FUEL PRICE PARAMETER
+// ============================================
+
+model FuelPrice {
+  id              String    @id @default(cuid())
+  userId          String
+  fuelType        String    @default("gasoline")
+  pricePerGallon  Float
+  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime  @default(now())
+
+  @@map("fuel_prices")
+}
+
+// ============================================
+// USER SETTINGS
+// ============================================
+
+model UserSettings {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  theme               String    @default("light") // light, dark, system
+  budgetCutoffDay     Int       @default(1) // Day of month (1-31) for budget period start
+  respectHolidays     Boolean   @default(true) // Consider holidays for business day calculation
+  countryCode         String    @default("CO") // For holiday calculations
+  lastBudgetReset     DateTime? // When budgets were last reset
+  notificationsEnabled Boolean  @default(true) // Global notifications toggle
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}

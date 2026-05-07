@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+*/dist/
+*/.next/
+*/out/
+*/build/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+Aura-IA/firebase-key.json
+Aura-IA/credentials.json
+Aura-IA/.env
+Qapital-App/.env
+
+# Databases
+*.db
+*.sqlite
+Aura-IA/memory.db
+Qapital-App/db/custom.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+temp/
+*/temp/
+*.log
+*.tmp
+Aura-IA/test.mp3
+Aura-IA/out_*.mp3
+
+# IDEs
+.vscode/
+.idea/

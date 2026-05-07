@@ -1,0 +1,114 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { getCurrentBudgetPeriod, needsBudgetReset } from "@/lib/holidays";
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    // Get or create settings
+    let settings = await db.userSettings.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!settings) {
+      settings = await db.userSettings.create({
+        data: { userId: session.user.id },
+      });
+    }
+
+    // Calculate current budget period info
+    const period = getCurrentBudgetPeriod(
+      settings.budgetCutoffDay,
+      settings.respectHolidays
+    );
+    const needsReset = needsBudgetReset(settings.lastBudgetReset, period.start);
+
+    return NextResponse.json({
+      ...settings,
+      currentPeriod: {
+        start: period.start.toISOString(),
+        end: period.end.toISOString(),
+      },
+      needsBudgetReset: needsReset,
+    });
+  } catch (error) {
+    console.error("Get settings error:", error);
+    const message = error instanceof Error ? error.message : "Error al obtener configuración";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const {
+      theme,
+      budgetCutoffDay,
+      respectHolidays,
+      countryCode,
+      notificationsEnabled,
+    } = body;
+
+    // Validate cutoff day
+    if (budgetCutoffDay !== undefined && (budgetCutoffDay < 1 || budgetCutoffDay > 31)) {
+      return NextResponse.json(
+        { error: "El día de corte debe estar entre 1 y 31" },
+        { status: 400 }
+      );
+    }
+
+    // Validate theme
+    if (theme && !["light", "dark", "system"].includes(theme)) {
+      return NextResponse.json(
+        { error: "Tema no válido" },
+        { status: 400 }
+      );
+    }
+
+    const data: Record<string, unknown> = {};
+    if (theme !== undefined) data.theme = theme;
+    if (budgetCutoffDay !== undefined) data.budgetCutoffDay = budgetCutoffDay;
+    if (respectHolidays !== undefined) data.respectHolidays = respectHolidays;
+    if (countryCode !== undefined) data.countryCode = countryCode;
+    if (notificationsEnabled !== undefined) data.notificationsEnabled = notificationsEnabled;
+
+    const settings = await db.userSettings.upsert({
+      where: { userId: session.user.id },
+      update: data,
+      create: {
+        userId: session.user.id,
+        ...data,
+      },
+    });
+
+    // Calculate updated period info
+    const period = getCurrentBudgetPeriod(
+      settings.budgetCutoffDay,
+      settings.respectHolidays
+    );
+    const needsReset = needsBudgetReset(settings.lastBudgetReset, period.start);
+
+    return NextResponse.json({
+      ...settings,
+      currentPeriod: {
+        start: period.start.toISOString(),
+        end: period.end.toISOString(),
+      },
+      needsBudgetReset: needsReset,
+    });
+  } catch (error) {
+    console.error("Update settings error:", error);
+    return NextResponse.json({ error: "Error al actualizar configuración" }, { status: 500 });
+  }
+}

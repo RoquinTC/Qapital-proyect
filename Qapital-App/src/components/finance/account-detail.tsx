@@ -1,0 +1,1366 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useAppStore } from "@/lib/store";
+import { apiFetch, formatCurrency, formatDate, parseLocalDate, toColombiaDateString } from "@/lib/api";
+import { AccountCard } from "./account-card";
+import { AccountForm } from "./account-form";
+import { SubAccountForm } from "./sub-account-form";
+import { TransactionForm } from "./transaction-form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Plus,
+  ArrowLeft,
+  TrendingUp,
+  Users,
+  Trash2,
+  Pencil,
+  ChevronRight,
+  PiggyBank,
+  ArrowUpRight,
+  ArrowDownRight,
+  Repeat,
+  ChevronDown,
+  X,
+  Check,
+  Loader2,
+  DollarSign,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+
+// Color config per transaction type
+const typeConfig = {
+  income: {
+    color: "#10B981",
+    bgLight: "#ECFDF5",
+    bgDark: "rgba(16,185,129,0.1)",
+    textClass: "text-emerald-600",
+    badgeBg: "bg-emerald-50 dark:bg-emerald-900/30",
+    badgeText: "text-emerald-600 dark:text-emerald-400",
+    label: "Ingreso",
+    icon: ArrowUpRight,
+  },
+  expense: {
+    color: "#EF4444",
+    bgLight: "#FEF2F2",
+    bgDark: "rgba(239,68,68,0.1)",
+    textClass: "text-red-500",
+    badgeBg: "bg-red-50 dark:bg-red-900/30",
+    badgeText: "text-red-500 dark:text-red-400",
+    label: "Gasto",
+    icon: ArrowDownRight,
+  },
+  transfer: {
+    color: "#3B82F6",
+    bgLight: "#EFF6FF",
+    bgDark: "rgba(59,130,246,0.1)",
+    textClass: "text-blue-500",
+    badgeBg: "bg-blue-50 dark:bg-blue-900/30",
+    badgeText: "text-blue-500 dark:text-blue-400",
+    label: "Transferencia",
+    icon: Repeat,
+  },
+} as const;
+
+interface SubAccount {
+  id: string;
+  name: string;
+  type: string;
+  balance: number;
+  isHighYield: boolean;
+  yieldPercentage?: number | null;
+  color?: string | null;
+  icon?: string | null;
+}
+
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  description: string;
+  category?: string | null;
+  subCategory?: string | null;
+  date: string;
+  subAccountId?: string | null;
+  subAccount?: { id: string; name: string } | null;
+  account?: { id: string; name: string; color: string } | null;
+  notes?: string | null;
+  accountId?: string | null;
+  transferToAccount?: { id: string; name: string; color: string } | null;
+  isTransferCounterpart?: boolean;
+  transferFromAccount?: { id: string; name: string; color: string } | null;
+}
+
+interface Account {
+  id: string;
+  name: string;
+  type: string;
+  color: string;
+  icon?: string | null;
+  balance: number;
+  isHighYield: boolean;
+  yieldPercentage?: number | null;
+  isShared: boolean;
+  subAccounts: SubAccount[];
+  sharedUsers: Array<{
+    id: string;
+    user: { name: string; email: string };
+  }>;
+  transactions: Transaction[];
+}
+
+const subTypeLabels: Record<string, string> = {
+  pocket: "Bolsillo",
+  piggy_bank: "Alcancía",
+  savings_box: "Cajita",
+  other: "Otro",
+};
+
+interface CategoryData {
+  name: string;
+  subcategories: string[];
+}
+
+export function AccountDetail() {
+  const { setFinanceSubView } = useAppStore();
+  const [account, setAccount] = useState<Account | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [showSubAccountForm, setShowSubAccountForm] = useState(false);
+  const [showAccountForm, setShowAccountForm] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSubDeleteDialog, setShowSubDeleteDialog] = useState<string | null>(null);
+  const [showTxDeleteDialog, setShowTxDeleteDialog] = useState<string | null>(null);
+  const [editingSubAccount, setEditingSubAccount] = useState<SubAccount | null>(null);
+  const [expandedSubAccount, setExpandedSubAccount] = useState<string | null>(null);
+  const [subTransactions, setSubTransactions] = useState<Record<string, Transaction[]>>({});
+  const [cashbackMode, setCashbackMode] = useState(false);
+
+  // Inline edit state
+  const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
+  const [editingTxId, setEditingTxId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [editType, setEditType] = useState("expense");
+  const [editAmount, setEditAmount] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editSubCategory, setEditSubCategory] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
+  // Categories from API
+  const [categories, setCategories] = useState<CategoryData[]>([]);
+
+  const [selectedAccountId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("selectedAccountId");
+    }
+    return null;
+  });
+
+  const [refreshKey, setRefreshKey] = useState(0);
+  const fetchAccount = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  useEffect(() => {
+    if (!selectedAccountId) return;
+    let cancelled = false;
+    apiFetch<Account[]>("/api/accounts")
+      .then((accounts) => {
+        if (cancelled) return;
+        const found = accounts.find((a) => a.id === selectedAccountId);
+        if (found) setAccount(found);
+      })
+      .catch((error) => console.error("Error fetching account:", error));
+
+    apiFetch<Transaction[]>(`/api/transactions?accountId=${selectedAccountId}`)
+      .then((txs) => {
+        if (cancelled) return;
+        setTransactions(txs.slice(0, 50));
+      })
+      .catch((error) => console.error("Error fetching transactions:", error));
+
+    return () => { cancelled = true; };
+  }, [selectedAccountId, refreshKey]);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const data = await apiFetch<Record<string, CategoryData[]>>(`/api/categories?type=${editType}`);
+      setCategories(data[editType] || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  }, [editType]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  const fetchSubTransactions = useCallback(async (subAccountId: string) => {
+    try {
+      const txs = await apiFetch<Transaction[]>(`/api/transactions?subAccountId=${subAccountId}`);
+      setSubTransactions((prev) => ({ ...prev, [subAccountId]: txs }));
+    } catch (error) {
+      console.error("Error fetching sub-account transactions:", error);
+    }
+  }, []);
+
+  const handleExpandSubAccount = (subId: string) => {
+    if (expandedSubAccount === subId) {
+      setExpandedSubAccount(null);
+    } else {
+      setExpandedSubAccount(subId);
+      fetchSubTransactions(subId);
+    }
+  };
+
+  const handleDeleteSubAccount = async (subId: string) => {
+    try {
+      await apiFetch(`/api/accounts/${account!.id}/sub-accounts/${subId}`, {
+        method: "DELETE",
+      });
+      toast.success("Bolsillo eliminado");
+      fetchAccount();
+    } catch (error) {
+      console.error("Error deleting sub-account:", error);
+      toast.error("Error al eliminar bolsillo");
+    }
+    setShowSubDeleteDialog(null);
+  };
+
+  const handleDeleteTransaction = async (txId: string) => {
+    try {
+      await apiFetch(`/api/transactions/${txId}`, { method: "DELETE" });
+      toast.success("Transacción eliminada");
+      fetchAccount();
+      // Refresh sub-transactions for any expanded sub-account
+      if (expandedSubAccount) {
+        fetchSubTransactions(expandedSubAccount);
+      }
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      toast.error("Error al eliminar transacción");
+    }
+    setShowTxDeleteDialog(null);
+  };
+
+  // Inline edit handlers
+  const handleExpandTx = (tx: Transaction) => {
+    if (expandedTxId === tx.id) {
+      setExpandedTxId(null);
+      setEditingTxId(null);
+    } else {
+      setExpandedTxId(tx.id);
+      setEditingTxId(null);
+      setEditType(tx.type);
+      setEditAmount(tx.amount.toString());
+      setEditDescription(tx.description);
+      setEditCategory(tx.category || "");
+      setEditSubCategory(tx.subCategory || "");
+      setEditDate(tx.date ? toColombiaDateString(tx.date) : "");
+      setEditNotes(tx.notes || "");
+    }
+  };
+
+  // Helper: find a transaction across main and sub-account lists
+  const findTransactionById = (id: string | null) => {
+    if (!id) return null;
+    return transactions.find((t) => t.id === id)
+      || Object.values(subTransactions).flat().find((t) => t.id === id);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTxId(null);
+    const tx = findTransactionById(expandedTxId);
+    if (tx) {
+      setEditType(tx.type);
+      setEditAmount(tx.amount.toString());
+      setEditDescription(tx.description);
+      setEditCategory(tx.category || "");
+      setEditSubCategory(tx.subCategory || "");
+      setEditDate(tx.date ? toColombiaDateString(tx.date) : "");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!expandedTxId || !editAmount || !editDescription) return;
+    setSaving(true);
+    try {
+      const originalTx = findTransactionById(expandedTxId);
+      await apiFetch(`/api/transactions/${expandedTxId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          type: editType,
+          amount: parseFloat(editAmount),
+          description: editDescription,
+          accountId: originalTx?.accountId || account?.id || null,
+          subAccountId: originalTx?.subAccountId || null,
+          category: editType !== "transfer" ? (editCategory || "Otros") : null,
+          subCategory: editType !== "transfer" ? (editSubCategory || null) : null,
+          date: editDate,
+          notes: editNotes || null,
+        }),
+      });
+      toast.success("Transacción actualizada");
+      setEditingTxId(null);
+      setExpandedTxId(null);
+      fetchAccount();
+      // Refresh sub-transactions if editing a sub-account tx
+      if (expandedSubAccount) {
+        fetchSubTransactions(expandedSubAccount);
+      }
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      toast.error("Error al actualizar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!account) {
+    return (
+      <div className="p-4 pb-24">
+        <Button
+          variant="ghost"
+          onClick={() => setFinanceSubView("accounts")}
+          className="mb-4"
+        >
+          <ArrowLeft className="size-4 mr-2" />
+          Volver
+        </Button>
+        <p className="text-gray-500 text-center mt-8">Cargando...</p>
+      </div>
+    );
+  }
+
+  const projectedYield = account.isHighYield && account.yieldPercentage
+    ? (account.balance * (account.yieldPercentage / 100)) / 12
+    : 0;
+
+  const mainTransactions = transactions.filter((tx) => !tx.subAccountId);
+  const currentCategoryData = categories.find((c) => c.name === editCategory);
+  const availableSubCategories = currentCategoryData?.subcategories || [];
+
+  return (
+    <div className="p-4 space-y-4 pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setFinanceSubView("accounts")}
+          className="rounded-xl"
+        >
+          <ArrowLeft className="size-4 mr-1" />
+          Volver
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-xl"
+            onClick={() => setShowAccountForm(true)}
+          >
+            <Pencil className="size-4 text-emerald-600" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-xl"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="size-4 text-red-500" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Account Card */}
+      <AccountCard account={account} />
+
+      {/* Yield Info */}
+      {account.isHighYield && projectedYield > 0 && (
+        <Card className="border-0 shadow-md rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="size-4 text-emerald-500" />
+              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                Rendimiento Proyectado
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-emerald-600">
+              {formatCurrency(projectedYield)}
+              <span className="text-xs font-normal text-emerald-500 ml-1">/mes</span>
+            </p>
+            <p className="text-[10px] text-gray-400 mt-1">
+              Basado en {account.yieldPercentage}% anual
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Shared Users */}
+      {account.isShared && account.sharedUsers.length > 0 && (
+        <Card className="border-0 shadow-md rounded-2xl">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="size-4 text-blue-500" />
+              <span className="text-sm font-semibold">Compartida con</span>
+            </div>
+            <div className="space-y-2">
+              {account.sharedUsers.map((su) => (
+                <div key={su.id} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{su.user.name}</span>
+                  <span className="text-[10px] text-gray-400">{su.user.email}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sub-Accounts - ONLY show when there are sub-accounts */}
+      {account.subAccounts.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+              Bolsillos ({account.subAccounts.length})
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs"
+              onClick={() => {
+                setEditingSubAccount(null);
+                setShowSubAccountForm(true);
+              }}
+            >
+              <Plus className="size-3 mr-1" />
+              Agregar
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {account.subAccounts.map((sub) => {
+              const subColor = sub.color || "#10B981";
+              const isExpanded = expandedSubAccount === sub.id;
+              const subTxs = subTransactions[sub.id] || [];
+              const subYield = sub.isHighYield && sub.yieldPercentage
+                ? (sub.balance * (sub.yieldPercentage / 100)) / 12
+                : 0;
+
+              return (
+                <motion.div key={sub.id} layout initial={false} animate={{ opacity: 1 }}>
+                  <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+                    <CardContent className="p-3 cursor-pointer" onClick={() => handleExpandSubAccount(sub.id)}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="size-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${subColor}20` }}>
+                            <PiggyBank className="size-5" style={{ color: subColor }} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{sub.name}</p>
+                            <span className="text-[10px] text-gray-400">
+                              {subTypeLabels[sub.type] || "Otro"}
+                              {sub.isHighYield && ` · ${sub.yieldPercentage}% anual`}
+                            </span>
+                            {subYield > 0 && (
+                              <span className="block text-[10px] text-emerald-500 font-medium">
+                                +{formatCurrency(subYield)}/mes rendimiento estimado
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-gray-900 dark:text-white">
+                            {formatCurrency(sub.balance)}
+                          </span>
+                          <motion.div animate={{ rotate: isExpanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
+                            <ChevronRight className="size-4 text-gray-400" />
+                          </motion.div>
+                        </div>
+                      </div>
+                    </CardContent>
+
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-3 pb-3 space-y-2">
+                            <div className="flex items-center gap-2 pt-1 pb-2 border-t border-gray-100 dark:border-gray-700">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-xl text-[11px] h-7 flex-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingSubAccount(sub);
+                                  setShowSubAccountForm(true);
+                                }}
+                              >
+                                <Pencil className="size-3 mr-1" /> Editar
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-xl text-[11px] h-7 flex-1 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowSubDeleteDialog(sub.id);
+                                }}
+                              >
+                                <Trash2 className="size-3 mr-1" /> Eliminar
+                              </Button>
+                            </div>
+
+                            {subTxs.length > 0 ? (
+                              <div className="space-y-1.5">
+                                <span className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Movimientos</span>
+                                {subTxs.map((tx) => {
+                                  const txType = (tx.type as keyof typeof typeConfig) || "expense";
+                                  const config = typeConfig[txType] || typeConfig.expense;
+                                  const TxIcon = config.icon;
+                                  const isExpanded = expandedTxId === tx.id;
+                                  const isEditing = editingTxId === tx.id;
+
+                                  return (
+                                    <motion.div
+                                      key={tx.id}
+                                      layout
+                                      className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden"
+                                      style={{ borderLeft: `4px solid ${config.color}` }}
+                                    >
+                                      {/* Main Row */}
+                                      <button
+                                        onClick={() => handleExpandTx(tx)}
+                                        className="w-full flex items-center justify-between p-2.5 text-left"
+                                      >
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                          <div
+                                            className="size-8 rounded-lg flex items-center justify-center shrink-0"
+                                            style={{ backgroundColor: config.bgLight }}
+                                          >
+                                            <TxIcon className="size-3.5" style={{ color: config.color }} />
+                                          </div>
+                                          <div className="min-w-0">
+                                            <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                                              {tx.description}
+                                            </p>
+                                            <div className="flex items-center gap-1.5">
+                                              <span
+                                                className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
+                                              >
+                                                {config.label}
+                                              </span>
+                                              {tx.category && (
+                                                <span className="text-[9px] text-gray-400">
+                                                  {tx.category}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                          <span
+                                            className="text-xs font-bold"
+                                            style={{ color: config.color }}
+                                          >
+                                            {tx.type === "income" ? "+" : tx.type === "transfer" ? "↔" : "-"}
+                                            {formatCurrency(Math.abs(tx.amount))}
+                                          </span>
+                                          <motion.div
+                                            animate={{ rotate: isExpanded ? 180 : 0 }}
+                                            transition={{ duration: 0.2 }}
+                                          >
+                                            <ChevronDown className="size-3 text-gray-300" />
+                                          </motion.div>
+                                        </div>
+                                      </button>
+
+                                      {/* Expanded Detail */}
+                                      <AnimatePresence>
+                                        {isExpanded && (
+                                          <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="overflow-hidden"
+                                          >
+                                            <div className="border-t border-gray-100 dark:border-gray-700">
+                                              {!isEditing ? (
+                                                /* Detail View */
+                                                <div className="p-3 space-y-2">
+                                                  <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                      <span className="text-[9px] text-gray-400 uppercase tracking-wider">Tipo</span>
+                                                      <span className={`block text-[11px] font-medium ${config.badgeText}`}>
+                                                        {config.label}
+                                                      </span>
+                                                    </div>
+                                                    <div>
+                                                      <span className="text-[9px] text-gray-400 uppercase tracking-wider">Monto</span>
+                                                      <span className="block text-[11px] font-bold" style={{ color: config.color }}>
+                                                        {tx.type === "income" ? "+" : "-"}
+                                                        {formatCurrency(Math.abs(tx.amount))}
+                                                      </span>
+                                                    </div>
+                                                    <div>
+                                                      <span className="text-[9px] text-gray-400 uppercase tracking-wider">Categoría</span>
+                                                      <span className="block text-[11px] text-gray-700 dark:text-gray-300">
+                                                        {tx.category || "Sin categoría"}
+                                                      </span>
+                                                    </div>
+                                                    <div>
+                                                      <span className="text-[9px] text-gray-400 uppercase tracking-wider">Fecha</span>
+                                                      <span className="block text-[11px] text-gray-700 dark:text-gray-300">
+                                                        {formatDate(tx.date)}
+                                                      </span>
+                                                    </div>
+                                                    {tx.notes && (
+                                                      <div className="col-span-2">
+                                                        <span className="text-[9px] text-gray-400 uppercase tracking-wider">Notas</span>
+                                                        <span className="block text-[11px] text-gray-700 dark:text-gray-300">
+                                                          {tx.notes}
+                                                        </span>
+                                                      </div>
+                                                    )}
+                                                  </div>
+
+                                                  <div className="flex gap-2 pt-1">
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                      className="flex-1 rounded-xl text-[10px] h-8"
+                                                      onClick={() => setEditingTxId(expandedTxId)}
+                                                    >
+                                                      <Pencil className="size-3 mr-1" />
+                                                      Editar
+                                                    </Button>
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                      className="flex-1 rounded-xl text-[10px] h-8 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
+                                                      onClick={() => setShowTxDeleteDialog(tx.id)}
+                                                    >
+                                                      <Trash2 className="size-3 mr-1" />
+                                                      Eliminar
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                /* Inline Edit Form */
+                                                <div className="p-3 space-y-2 bg-gray-50/50 dark:bg-gray-800/50">
+                                                  <div className="flex items-center justify-between mb-1">
+                                                    <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                                                      Editar
+                                                    </span>
+                                                    <button
+                                                      onClick={handleCancelEdit}
+                                                      className="size-5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"
+                                                    >
+                                                      <X className="size-3 text-gray-400" />
+                                                    </button>
+                                                  </div>
+
+                                                  {/* Type Selector */}
+                                                  <div className="flex gap-1">
+                                                    {(["income", "expense", "transfer"] as const).map((t) => {
+                                                      const tConfig = typeConfig[t];
+                                                      const TIcon = tConfig.icon;
+                                                      const isActive = editType === t;
+                                                      return (
+                                                        <button
+                                                          key={t}
+                                                          onClick={() => {
+                                                            setEditType(t);
+                                                            setEditCategory("");
+                                                          }}
+                                                          className={`flex-1 py-1.5 rounded-lg text-[9px] font-medium flex items-center justify-center gap-1 transition-all ${
+                                                            isActive
+                                                              ? `${tConfig.badgeBg} ${tConfig.badgeText} border`
+                                                              : "bg-white dark:bg-gray-800 text-gray-400 border border-transparent"
+                                                          }`}
+                                                          style={isActive ? { borderColor: tConfig.color } : {}}
+                                                        >
+                                                          <TIcon className="size-2.5" />
+                                                          {tConfig.label}
+                                                        </button>
+                                                      );
+                                                    })}
+                                                  </div>
+
+                                                  {/* Amount */}
+                                                  <div className="space-y-1">
+                                                    <Label className="text-[9px]">Monto</Label>
+                                                    <CurrencyInput
+                                                      value={editAmount}
+                                                      onChange={setEditAmount}
+                                                      showPrefix
+                                                      placeholder="0"
+                                                      className="text-xs font-bold rounded-lg h-8"
+                                                    />
+                                                  </div>
+
+                                                  {/* Description */}
+                                                  <div className="space-y-1">
+                                                    <Label className="text-[9px]">Descripción</Label>
+                                                    <Input
+                                                      value={editDescription}
+                                                      onChange={(e) => setEditDescription(e.target.value)}
+                                                      className="rounded-lg h-8 text-xs"
+                                                    />
+                                                  </div>
+
+                                                  {/* Category */}
+                                                  {editType !== "transfer" && (
+                                                    <div className="space-y-1">
+                                                      <Label className="text-[9px]">Categoría</Label>
+                                                      <Select value={editCategory} onValueChange={(v) => { setEditCategory(v); setEditSubCategory(""); }}>
+                                                        <SelectTrigger className="rounded-lg h-8 text-xs">
+                                                          <SelectValue placeholder="Seleccionar" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                          {categories.map((cat) => (
+                                                            <SelectItem key={cat.name} value={cat.name}>
+                                                              {cat.name}
+                                                            </SelectItem>
+                                                          ))}
+                                                        </SelectContent>
+                                                      </Select>
+                                                    </div>
+                                                  )}
+
+                                                  {/* SubCategory */}
+                                                  {editType !== "transfer" && editCategory && (
+                                                    <div className="space-y-1">
+                                                      <Label className="text-[9px]">Subcategoría</Label>
+                                                      {availableSubCategories.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mb-1">
+                                                          {availableSubCategories.map((sub) => (
+                                                            <button
+                                                              key={sub}
+                                                              onClick={() => setEditSubCategory(sub === editSubCategory ? "" : sub)}
+                                                              className={`px-1.5 py-0.5 rounded-md text-[8px] font-medium transition-all ${
+                                                                sub === editSubCategory
+                                                                  ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                                                                  : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
+                                                              }`}
+                                                            >
+                                                              {sub}
+                                                            </button>
+                                                          ))}
+                                                        </div>
+                                                      )}
+                                                      <Input
+                                                        value={editSubCategory}
+                                                        onChange={(e) => setEditSubCategory(e.target.value)}
+                                                        placeholder="Opcional..."
+                                                        className="rounded-lg h-7 text-[10px]"
+                                                      />
+                                                    </div>
+                                                  )}
+
+                                                  {/* Date */}
+                                                  <div className="space-y-1">
+                                                    <Label className="text-[9px]">Fecha</Label>
+                                                    <Input
+                                                      type="date"
+                                                      value={editDate}
+                                                      onChange={(e) => setEditDate(e.target.value)}
+                                                      className="rounded-lg h-8 text-xs"
+                                                    />
+                                                  </div>
+
+                                                  {/* Notes */}
+                                                  <div className="space-y-1">
+                                                    <Label className="text-[9px]">Notas</Label>
+                                                    <Input
+                                                      value={editNotes}
+                                                      onChange={(e) => setEditNotes(e.target.value)}
+                                                      placeholder="Opcional..."
+                                                      className="rounded-lg h-8 text-xs"
+                                                    />
+                                                  </div>
+
+                                                  {/* Save / Cancel */}
+                                                  <div className="flex gap-2 pt-1">
+                                                    <Button
+                                                      variant="outline"
+                                                      size="sm"
+                                                      className="flex-1 rounded-xl text-[10px] h-8"
+                                                      onClick={handleCancelEdit}
+                                                      disabled={saving}
+                                                    >
+                                                      Cancelar
+                                                    </Button>
+                                                    <Button
+                                                      size="sm"
+                                                      className="flex-1 rounded-xl text-[10px] h-8 text-white"
+                                                      style={{ backgroundColor: config.color }}
+                                                      onClick={handleSaveEdit}
+                                                      disabled={saving || !editAmount || !editDescription}
+                                                    >
+                                                      {saving ? (
+                                                        <Loader2 className="size-3 animate-spin mr-1" />
+                                                      ) : (
+                                                        <Check className="size-3 mr-1" />
+                                                      )}
+                                                      Guardar
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </motion.div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <p className="text-[11px] text-gray-400 text-center py-2">Sin movimientos registrados</p>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Add Sub-Account mini button - only when no sub-accounts exist */}
+      {account.subAccounts.length === 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full rounded-xl text-xs text-gray-400 hover:text-emerald-600"
+          onClick={() => {
+            setEditingSubAccount(null);
+            setShowSubAccountForm(true);
+          }}
+        >
+          <PiggyBank className="size-3.5 mr-1" />
+          Crear bolsillo
+        </Button>
+      )}
+
+      <Separator />
+
+      {/* Recent Transactions */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Transacciones Recientes
+          </h3>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300"
+              onClick={() => {
+                setCashbackMode(true);
+                setEditingTransaction(null);
+                setShowTransactionForm(true);
+              }}
+            >
+              <DollarSign className="size-3 mr-1" />
+              Cashback
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs"
+              onClick={() => {
+                setCashbackMode(false);
+                setEditingTransaction(null);
+                setShowTransactionForm(true);
+              }}
+            >
+              <Plus className="size-3 mr-1" />
+              Agregar
+            </Button>
+          </div>
+        </div>
+
+        {mainTransactions.length === 0 ? (
+          <Card className="border-0 shadow-sm rounded-2xl bg-gray-50 dark:bg-gray-800/50">
+            <CardContent className="p-6 text-center">
+              <p className="text-sm text-gray-400">Sin transacciones</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {mainTransactions.map((tx) => {
+              const txType = (tx.type as keyof typeof typeConfig) || "expense";
+              const config = typeConfig[txType] || typeConfig.expense;
+              const TxIcon = config.icon;
+              const isExpanded = expandedTxId === tx.id;
+              const isEditing = editingTxId === tx.id;
+
+              return (
+                <motion.div
+                  key={tx.id}
+                  layout
+                  className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden"
+                  style={{ borderLeft: `4px solid ${config.color}` }}
+                >
+                  {/* Main Row */}
+                  <button
+                    onClick={() => handleExpandTx(tx)}
+                    className="w-full flex items-center justify-between p-3 text-left"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="size-9 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: config.bgLight }}
+                      >
+                        <TxIcon className="size-4" style={{ color: config.color }} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {tx.description}
+                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
+                          >
+                            {config.label}
+                          </span>
+                          {tx.category && (
+                            <span className="text-[10px] text-gray-400">
+                              {tx.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <span
+                        className="text-sm font-bold"
+                        style={{ color: config.color }}
+                      >
+                        {tx.type === "income" ? "+" : tx.type === "transfer" ? "↔" : "-"}
+                        {formatCurrency(Math.abs(tx.amount))}
+                      </span>
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronDown className="size-4 text-gray-300" />
+                      </motion.div>
+                    </div>
+                  </button>
+
+                  {/* Expanded Detail */}
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="border-t border-gray-100 dark:border-gray-700">
+                          {!isEditing ? (
+                            /* Detail View */
+                            <div className="p-4 space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Tipo</span>
+                                  <span className={`block text-xs font-medium ${config.badgeText}`}>
+                                    {config.label}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Monto</span>
+                                  <span className="block text-xs font-bold" style={{ color: config.color }}>
+                                    {tx.type === "income" ? "+" : "-"}
+                                    {formatCurrency(Math.abs(tx.amount))}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Categoría</span>
+                                  <span className="block text-xs text-gray-700 dark:text-gray-300">
+                                    {tx.category || "Sin categoría"}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Fecha</span>
+                                  <span className="block text-xs text-gray-700 dark:text-gray-300">
+                                    {formatDate(tx.date)}
+                                  </span>
+                                </div>
+                                {tx.subAccount && (
+                                  <div>
+                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Bolsillo</span>
+                                    <span className="text-xs text-gray-700 dark:text-gray-300">
+                                      {tx.subAccount.name}
+                                    </span>
+                                  </div>
+                                )}
+                                {tx.type === "transfer" && tx.transferToAccount && (
+                                  <div>
+                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Hacia</span>
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="size-2 rounded-full" style={{ backgroundColor: tx.transferToAccount.color }} />
+                                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                                        {tx.transferToAccount.name}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                                {tx.notes && (
+                                  <div className="col-span-2">
+                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Notas</span>
+                                    <span className="block text-xs text-gray-700 dark:text-gray-300">
+                                      {tx.notes}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex gap-2 pt-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 rounded-xl text-xs h-9"
+                                  onClick={() => setEditingTxId(expandedTxId)}
+                                >
+                                  <Pencil className="size-3 mr-1" />
+                                  Editar
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 rounded-xl text-xs h-9 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
+                                  onClick={() => setShowTxDeleteDialog(tx.id)}
+                                >
+                                  <Trash2 className="size-3 mr-1" />
+                                  Eliminar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Inline Edit Form */
+                            <div className="p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/50">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                  Editar Transacción
+                                </span>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="size-6 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"
+                                >
+                                  <X className="size-3.5 text-gray-400" />
+                                </button>
+                              </div>
+
+                              {/* Type Selector */}
+                              <div className="flex gap-1.5">
+                                {(["income", "expense", "transfer"] as const).map((t) => {
+                                  const tConfig = typeConfig[t];
+                                  const TIcon = tConfig.icon;
+                                  const isActive = editType === t;
+                                  return (
+                                    <button
+                                      key={t}
+                                      onClick={() => {
+                                        setEditType(t);
+                                        setEditCategory("");
+                                      }}
+                                      className={`flex-1 py-2 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-all ${
+                                        isActive
+                                          ? `${tConfig.badgeBg} ${tConfig.badgeText} border`
+                                          : "bg-white dark:bg-gray-800 text-gray-400 border border-transparent"
+                                      }`}
+                                      style={isActive ? { borderColor: tConfig.color } : {}}
+                                    >
+                                      <TIcon className="size-3" />
+                                      {tConfig.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Amount */}
+                              <div className="space-y-1">
+                                <Label className="text-[10px]">Monto</Label>
+                                <CurrencyInput
+                                  value={editAmount}
+                                  onChange={setEditAmount}
+                                  showPrefix
+                                  placeholder="0"
+                                  className="text-sm font-bold rounded-lg h-10"
+                                />
+                              </div>
+
+                              {/* Description */}
+                              <div className="space-y-1">
+                                <Label className="text-[10px]">Descripción</Label>
+                                <Input
+                                  value={editDescription}
+                                  onChange={(e) => setEditDescription(e.target.value)}
+                                  className="rounded-lg h-9 text-sm"
+                                />
+                              </div>
+
+                              {/* Category */}
+                              {editType !== "transfer" && (
+                                <div className="space-y-1">
+                                  <Label className="text-[10px]">Categoría</Label>
+                                  <Select value={editCategory} onValueChange={(v) => { setEditCategory(v); setEditSubCategory(""); }}>
+                                    <SelectTrigger className="rounded-lg h-9 text-sm">
+                                      <SelectValue placeholder="Seleccionar" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {categories.map((cat) => (
+                                        <SelectItem key={cat.name} value={cat.name}>
+                                          {cat.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
+
+                              {/* SubCategory */}
+                              {editType !== "transfer" && editCategory && (
+                                <div className="space-y-1">
+                                  <Label className="text-[10px]">Subcategoría</Label>
+                                  {availableSubCategories.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mb-1">
+                                      {availableSubCategories.map((sub) => (
+                                        <button
+                                          key={sub}
+                                          onClick={() => setEditSubCategory(sub === editSubCategory ? "" : sub)}
+                                          className={`px-2 py-0.5 rounded-md text-[9px] font-medium transition-all ${
+                                            sub === editSubCategory
+                                              ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                                              : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
+                                          }`}
+                                        >
+                                          {sub}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <Input
+                                    value={editSubCategory}
+                                    onChange={(e) => setEditSubCategory(e.target.value)}
+                                    placeholder="Opcional..."
+                                    className="rounded-lg h-8 text-xs"
+                                  />
+                                </div>
+                              )}
+
+                              {/* Date */}
+                              <div className="space-y-1">
+                                <Label className="text-[10px]">Fecha</Label>
+                                <Input
+                                  type="date"
+                                  value={editDate}
+                                  onChange={(e) => setEditDate(e.target.value)}
+                                  className="rounded-lg h-9 text-sm"
+                                />
+                              </div>
+
+                              {/* Notes */}
+                              <div className="space-y-1">
+                                <Label className="text-[10px]">Notas</Label>
+                                <Input
+                                  value={editNotes}
+                                  onChange={(e) => setEditNotes(e.target.value)}
+                                  placeholder="Opcional..."
+                                  className="rounded-lg h-9 text-sm"
+                                />
+                              </div>
+
+                              {/* Save / Cancel */}
+                              <div className="flex gap-2 pt-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 rounded-xl text-xs h-9"
+                                  onClick={handleCancelEdit}
+                                  disabled={saving}
+                                >
+                                  Cancelar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="flex-1 rounded-xl text-xs h-9 text-white"
+                                  style={{ backgroundColor: config.color }}
+                                  onClick={handleSaveEdit}
+                                  disabled={saving || !editAmount || !editDescription}
+                                >
+                                  {saving ? (
+                                    <Loader2 className="size-3 animate-spin mr-1" />
+                                  ) : (
+                                    <Check className="size-3 mr-1" />
+                                  )}
+                                  Guardar
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Forms */}
+      <AccountForm
+        open={showAccountForm}
+        onOpenChange={setShowAccountForm}
+        account={account}
+        onSuccess={fetchAccount}
+      />
+
+      <TransactionForm
+        open={showTransactionForm}
+        onOpenChange={(open) => {
+          setShowTransactionForm(open);
+          if (!open) {
+            setEditingTransaction(null);
+            setCashbackMode(false);
+          }
+        }}
+        defaultAccountId={account.id}
+        defaultType={cashbackMode ? "income" : undefined}
+        defaultDescription={cashbackMode ? "Cashback" : undefined}
+        editTransaction={editingTransaction}
+        onSuccess={fetchAccount}
+      />
+
+      <SubAccountForm
+        open={showSubAccountForm}
+        onOpenChange={(open) => {
+          setShowSubAccountForm(open);
+          if (!open) setEditingSubAccount(null);
+        }}
+        accountId={account.id}
+        subAccount={editingSubAccount}
+        onSuccess={fetchAccount}
+      />
+
+      {/* Delete Account Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cuenta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminarán todas las transacciones y bolsillos asociados. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-xl bg-red-500 hover:bg-red-600"
+              onClick={async () => {
+                try {
+                  await apiFetch(`/api/accounts/${account.id}`, { method: "DELETE" });
+                  setFinanceSubView("accounts");
+                } catch (error) {
+                  console.error("Error deleting account:", error);
+                }
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Sub-Account Dialog */}
+      <AlertDialog open={!!showSubDeleteDialog} onOpenChange={() => setShowSubDeleteDialog(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar bolsillo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminarán todos los movimientos asociados a este bolsillo. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-xl bg-red-500 hover:bg-red-600"
+              onClick={() => showSubDeleteDialog && handleDeleteSubAccount(showSubDeleteDialog)}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Transaction Dialog */}
+      <AlertDialog open={!!showTxDeleteDialog} onOpenChange={() => setShowTxDeleteDialog(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const tx = findTransactionById(showTxDeleteDialog);
+                if (tx?.isTransferCounterpart) {
+                  return "Esta transacción es parte de una transferencia. Al eliminarla, también se eliminará la transacción en la cuenta origen y se ajustarán ambos balances. Esta acción no se puede deshacer.";
+                }
+                if (tx?.type === "transfer") {
+                  return "Esta es una transferencia. Al eliminarla, también se eliminará el registro en la cuenta destino y se ajustarán ambos balances. Esta acción no se puede deshacer.";
+                }
+                return "Se eliminará esta transacción y se ajustará el balance de la cuenta. Esta acción no se puede deshacer.";
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-xl bg-red-500 hover:bg-red-600"
+              onClick={() => showTxDeleteDialog && handleDeleteTransaction(showTxDeleteDialog)}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

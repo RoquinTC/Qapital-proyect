@@ -1,0 +1,7 @@
+node_modules/
+.env
+firebase-key.json
+memory.db
+temp/
+credentials.json
+out_*.mp3

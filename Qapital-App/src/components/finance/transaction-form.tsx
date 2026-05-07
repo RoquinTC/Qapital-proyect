@@ -1,0 +1,880 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogBody,
+  DialogStickyFooter,
+} from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { apiFetch, formatCurrency, parseLocalDate, getColombiaTodayString, toColombiaDateString } from "@/lib/api";
+import { Loader2, ArrowUpRight, ArrowDownRight, Repeat, PiggyBank, Plus, X, Check } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+interface CategoryData {
+  name: string;
+  subcategories: string[];
+}
+
+const quickAmounts = [10000, 20000, 50000, 100000];
+
+interface SubAccount {
+  id: string;
+  name: string;
+  type: string;
+  balance: number;
+  color?: string | null;
+}
+
+interface Account {
+  id: string;
+  name: string;
+  type: string;
+  color: string;
+  balance: number;
+  subAccounts: SubAccount[];
+}
+
+interface TransactionFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  defaultAccountId?: string;
+  defaultType?: string;
+  defaultDescription?: string;
+  editTransaction?: {
+    id: string;
+    type: string;
+    amount: number;
+    description: string;
+    accountId?: string | null;
+    subAccountId?: string | null;
+    category?: string | null;
+    subCategory?: string | null;
+    date: string;
+    notes?: string | null;
+  } | null;
+  onSuccess?: () => void;
+}
+
+export function TransactionForm({
+  open,
+  onOpenChange,
+  defaultAccountId,
+  defaultType,
+  defaultDescription,
+  editTransaction,
+  onSuccess,
+}: TransactionFormProps) {
+  const [loading, setLoading] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [type, setType] = useState(editTransaction?.type || defaultType || "expense");
+  const [amount, setAmount] = useState(editTransaction?.amount?.toString() || "");
+  const [description, setDescription] = useState(editTransaction?.description || defaultDescription || "");
+  const [accountId, setAccountId] = useState(editTransaction?.accountId || defaultAccountId || "");
+  const [subAccountId, setSubAccountId] = useState(editTransaction?.subAccountId || "");
+  const [toAccountId, setToAccountId] = useState("");
+  const [toSubAccountId, setToSubAccountId] = useState("");
+  const [category, setCategory] = useState(editTransaction?.category || "");
+  const [subCategory, setSubCategory] = useState(editTransaction?.subCategory || "");
+  const [date, setDate] = useState(
+    editTransaction?.date ? toColombiaDateString(editTransaction.date) : getColombiaTodayString()
+  );
+  const [notes, setNotes] = useState(editTransaction?.notes || "");
+
+  // Categories from API
+  const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [customCategory, setCustomCategory] = useState("");
+  const [useCustomCategory, setUseCustomCategory] = useState(false);
+  const [newSubCategory, setNewSubCategory] = useState("");
+  const [showNewSubCategory, setShowNewSubCategory] = useState(false);
+
+  const isEditing = !!editTransaction;
+  const isMobile = useIsMobile();
+
+  // Get sub-accounts for selected account
+  const selectedAccount = accounts.find((a) => a.id === accountId);
+  const subAccounts = selectedAccount?.subAccounts || [];
+
+  const toAccount = accounts.find((a) => a.id === toAccountId);
+  const toSubAccounts = toAccount?.subAccounts || [];
+
+  // Get subcategories for current category
+  const currentCategoryData = categories.find((c) => c.name === category);
+  const availableSubCategories = currentCategoryData?.subcategories || [];
+
+  useEffect(() => {
+    if (editTransaction) {
+      setType(editTransaction.type);
+      setAmount(editTransaction.amount.toString());
+      setDescription(editTransaction.description);
+      setAccountId(editTransaction.accountId || "");
+      setSubAccountId(editTransaction.subAccountId || "");
+      setCategory(editTransaction.category || "");
+      setSubCategory(editTransaction.subCategory || "");
+      setDate(toColombiaDateString(editTransaction.date));
+      setNotes(editTransaction.notes || "");
+    } else if (defaultDescription) {
+      setDescription(defaultDescription);
+    }
+  }, [editTransaction, defaultDescription]);
+
+  useEffect(() => {
+    if (defaultAccountId) setAccountId(defaultAccountId);
+    if (defaultType) setType(defaultType);
+  }, [defaultAccountId, defaultType]);
+
+  const fetchAccounts = useCallback(async () => {
+    try {
+      const data = await apiFetch<Account[]>("/api/accounts");
+      setAccounts(data);
+      if (!defaultAccountId && !editTransaction && data.length > 0) {
+        setAccountId(data[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+    }
+  }, [defaultAccountId, editTransaction]);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const data = await apiFetch<Record<string, CategoryData[]>>("/api/categories");
+      setCategories(data[type] || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  }, [type]);
+
+  useEffect(() => {
+    if (open) fetchAccounts();
+  }, [open, fetchAccounts]);
+
+  useEffect(() => {
+    if (open) fetchCategories();
+  }, [open, fetchCategories]);
+
+  // When type changes, reset category and subcategory
+  useEffect(() => {
+    if (!editTransaction) {
+      setCategory("");
+      setSubCategory("");
+    }
+    setUseCustomCategory(false);
+    setCustomCategory("");
+  }, [type, editTransaction]);
+
+  // When category changes, reset subcategory
+  useEffect(() => {
+    if (!editTransaction) {
+      setSubCategory("");
+    }
+    setShowNewSubCategory(false);
+    setNewSubCategory("");
+  }, [category, editTransaction]);
+
+  const handleAddSubCategory = () => {
+    if (newSubCategory.trim()) {
+      setSubCategory(newSubCategory.trim());
+      setShowNewSubCategory(false);
+      setNewSubCategory("");
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!amount || !description) return;
+    if (type !== "transfer" && !accountId) return;
+    if (type === "transfer" && (!accountId || !toAccountId)) return;
+    setLoading(true);
+    try {
+      const finalCategory = useCustomCategory ? customCategory : category;
+      if (isEditing) {
+        await apiFetch(`/api/transactions/${editTransaction.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            type,
+            amount: parseFloat(amount),
+            description,
+            accountId: accountId || null,
+            subAccountId: subAccountId || null,
+            category: type !== "transfer" ? (finalCategory || "Otros") : null,
+            subCategory: type !== "transfer" ? (subCategory || null) : null,
+            date,
+            notes: notes || null,
+          }),
+        });
+      } else {
+        await apiFetch("/api/transactions", {
+          method: "POST",
+          body: JSON.stringify({
+            type,
+            amount: parseFloat(amount),
+            description,
+            accountId: accountId || null,
+            subAccountId: subAccountId || null,
+            category: type !== "transfer" ? (finalCategory || "Otros") : null,
+            subCategory: type !== "transfer" ? (subCategory || null) : null,
+            date,
+            notes: notes || null,
+            transferToAccountId: type === "transfer" ? toAccountId : undefined,
+            transferToSubAccountId: type === "transfer" ? (toSubAccountId || undefined) : undefined,
+          }),
+        });
+      }
+
+      onSuccess?.();
+      onOpenChange(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error saving transaction:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setAmount("");
+    setDescription("");
+    setCategory("");
+    setSubCategory("");
+    setDate(getColombiaTodayString());
+    setType(defaultType || "expense");
+    setSubAccountId("");
+    setToAccountId("");
+    setToSubAccountId("");
+    setNotes("");
+    setUseCustomCategory(false);
+    setCustomCategory("");
+    setShowNewSubCategory(false);
+    setNewSubCategory("");
+  };
+
+  // Build combined account options (accounts + sub-accounts grouped)
+  const renderAccountSelect = (
+    value: string,
+    onChange: (val: string) => void,
+    label: string,
+    excludeId?: string
+  ) => (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="rounded-xl">
+          <SelectValue placeholder="Seleccionar cuenta" />
+        </SelectTrigger>
+        <SelectContent>
+          {accounts
+            .filter((acc) => acc.id !== excludeId)
+            .map((acc) => (
+              <SelectItem key={acc.id} value={acc.id}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="size-3 rounded-full shrink-0"
+                    style={{ backgroundColor: acc.color }}
+                  />
+                  <span>{acc.name}</span>
+                  <span className="text-xs text-gray-400 ml-auto">
+                    {formatCurrency(acc.balance)}
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const renderSubAccountSelect = (
+    parentAccountId: string,
+    value: string,
+    onChange: (val: string) => void,
+    subs: SubAccount[]
+  ) => {
+    if (!parentAccountId || subs.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <Label>Bolsillo (opcional)</Label>
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger className="rounded-xl">
+            <SelectValue placeholder="Cuenta principal" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Cuenta principal</SelectItem>
+            {subs.map((sub) => (
+              <SelectItem key={sub.id} value={sub.id}>
+                <div className="flex items-center gap-2">
+                  <PiggyBank className="size-3 text-gray-400" />
+                  <span>{sub.name}</span>
+                  <span className="text-xs text-gray-400 ml-auto">
+                    {formatCurrency(sub.balance)}
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  };
+
+  const submitButton = (
+    <Button
+      onClick={handleSubmit}
+      disabled={loading || !amount || !description || (!accountId && type !== "transfer")}
+      className={`w-full rounded-xl h-12 text-sm font-semibold ${
+        type === "income"
+          ? "bg-gradient-to-r from-emerald-600 to-teal-500"
+          : type === "expense"
+          ? "bg-gradient-to-r from-rose-500 to-pink-500"
+          : "bg-gradient-to-r from-blue-500 to-cyan-500"
+      }`}
+    >
+      {loading ? (
+        <Loader2 className="size-4 animate-spin mr-2" />
+      ) : null}
+      {isEditing
+        ? "Guardar Cambios"
+        : type === "income"
+        ? "Registrar Ingreso"
+        : type === "expense"
+        ? "Registrar Gasto"
+        : "Registrar Transferencia"}
+    </Button>
+  );
+
+  const formContent = (
+    <div className="space-y-4 mt-4">
+      {/* Type Selector */}
+      <div className="flex gap-2">
+        {[
+          { id: "income", label: "Ingreso", icon: ArrowUpRight, color: "emerald" },
+          { id: "expense", label: "Gasto", icon: ArrowDownRight, color: "rose" },
+          { id: "transfer", label: "Transferencia", icon: Repeat, color: "blue" },
+        ].map((t) => {
+          const Icon = t.icon;
+          const isActive = type === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => {
+                setType(t.id);
+                setCategory("");
+                setSubAccountId("");
+                setToAccountId("");
+                setToSubAccountId("");
+              }}
+              className={`flex-1 py-3 rounded-xl text-xs font-medium flex flex-col items-center gap-1 transition-all ${
+                isActive
+                  ? t.color === "emerald"
+                    ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 border-2 border-emerald-300"
+                    : t.color === "rose"
+                    ? "bg-rose-50 dark:bg-rose-900/30 text-rose-600 border-2 border-rose-300"
+                    : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 border-2 border-blue-300"
+                  : "bg-gray-50 dark:bg-gray-800 text-gray-400 border-2 border-transparent"
+              }`}
+            >
+              <Icon className="size-5" />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Amount */}
+      <div className="space-y-2">
+        <Label>Monto</Label>
+        <CurrencyInput
+          value={amount}
+          onChange={setAmount}
+          showPrefix
+          placeholder="0"
+          className="text-xl font-bold rounded-xl h-14"
+        />
+        <div className="flex gap-2">
+          {quickAmounts.map((qa) => (
+            <button
+              key={qa}
+              onClick={() => setAmount(qa.toString())}
+              className="flex-1 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-[10px] font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              {formatCurrency(qa)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Description */}
+      <div className="space-y-2">
+        <Label>Descripción</Label>
+        <Input
+          placeholder="Ej: Pago de salario"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="rounded-xl"
+        />
+      </div>
+
+      {/* Account selection */}
+      {type === "transfer" ? (
+        <>
+          {renderAccountSelect(accountId, setAccountId, "Desde cuenta")}
+          {renderSubAccountSelect(accountId, subAccountId, setSubAccountId, subAccounts)}
+          {renderAccountSelect(toAccountId, setToAccountId, "Hacia cuenta", accountId)}
+          {renderSubAccountSelect(toAccountId, toSubAccountId, setToSubAccountId, toSubAccounts)}
+        </>
+      ) : (
+        <>
+          {renderAccountSelect(accountId, setAccountId, "Cuenta")}
+          {renderSubAccountSelect(accountId, subAccountId, setSubAccountId, subAccounts)}
+        </>
+      )}
+
+      {/* Category & SubCategory */}
+      {type !== "transfer" && (
+        <>
+          {/* Category */}
+          <div className="space-y-2">
+            <Label>Categoría</Label>
+            {!useCustomCategory ? (
+              <Select
+                value={category}
+                onValueChange={(val) => {
+                  if (val === "__custom__") {
+                    setUseCustomCategory(true);
+                    setCategory("");
+                  } else {
+                    setCategory(val);
+                  }
+                }}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Seleccionar categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.name} value={cat.name}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__custom__">+ Personalizada...</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nombre de categoría"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  className="rounded-xl flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => {
+                    setUseCustomCategory(false);
+                    setCustomCategory("");
+                  }}
+                >
+                  Lista
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* SubCategory - shown when a category is selected */}
+          {(category || (useCustomCategory && customCategory)) && (
+            <div className="space-y-2">
+              <Label>Subcategoría (opcional)</Label>
+
+              {/* Existing subcategories as tags */}
+              {availableSubCategories.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-1">
+                  {availableSubCategories.map((sub) => (
+                    <button
+                      key={sub}
+                      onClick={() => setSubCategory(sub === subCategory ? "" : sub)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                        sub === subCategory
+                          ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-300"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* New subcategory creation or input */}
+              {showNewSubCategory ? (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nueva subcategoría..."
+                    value={newSubCategory}
+                    onChange={(e) => setNewSubCategory(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddSubCategory();
+                    }}
+                    className="rounded-xl flex-1 text-sm h-9"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl h-9"
+                    onClick={handleAddSubCategory}
+                    disabled={!newSubCategory.trim()}
+                  >
+                    <Check className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-xl h-9"
+                    onClick={() => {
+                      setShowNewSubCategory(false);
+                      setNewSubCategory("");
+                    }}
+                  >
+                    <X className="size-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={subCategory || "Sin subcategoría"}
+                    value={subCategory}
+                    onChange={(e) => setSubCategory(e.target.value)}
+                    className="rounded-xl flex-1 text-sm h-9"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl h-9 text-xs gap-1"
+                    onClick={() => setShowNewSubCategory(true)}
+                  >
+                    <Plus className="size-3" />
+                    Nueva
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Date */}
+      <div className="space-y-2">
+        <Label>Fecha</Label>
+        <Input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="rounded-xl"
+        />
+      </div>
+
+      {/* Notes */}
+      <div className="space-y-2">
+        <Label>Notas (opcional)</Label>
+        <Input
+          placeholder="Notas adicionales..."
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className="rounded-xl"
+        />
+      </div>
+
+      {/* Submit */}
+      {submitButton}
+    </div>
+  );
+
+  // Use Dialog for editing, Sheet for creating (better mobile scroll)
+  if (isEditing || !isMobile) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md rounded-2xl" scrollable>
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle>
+              {isEditing ? "Editar Transacción" : "Nueva Transacción"}
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-4">
+            {/* Type Selector */}
+            <div className="flex gap-2">
+              {[
+                { id: "income", label: "Ingreso", icon: ArrowUpRight, color: "emerald" },
+                { id: "expense", label: "Gasto", icon: ArrowDownRight, color: "rose" },
+                { id: "transfer", label: "Transferencia", icon: Repeat, color: "blue" },
+              ].map((t) => {
+                const Icon = t.icon;
+                const isActive = type === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setType(t.id);
+                      setCategory("");
+                      setSubAccountId("");
+                      setToAccountId("");
+                      setToSubAccountId("");
+                    }}
+                    className={`flex-1 py-3 rounded-xl text-xs font-medium flex flex-col items-center gap-1 transition-all ${
+                      isActive
+                        ? t.color === "emerald"
+                          ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 border-2 border-emerald-300"
+                          : t.color === "rose"
+                          ? "bg-rose-50 dark:bg-rose-900/30 text-rose-600 border-2 border-rose-300"
+                          : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 border-2 border-blue-300"
+                        : "bg-gray-50 dark:bg-gray-800 text-gray-400 border-2 border-transparent"
+                    }`}
+                  >
+                    <Icon className="size-5" />
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Amount */}
+            <div className="space-y-2">
+              <Label>Monto</Label>
+              <CurrencyInput
+                value={amount}
+                onChange={setAmount}
+                showPrefix
+                placeholder="0"
+                className="text-xl font-bold rounded-xl h-14"
+              />
+              <div className="flex gap-2">
+                {quickAmounts.map((qa) => (
+                  <button
+                    key={qa}
+                    onClick={() => setAmount(qa.toString())}
+                    className="flex-1 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-[10px] font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    {formatCurrency(qa)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label>Descripción</Label>
+              <Input
+                placeholder="Ej: Pago de salario"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+
+            {/* Account selection */}
+            {type === "transfer" ? (
+              <>
+                {renderAccountSelect(accountId, setAccountId, "Desde cuenta")}
+                {renderSubAccountSelect(accountId, subAccountId, setSubAccountId, subAccounts)}
+                {renderAccountSelect(toAccountId, setToAccountId, "Hacia cuenta", accountId)}
+                {renderSubAccountSelect(toAccountId, toSubAccountId, setToSubAccountId, toSubAccounts)}
+              </>
+            ) : (
+              <>
+                {renderAccountSelect(accountId, setAccountId, "Cuenta")}
+                {renderSubAccountSelect(accountId, subAccountId, setSubAccountId, subAccounts)}
+              </>
+            )}
+
+            {/* Category & SubCategory */}
+            {type !== "transfer" && (
+              <>
+                {/* Category */}
+                <div className="space-y-2">
+                  <Label>Categoría</Label>
+                  {!useCustomCategory ? (
+                    <Select
+                      value={category}
+                      onValueChange={(val) => {
+                        if (val === "__custom__") {
+                          setUseCustomCategory(true);
+                          setCategory("");
+                        } else {
+                          setCategory(val);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Seleccionar categoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.name} value={cat.name}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__custom__">+ Personalizada...</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nombre de categoría"
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        className="rounded-xl flex-1"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl"
+                        onClick={() => {
+                          setUseCustomCategory(false);
+                          setCustomCategory("");
+                        }}
+                      >
+                        Lista
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* SubCategory - shown when a category is selected */}
+                {(category || (useCustomCategory && customCategory)) && (
+                  <div className="space-y-2">
+                    <Label>Subcategoría (opcional)</Label>
+
+                    {/* Existing subcategories as tags */}
+                    {availableSubCategories.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-1">
+                        {availableSubCategories.map((sub) => (
+                          <button
+                            key={sub}
+                            onClick={() => setSubCategory(sub === subCategory ? "" : sub)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                              sub === subCategory
+                                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-300"
+                                : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-600"
+                            }`}
+                          >
+                            {sub}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* New subcategory creation or input */}
+                    {showNewSubCategory ? (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Nueva subcategoría..."
+                          value={newSubCategory}
+                          onChange={(e) => setNewSubCategory(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleAddSubCategory();
+                          }}
+                          className="rounded-xl flex-1 text-sm h-9"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl h-9"
+                          onClick={handleAddSubCategory}
+                          disabled={!newSubCategory.trim()}
+                        >
+                          <Check className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="rounded-xl h-9"
+                          onClick={() => {
+                            setShowNewSubCategory(false);
+                            setNewSubCategory("");
+                          }}
+                        >
+                          <X className="size-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder={subCategory || "Sin subcategoría"}
+                          value={subCategory}
+                          onChange={(e) => setSubCategory(e.target.value)}
+                          className="rounded-xl flex-1 text-sm h-9"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl h-9 text-xs gap-1"
+                          onClick={() => setShowNewSubCategory(true)}
+                        >
+                          <Plus className="size-3" />
+                          Nueva
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Date */}
+            <div className="space-y-2">
+              <Label>Fecha</Label>
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label>Notas (opcional)</Label>
+              <Input
+                placeholder="Notas adicionales..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+          </DialogBody>
+          <DialogStickyFooter>
+            {submitButton}
+          </DialogStickyFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="rounded-t-2xl sm:rounded-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Nueva Transacción</SheetTitle>
+        </SheetHeader>
+        {formContent}
+      </SheetContent>
+    </Sheet>
+  );
+}

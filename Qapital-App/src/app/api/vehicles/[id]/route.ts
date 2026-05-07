@@ -1,0 +1,99 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const vehicle = await db.vehicle.findFirst({
+      where: { id, userId: session.user.id },
+    });
+
+    if (!vehicle) {
+      return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
+    }
+
+    return NextResponse.json(vehicle);
+  } catch (error) {
+    console.error("Get vehicle error:", error);
+    return NextResponse.json({ error: "Error al obtener vehículo" }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const body = await req.json();
+    const { name, type, brand, model, year, color, tankCapacity, fuelType, currentKm } = body;
+
+    const existing = await db.vehicle.findFirst({
+      where: { id, userId: session.user.id },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
+    }
+
+    const vehicle = await db.vehicle.update({
+      where: { id },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(type !== undefined && { type }),
+        ...(brand !== undefined && { brand }),
+        ...(model !== undefined && { model }),
+        ...(year !== undefined && { year: year ? parseInt(year) : null }),
+        ...(color !== undefined && { color }),
+        ...(tankCapacity !== undefined && { tankCapacity: tankCapacity ? parseFloat(tankCapacity) : null }),
+        ...(fuelType !== undefined && { fuelType }),
+        ...(currentKm !== undefined && { currentKm: parseFloat(currentKm) }),
+      },
+      include: {
+        fuelLogs: { orderBy: { date: "desc" } },
+        maintenanceRecords: { orderBy: { date: "desc" } },
+      },
+    });
+
+    return NextResponse.json(vehicle);
+  } catch (error) {
+    console.error("Update vehicle error:", error);
+    return NextResponse.json({ error: "Error al actualizar vehículo" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const existing = await db.vehicle.findFirst({
+      where: { id, userId: session.user.id },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
+    }
+
+    await db.vehicle.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Delete vehicle error:", error);
+    return NextResponse.json({ error: "Error al eliminar vehículo" }, { status: 500 });
+  }
+}

@@ -1,0 +1,403 @@
+// Generic fetch wrapper for API calls
+export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+      },
+      ...options,
+    });
+  } catch (networkError) {
+    // Network error (server unreachable, CORS, etc.)
+    throw new Error("Error de conexión: no se pudo contactar el servidor");
+  }
+
+  if (!response.ok) {
+    let errorMsg = `Error: ${response.status}`;
+    try {
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const errorData = await response.json();
+        errorMsg = errorData.error || errorData.message || errorMsg;
+      } else {
+        // Server returned HTML error page — try to extract useful info from status
+        if (response.status === 500) {
+          errorMsg = "Error interno del servidor. ¿Ejecutaste 'npx prisma db push' después de actualizar el esquema?";
+        } else if (response.status === 404) {
+          errorMsg = "Recurso no encontrado";
+        } else if (response.status === 401) {
+          errorMsg = "No autorizado";
+        } else {
+          errorMsg = `Error del servidor (${response.status})`;
+        }
+      }
+    } catch {
+      if (response.status === 500) {
+        errorMsg = "Error interno del servidor. ¿Ejecutaste 'npx prisma db push' después de actualizar el esquema?";
+      }
+    }
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+}
+
+// Format currency (COP by default) — always shows 2 decimal places
+export function formatCurrency(amount: number, currency: string = "COP"): string {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+// ============================================
+// TIMEZONE UTILITIES — Colombia (America/Bogota = UTC-5)
+// ============================================
+// All dates in the app are treated as Colombia-local dates.
+// The server may run in UTC, so we need to ensure dates are
+// interpreted in the Colombia timezone for comparisons.
+
+const COLOMBIA_TIMEZONE = "America/Bogota"; // UTC-5
+
+/**
+ * Get the current date/time in Colombia timezone.
+ * Returns a Date object that represents "now" in Colombia.
+ */
+export function getColombiaNow(): Date {
+  // Create a date string in Colombia timezone, then parse it back
+  const now = new Date();
+  const colombiaStr = now.toLocaleString("en-US", { timeZone: COLOMBIA_TIMEZONE });
+  return new Date(colombiaStr);
+}
+
+/**
+ * Get today's date in Colombia as a YYYY-MM-DD string.
+ */
+export function getColombiaTodayString(): string {
+  const now = new Date();
+  return now.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE }); // sv-SE gives YYYY-MM-DD
+}
+
+/**
+ * Create a Colombia-local midnight Date from a date string (YYYY-MM-DD).
+ * This avoids the UTC timezone offset issue where `new Date("2026-04-10")`
+ * could show April 9th in negative-UTC-offset timezones.
+ */
+export function createColombiaDate(dateStr: string): Date {
+  // Parse the date parts and create a date that represents midnight in Colombia
+  const [y, m, d] = dateStr.split("-").map(Number);
+  // Colombia is UTC-5, so midnight Colombia = 5:00 UTC
+  return new Date(Date.UTC(y, m - 1, d, 5, 0, 0, 0));
+}
+
+/**
+ * Format a Date to YYYY-MM-DD in Colombia timezone.
+ */
+export function formatDateToColombiaISO(date: Date): string {
+  return date.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE });
+}
+
+/**
+ * Get a YYYY-MM-DD date string from a Date or date string, in Colombia timezone.
+ * Useful for populating date inputs from API data.
+ */
+export function toColombiaDateString(date: Date | string): string {
+  if (typeof date === "string") {
+    // If it's already a YYYY-MM-DD string, return as-is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+    // Otherwise parse and convert to Colombia date
+    const d = parseLocalDate(date);
+    return d.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE });
+  }
+  return date.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE });
+}
+
+// Parse a date string as a local date (avoids UTC timezone offset shifting the day)
+function parseLocalDate(date: Date | string): Date {
+  if (typeof date === "string") {
+    // Extract the date portion (YYYY-MM-DD) and build a local-midnight Date
+    const datePart = date.split("T")[0]; // handles both "2026-04-10" and "2026-04-10T00:00:00.000Z"
+    const [y, m, d] = datePart.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return date;
+}
+
+// Format date in Spanish locale
+export function formatDate(date: Date | string): string {
+  if (!date) return "—";
+  const d = parseLocalDate(date);
+  if (isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(d);
+}
+
+// Format short date
+export function formatShortDate(date: Date | string): string {
+  if (!date) return "—";
+  const d = parseLocalDate(date);
+  if (isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "numeric",
+    month: "short",
+  }).format(d);
+}
+
+// Calculate percentage
+export function calcPercentage(value: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((value / total) * 100);
+}
+
+// ============================================================
+// CDT Calculation Utilities (Compound Interest for EA rates)
+// ============================================================
+// In Colombia, CDTs use Tasa Efectiva Anual (EA) which is compound by definition.
+// The correct formula uses daily compound rate derived from the EA rate.
+
+/** Get days elapsed between two dates (floor, minimum 0) — uses Colombia timezone */
+export function getDaysBetween(start: Date | string, end: Date | string): number {
+  const parseDate = (d: Date | string): Date => {
+    if (typeof d === "string") {
+      const datePart = d.split("T")[0];
+      return createColombiaDate(datePart);
+    }
+    return d;
+  };
+  const s = parseDate(start);
+  const e = parseDate(end);
+  return Math.max(0, Math.floor((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+/**
+ * Calculate CDT interest using compound interest (EA rate).
+ * Formula: amount * ((1 + rate/100)^(days/365) - 1)
+ * This is the CORRECT way to calculate interest for a Tasa Efectiva Anual.
+ */
+export function calculateCDTInterest(amount: number, effectiveRateEA: number, days: number): number {
+  if (amount <= 0 || effectiveRateEA <= 0 || days <= 0) return 0;
+  return amount * (Math.pow(1 + effectiveRateEA / 100, days / 365) - 1);
+}
+
+/**
+ * Calculate CDT ReteFuente (4% withholding tax on interest earnings in Colombia).
+ */
+export function calculateCDTReteFuente(interestEarned: number, rate: number = 0.04): number {
+  return interestEarned * rate;
+}
+
+/**
+ * Get full CDT breakdown: interest, retefuente, net total.
+ */
+export function getCDTBreakdown(amount: number, effectiveRateEA: number, termDays: number) {
+  const grossInterest = calculateCDTInterest(amount, effectiveRateEA, termDays);
+  const retefuente = calculateCDTReteFuente(grossInterest);
+  const netInterest = grossInterest - retefuente;
+  const netTotal = amount + netInterest;
+  return { grossInterest, retefuente, netInterest, netTotal };
+}
+
+/**
+ * Get current CDT interest earned (compound, from startDate to now in Colombia).
+ */
+export function getCurrentCDTInterest(amount: number, effectiveRateEA: number, startDate: Date | string): number {
+  const daysElapsed = getDaysBetween(startDate, getColombiaNow());
+  return calculateCDTInterest(amount, effectiveRateEA, daysElapsed);
+}
+
+// Get relative time string
+export function getRelativeTime(date: Date | string): string {
+  const d = typeof date === "string" ? parseLocalDate(date) : date;
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return "Ahora mismo";
+  if (diffMins < 60) return `Hace ${diffMins} min`;
+  if (diffHours < 24) return `Hace ${diffHours}h`;
+  if (diffDays < 7) return `Hace ${diffDays}d`;
+  return formatShortDate(d);
+}
+
+// Export parseLocalDate for use in other components (e.g., groupByDate)
+export { parseLocalDate };
+
+// ============================================
+// BUSINESS DAY UTILITIES (Colombia)
+// ============================================
+
+/**
+ * Adjust a date to the previous business day if it falls on a weekend.
+ * Saturday → Friday, Sunday → Friday.
+ */
+export function adjustForWeekend(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const day = date.getDay(); // 0=Sun, 6=Sat
+  if (day === 0) {
+    // Sunday → go back 2 days to Friday
+    date.setDate(date.getDate() - 2);
+  } else if (day === 6) {
+    // Saturday → go back 1 day to Friday
+    date.setDate(date.getDate() - 1);
+  }
+  return date.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE });
+}
+
+/**
+ * Colombian public holidays for a given year (fixed dates only).
+ * Some holidays in Colombia are "Ley Emiliani" (move to next Monday),
+ * but for simplicity we include the most common fixed ones.
+ * Returns YYYY-MM-DD strings.
+ */
+export function getColombianHolidays(year: number): string[] {
+  const holidays: string[] = [
+    `${year}-01-01`, // Año Nuevo
+    `${year}-05-01`, // Día del Trabajo
+    `${year}-07-20`, // Grito de Independencia
+    `${year}-08-07`, // Batalla de Boyacá
+    `${year}-12-08`, // Inmaculada Concepción
+    `${year}-12-25`, // Navidad
+  ];
+
+  // Ley Emiliani holidays (move to next Monday) - approximate
+  // For simplicity, we compute the actual date for the current year
+  const emilianiHolidays = [
+    { month: 1, day: 6 },   // Reyes Magos
+    { month: 3, day: 19 },  // San José
+    { month: 6, day: 29 },  // San Pedro y San Pablo
+    { month: 8, day: 15 },  // Asunción de la Virgen
+    { month: 10, day: 12 }, // Día de la Raza
+    { month: 11, day: 1 },  // Todos los Santos
+    { month: 11, day: 11 }, // Independencia de Cartagena
+  ];
+
+  for (const h of emilianiHolidays) {
+    const date = new Date(year, h.month - 1, h.day);
+    const day = date.getDay();
+    // Move to next Monday if not already Monday
+    if (day !== 1) {
+      const daysUntilMonday = day === 0 ? 1 : (8 - day);
+      date.setDate(date.getDate() + daysUntilMonday);
+    }
+    const adjusted = date.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE });
+    holidays.push(adjusted);
+  }
+
+  // Easter-based holidays (computed from Easter Sunday)
+  const easter = computeEaster(year);
+  const easterDate = new Date(year, easter.month - 1, easter.day);
+
+  // Jueves Santo (3 days before Easter)
+  const juevesSanto = new Date(easterDate);
+  juevesSanto.setDate(juevesSanto.getDate() - 3);
+  holidays.push(juevesSanto.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE }));
+
+  // Viernes Santo (2 days before Easter)
+  const viernesSanto = new Date(easterDate);
+  viernesSanto.setDate(viernesSanto.getDate() - 2);
+  holidays.push(viernesSanto.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE }));
+
+  // Ascensión del Señor (39 days after Easter → moves to next Monday)
+  const ascension = new Date(easterDate);
+  ascension.setDate(ascension.getDate() + 39);
+  const ascDay = ascension.getDay();
+  if (ascDay !== 1) {
+    ascension.setDate(ascension.getDate() + (ascDay === 0 ? 1 : (8 - ascDay)));
+  }
+  holidays.push(ascension.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE }));
+
+  // Corpus Christi (60 days after Easter → moves to next Monday)
+  const corpus = new Date(easterDate);
+  corpus.setDate(corpus.getDate() + 60);
+  const corpusDay = corpus.getDay();
+  if (corpusDay !== 1) {
+    corpus.setDate(corpus.getDate() + (corpusDay === 0 ? 1 : (8 - corpusDay)));
+  }
+  holidays.push(corpus.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE }));
+
+  // Sagrado Corazón (68 days after Easter → moves to next Monday)
+  const sagrado = new Date(easterDate);
+  sagrado.setDate(sagrado.getDate() + 68);
+  const sagradoDay = sagrado.getDay();
+  if (sagradoDay !== 1) {
+    sagrado.setDate(sagrado.getDate() + (sagradoDay === 0 ? 1 : (8 - sagradoDay)));
+  }
+  holidays.push(sagrado.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE }));
+
+  return holidays;
+}
+
+/** Compute Easter Sunday for a given year (Anonymous Gregorian algorithm) */
+function computeEaster(year: number): { month: number; day: number } {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return { month, day };
+}
+
+/**
+ * Adjust a date to the previous business day if it falls on a weekend or Colombian holiday.
+ */
+export function adjustForBusinessDay(dateStr: string, adjustWeekend: boolean = true, adjustHoliday: boolean = true): string {
+  let adjusted = dateStr;
+
+  if (adjustWeekend) {
+    adjusted = adjustForWeekend(adjusted);
+  }
+
+  if (adjustHoliday) {
+    const [y] = adjusted.split("-").map(Number);
+    const holidays = getColombianHolidays(y);
+    // If it's a holiday, move back one day and re-check
+    let attempts = 0;
+    while (holidays.includes(adjusted) && attempts < 5) {
+      const [yr, mo, da] = adjusted.split("-").map(Number);
+      const date = new Date(yr, mo - 1, da);
+      date.setDate(date.getDate() - 1);
+      adjusted = date.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE });
+      if (adjustWeekend) {
+        adjusted = adjustForWeekend(adjusted);
+      }
+      // Re-fetch holidays for new year if needed
+      const [ny] = adjusted.split("-").map(Number);
+      if (ny !== y) {
+        const newHolidays = getColombianHolidays(ny);
+        while (newHolidays.includes(adjusted) && attempts < 5) {
+          const [yr2, mo2, da2] = adjusted.split("-").map(Number);
+          const date2 = new Date(yr2, mo2 - 1, da2);
+          date2.setDate(date2.getDate() - 1);
+          adjusted = date2.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE });
+          if (adjustWeekend) {
+            adjusted = adjustForWeekend(adjusted);
+          }
+          attempts++;
+        }
+        break;
+      }
+      attempts++;
+    }
+  }
+
+  return adjusted;
+}
