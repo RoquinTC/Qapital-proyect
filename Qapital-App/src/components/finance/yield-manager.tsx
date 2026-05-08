@@ -133,7 +133,11 @@ export function YieldManager({ accounts }: YieldManagerProps) {
     }
   };
 
-  if (loading || yields.length === 0) return null;
+  // Only return null if still loading or truly no data at all.
+  // Even if current-month projected yields are 0, previous unconfirmed
+  // or confirmed records should still be displayed.
+  if (loading) return null;
+  if (yields.length === 0) return null;
 
   const daysUntilMonthEnd = getDaysUntilMonthEnd();
   const isNearMonthEnd = daysUntilMonthEnd <= 2;
@@ -506,9 +510,12 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                           className="overflow-hidden space-y-2"
                         >
                           {confirmedYields.map((item) => {
-                            const itemKey = `confirmed-${item.accountId || item.subAccountId || ""}`;
+                            const itemKey = `confirmed-${item.id || item.accountId || item.subAccountId || ""}`;
                             const isReversing = reversingId === item.id;
                             const isConfirmingReverse = confirmReverseId === item.id;
+                            const monthLabel = item.previousMonth
+                              ? new Date(item.previousMonth).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
+                              : null;
 
                             return (
                               <div
@@ -523,7 +530,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                     variant="outline"
                                     className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700"
                                   >
-                                    Confirmado
+                                    {monthLabel ? monthLabel : "Confirmado"}
                                   </Badge>
                                 </div>
 

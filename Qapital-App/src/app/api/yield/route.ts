@@ -15,34 +15,7 @@ export async function GET() {
     const now = getColombiaNow();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Get high-yield accounts
-    const highYieldAccounts = await db.account.findMany({
-      where: {
-        userId: session.user.id,
-        isHighYield: true,
-      },
-      include: {
-        yieldHistory: {
-          where: { month: monthStart },
-        },
-      },
-    });
-
-    // Get high-yield sub-accounts
-    const highYieldSubAccounts = await db.subAccount.findMany({
-      where: {
-        account: { userId: session.user.id },
-        isHighYield: true,
-      },
-      include: {
-        account: { select: { id: true, name: true } },
-        yieldHistory: {
-          where: { month: monthStart },
-        },
-      },
-    });
-
-    // Calculate projected yields
+    // Result array
     const yields: Array<{
       id: string | null;
       accountId: string | null;
@@ -59,15 +32,32 @@ export async function GET() {
       previousMonth?: Date;
     }> = [];
 
+    // Track which account/subAccount IDs we've already added (to avoid duplicates)
+    const addedKeys = new Set<string>();
+
+    // ── 1. Current-month projected yields from HIGH-YIELD accounts ──
+    const highYieldAccounts = await db.account.findMany({
+      where: {
+        userId: session.user.id,
+        isHighYield: true,
+      },
+      include: {
+        yieldHistory: {
+          where: { month: monthStart },
+        },
+      },
+    });
+
     for (const account of highYieldAccounts) {
       const existingRecord = account.yieldHistory[0];
       const projectedYield = account.balance * ((account.yieldPercentage || 0) / 100) / 12;
+      const key = `acc-${account.id}`;
 
       yields.push({
         id: existingRecord?.id || null,
         accountId: account.id,
         subAccountId: null,
-        parentAccountId: null, // Not needed for account-level yields
+        parentAccountId: null,
         accountName: account.name,
         balance: account.balance,
         yieldPercentage: account.yieldPercentage || 0,
@@ -76,17 +66,33 @@ export async function GET() {
         isConfirmed: existingRecord?.isConfirmed || false,
         transactionId: existingRecord?.transactionId || null,
       });
+      addedKeys.add(key);
     }
+
+    // ── 2. Current-month projected yields from HIGH-YIELD sub-accounts ──
+    const highYieldSubAccounts = await db.subAccount.findMany({
+      where: {
+        account: { userId: session.user.id },
+        isHighYield: true,
+      },
+      include: {
+        account: { select: { id: true, name: true } },
+        yieldHistory: {
+          where: { month: monthStart },
+        },
+      },
+    });
 
     for (const subAccount of highYieldSubAccounts) {
       const existingRecord = subAccount.yieldHistory[0];
       const projectedYield = subAccount.balance * ((subAccount.yieldPercentage || 0) / 100) / 12;
+      const key = `sub-${subAccount.id}`;
 
       yields.push({
         id: existingRecord?.id || null,
-        accountId: null, // Keep null for backward compat (no direct account relation)
+        accountId: null,
         subAccountId: subAccount.id,
-        parentAccountId: subAccount.accountId, // ✅ Parent account ID for sub-accounts
+        parentAccountId: subAccount.accountId,
         accountName: `${subAccount.account.name} → ${subAccount.name}`,
         balance: subAccount.balance,
         yieldPercentage: subAccount.yieldPercentage || 0,
@@ -95,9 +101,59 @@ export async function GET() {
         isConfirmed: existingRecord?.isConfirmed || false,
         transactionId: existingRecord?.transactionId || null,
       });
+      addedKeys.add(key);
     }
 
-    // Also fetch unconfirmed yields from PREVIOUS months (these should always be visible)
+    // ── 3. Current-month yield records NOT already covered above ──
+    // This catches confirmed yields for accounts that are no longer isHighYield,
+    // or any other yield records that exist for the current month.
+    const currentMonthRecords = await db.yieldRecord.findMany({
+      where: {
+        month: monthStart,
+        OR: [
+          { account: { userId: session.user.id } },
+          { subAccount: { account: { userId: session.user.id } } },
+        ],
+      },
+      include: {
+        account: { select: { id: true, name: true, balance: true, yieldPercentage: true, isHighYield: true } },
+        subAccount: {
+          select: { id: true, name: true, balance: true, yieldPercentage: true, isHighYield: true, accountId: true, account: { select: { id: true, name: true } } },
+        },
+      },
+    });
+
+    for (const record of currentMonthRecords) {
+      const key = record.subAccountId ? `sub-${record.subAccountId}` : `acc-${record.accountId}`;
+      if (addedKeys.has(key)) continue; // Already added from high-yield accounts above
+
+      const accountName = record.subAccountId && record.subAccount
+        ? `${record.subAccount.account.name} → ${record.subAccount.name}`
+        : record.account?.name || "Unknown";
+      const balance = record.subAccountId && record.subAccount
+        ? record.subAccount.balance
+        : record.account?.balance || 0;
+      const yieldPercentage = record.subAccountId && record.subAccount
+        ? (record.subAccount.yieldPercentage || 0)
+        : (record.account?.yieldPercentage || 0);
+
+      yields.push({
+        id: record.id,
+        accountId: record.accountId,
+        subAccountId: record.subAccountId,
+        parentAccountId: record.subAccountId && record.subAccount ? record.subAccount.accountId : null,
+        accountName,
+        balance,
+        yieldPercentage,
+        projectedYield: record.projectedYield,
+        actualYield: record.actualYield,
+        isConfirmed: record.isConfirmed,
+        transactionId: record.transactionId,
+      });
+      addedKeys.add(key);
+    }
+
+    // ── 4. Unconfirmed yields from PREVIOUS months (always visible as overdue) ──
     const previousUnconfirmed = await db.yieldRecord.findMany({
       where: {
         isConfirmed: false,
@@ -116,13 +172,7 @@ export async function GET() {
     });
 
     for (const record of previousUnconfirmed) {
-      // Skip if this account/subAccount is already in the yields array for the current month
-      const alreadyExists = yields.some(
-        (y) =>
-          (y.accountId && y.accountId === record.accountId) ||
-          (y.subAccountId && y.subAccountId === record.subAccountId)
-      );
-      if (alreadyExists) continue;
+      const key = record.subAccountId ? `prev-sub-${record.id}` : `prev-acc-${record.id}`;
 
       const accountName = record.subAccountId && record.subAccount
         ? `${record.subAccount.account.name} → ${record.subAccount.name}`
@@ -147,6 +197,59 @@ export async function GET() {
         isConfirmed: false,
         transactionId: record.transactionId,
         isPreviousMonth: true,
+        previousMonth: record.month,
+      });
+    }
+
+    // ── 5. Recently confirmed yields from last 3 months (including current month) ──
+    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    const recentConfirmed = await db.yieldRecord.findMany({
+      where: {
+        isConfirmed: true,
+        month: { gte: threeMonthsAgo },
+        OR: [
+          { account: { userId: session.user.id } },
+          { subAccount: { account: { userId: session.user.id } } },
+        ],
+      },
+      include: {
+        account: { select: { id: true, name: true, balance: true, yieldPercentage: true, isHighYield: true } },
+        subAccount: {
+          select: { id: true, name: true, balance: true, yieldPercentage: true, isHighYield: true, accountId: true, account: { select: { id: true, name: true } } },
+        },
+      },
+      orderBy: { month: 'desc' },
+    });
+
+    for (const record of recentConfirmed) {
+      // Skip if already included from current-month high-yield accounts or current-month records
+      const isCurrentMonth = record.month.getTime() === monthStart.getTime();
+      const key = record.subAccountId ? `sub-${record.subAccountId}` : `acc-${record.accountId}`;
+      if (isCurrentMonth && addedKeys.has(key)) continue;
+
+      const accountName = record.subAccountId && record.subAccount
+        ? `${record.subAccount.account.name} → ${record.subAccount.name}`
+        : record.account?.name || "Unknown";
+      const balance = record.subAccountId && record.subAccount
+        ? record.subAccount.balance
+        : record.account?.balance || 0;
+      const yieldPercentage = record.subAccountId && record.subAccount
+        ? (record.subAccount.yieldPercentage || 0)
+        : (record.account?.yieldPercentage || 0);
+
+      yields.push({
+        id: record.id,
+        accountId: record.accountId,
+        subAccountId: record.subAccountId,
+        parentAccountId: record.subAccountId && record.subAccount ? record.subAccount.accountId : null,
+        accountName,
+        balance,
+        yieldPercentage,
+        projectedYield: record.projectedYield,
+        actualYield: record.actualYield,
+        isConfirmed: true,
+        transactionId: record.transactionId,
+        isPreviousMonth: !isCurrentMonth,
         previousMonth: record.month,
       });
     }

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -877,7 +878,7 @@ export function AccountsView() {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const visibleWidgets = widgetConfig
+    const visibleWidgets = [...widgetConfig]
       .sort((a, b) => a.order - b.order)
       .filter((w) => w.visible);
     const oldIndex = visibleWidgets.findIndex((w) => w.id === active.id);
@@ -1416,7 +1417,7 @@ export function AccountsView() {
     );
   }
 
-  const visibleWidgets = widgetConfig
+  const visibleWidgets = [...widgetConfig]
     .sort((a, b) => a.order - b.order)
     .filter((w) => w.visible);
 
@@ -1522,6 +1523,9 @@ export function AccountsView() {
               <Settings2 className="size-5 text-emerald-500" />
               Personalizar Widgets
             </SheetTitle>
+            <SheetDescription>
+              Oculta, muestra y reordena las secciones de tu dashboard
+            </SheetDescription>
           </SheetHeader>
           <div className="mt-4">
             <DndContext
@@ -1534,7 +1538,7 @@ export function AccountsView() {
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-2">
-                  {tempConfig
+                  {[...tempConfig]
                     .sort((a, b) => a.order - b.order)
                     .map((widget, index) => (
                       <SortableSheetItem

@@ -33,18 +33,22 @@ function ModuleContent() {
   };
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={activeModule}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="flex-1 overflow-y-auto"
-      >
-        {modules[activeModule] || <DashboardPage />}
-      </motion.div>
-    </AnimatePresence>
+    /* Scroll container must be a STATIC div — CSS transforms on a parent
+       (from Framer Motion's `y` animation) break `position: sticky`
+       in children like the finance tab bar. */
+    <div className="flex-1 overflow-y-auto">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeModule}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+        >
+          {modules[activeModule] || <DashboardPage />}
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }
 
