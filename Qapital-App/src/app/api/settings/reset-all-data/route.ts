@@ -16,7 +16,7 @@ export async function POST() {
     await db.savingsContribution.deleteMany({ where: { goal: { userId } } });
     await db.savingsGoalAccount.deleteMany({ where: { goal: { userId } } });
     await db.savingsGoal.deleteMany({ where: { userId } });
-    await db.cdt.deleteMany({ where: { userId } });
+    await db.cDT.deleteMany({ where: { userId } });
     await db.installment.deleteMany({ where: { debt: { userId } } });
     await db.recurringPayment.deleteMany({ where: { userId } });
     await db.debt.deleteMany({ where: { userId } });

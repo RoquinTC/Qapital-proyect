@@ -46,9 +46,8 @@ const isSecureEnvironment = (process.env.NEXTAUTH_URL || "").startsWith("https:/
 
 export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === "development",
-  experimental: {
-    trustHost: true,
-  },
+  // trustHost is supported by next-auth v4.24+ but not in the types yet
+  ...(process.env.NEXTAUTH_URL ? { trustHost: true } : {}),
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -91,9 +90,9 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
-        token.currency = (user as Record<string, unknown>).currency;
-        token.onboardingCompleted = (user as Record<string, unknown>).onboardingCompleted;
-        token.onboardingStep = (user as Record<string, unknown>).onboardingStep;
+        token.currency = (user as unknown as Record<string, unknown>).currency as string | undefined;
+        token.onboardingCompleted = (user as unknown as Record<string, unknown>).onboardingCompleted as boolean | undefined;
+        token.onboardingStep = (user as unknown as Record<string, unknown>).onboardingStep as number | undefined;
       }
       if (trigger === "update" && token.id) {
         const dbUser = await db.user.findUnique({ where: { id: token.id as string } });

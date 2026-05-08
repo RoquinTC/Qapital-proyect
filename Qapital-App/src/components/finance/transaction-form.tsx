@@ -6,8 +6,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogBody,
-  DialogStickyFooter,
 } from "@/components/ui/dialog";
 import {
   Sheet,
@@ -18,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Select,
   SelectContent,
@@ -29,6 +26,7 @@ import {
 import { apiFetch, formatCurrency, parseLocalDate, getColombiaTodayString, toColombiaDateString } from "@/lib/api";
 import { Loader2, ArrowUpRight, ArrowDownRight, Repeat, PiggyBank, Plus, X, Check } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "sonner";
 
 interface CategoryData {
   name: string;
@@ -221,22 +219,43 @@ export function TransactionForm({
           }),
         });
       } else {
-        await apiFetch("/api/transactions", {
-          method: "POST",
+        const result = await apiFetch<{
+          id: string;
+          updatedBalances?: Array<{ name: string; balance: number; isSubAccount: boolean }>;
+        }>('/api/transactions', {
+          method: 'POST',
           body: JSON.stringify({
             type,
             amount: parseFloat(amount),
             description,
             accountId: accountId || null,
             subAccountId: subAccountId || null,
-            category: type !== "transfer" ? (finalCategory || "Otros") : null,
-            subCategory: type !== "transfer" ? (subCategory || null) : null,
+            category: type !== 'transfer' ? (finalCategory || 'Otros') : null,
+            subCategory: type !== 'transfer' ? (subCategory || null) : null,
             date,
             notes: notes || null,
-            transferToAccountId: type === "transfer" ? toAccountId : undefined,
-            transferToSubAccountId: type === "transfer" ? (toSubAccountId || undefined) : undefined,
+            transferToAccountId: type === 'transfer' ? toAccountId : undefined,
+            transferToSubAccountId: type === 'transfer' ? (toSubAccountId || undefined) : undefined,
           }),
         });
+
+        // Show floating notification(s) with updated balance(s)
+        if (result.updatedBalances && result.updatedBalances.length > 0) {
+          for (const ub of result.updatedBalances) {
+            const isSource = result.updatedBalances.indexOf(ub) === 0;
+            const label = type === 'income'
+              ? 'Ingreso registrado'
+              : type === 'expense'
+              ? 'Gasto registrado'
+              : isSource
+              ? 'Transferencia enviada'
+              : 'Transferencia recibida';
+            toast.success(ub.name, {
+              description: `${label} · Nuevo saldo: ${formatCurrency(ub.balance)}`,
+              duration: 4000,
+            });
+          }
+        }
       }
 
       onSuccess?.();
@@ -334,31 +353,6 @@ export function TransactionForm({
     );
   };
 
-  const submitButton = (
-    <Button
-      onClick={handleSubmit}
-      disabled={loading || !amount || !description || (!accountId && type !== "transfer")}
-      className={`w-full rounded-xl h-12 text-sm font-semibold ${
-        type === "income"
-          ? "bg-gradient-to-r from-emerald-600 to-teal-500"
-          : type === "expense"
-          ? "bg-gradient-to-r from-rose-500 to-pink-500"
-          : "bg-gradient-to-r from-blue-500 to-cyan-500"
-      }`}
-    >
-      {loading ? (
-        <Loader2 className="size-4 animate-spin mr-2" />
-      ) : null}
-      {isEditing
-        ? "Guardar Cambios"
-        : type === "income"
-        ? "Registrar Ingreso"
-        : type === "expense"
-        ? "Registrar Gasto"
-        : "Registrar Transferencia"}
-    </Button>
-  );
-
   const formContent = (
     <div className="space-y-4 mt-4">
       {/* Type Selector */}
@@ -400,13 +394,19 @@ export function TransactionForm({
       {/* Amount */}
       <div className="space-y-2">
         <Label>Monto</Label>
-        <CurrencyInput
-          value={amount}
-          onChange={setAmount}
-          showPrefix
-          placeholder="0"
-          className="text-xl font-bold rounded-xl h-14"
-        />
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+            $
+          </span>
+          <Input
+            type="number"
+            step="0.01"
+            placeholder="0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="pl-7 text-xl font-bold rounded-xl h-14"
+          />
+        </div>
         <div className="flex gap-2">
           {quickAmounts.map((qa) => (
             <button
@@ -534,6 +534,7 @@ export function TransactionForm({
                       if (e.key === "Enter") handleAddSubCategory();
                     }}
                     className="rounded-xl flex-1 text-sm h-9"
+                    autoFocus
                   />
                   <Button
                     variant="outline"
@@ -603,7 +604,28 @@ export function TransactionForm({
       </div>
 
       {/* Submit */}
-      {submitButton}
+      <Button
+        onClick={handleSubmit}
+        disabled={loading || !amount || !description || (!accountId && type !== "transfer")}
+        className={`w-full rounded-xl h-12 text-sm font-semibold ${
+          type === "income"
+            ? "bg-gradient-to-r from-emerald-600 to-teal-500"
+            : type === "expense"
+            ? "bg-gradient-to-r from-rose-500 to-pink-500"
+            : "bg-gradient-to-r from-blue-500 to-cyan-500"
+        }`}
+      >
+        {loading ? (
+          <Loader2 className="size-4 animate-spin mr-2" />
+        ) : null}
+        {isEditing
+          ? "Guardar Cambios"
+          : type === "income"
+          ? "Registrar Ingreso"
+          : type === "expense"
+          ? "Registrar Gasto"
+          : "Registrar Transferencia"}
+      </Button>
     </div>
   );
 
@@ -611,257 +633,13 @@ export function TransactionForm({
   if (isEditing || !isMobile) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md rounded-2xl" scrollable>
-          <DialogHeader className="px-6 pt-6 pb-2">
+        <DialogContent className="sm:max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
             <DialogTitle>
               {isEditing ? "Editar Transacción" : "Nueva Transacción"}
             </DialogTitle>
           </DialogHeader>
-          <DialogBody className="space-y-4">
-            {/* Type Selector */}
-            <div className="flex gap-2">
-              {[
-                { id: "income", label: "Ingreso", icon: ArrowUpRight, color: "emerald" },
-                { id: "expense", label: "Gasto", icon: ArrowDownRight, color: "rose" },
-                { id: "transfer", label: "Transferencia", icon: Repeat, color: "blue" },
-              ].map((t) => {
-                const Icon = t.icon;
-                const isActive = type === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      setType(t.id);
-                      setCategory("");
-                      setSubAccountId("");
-                      setToAccountId("");
-                      setToSubAccountId("");
-                    }}
-                    className={`flex-1 py-3 rounded-xl text-xs font-medium flex flex-col items-center gap-1 transition-all ${
-                      isActive
-                        ? t.color === "emerald"
-                          ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 border-2 border-emerald-300"
-                          : t.color === "rose"
-                          ? "bg-rose-50 dark:bg-rose-900/30 text-rose-600 border-2 border-rose-300"
-                          : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 border-2 border-blue-300"
-                        : "bg-gray-50 dark:bg-gray-800 text-gray-400 border-2 border-transparent"
-                    }`}
-                  >
-                    <Icon className="size-5" />
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Amount */}
-            <div className="space-y-2">
-              <Label>Monto</Label>
-              <CurrencyInput
-                value={amount}
-                onChange={setAmount}
-                showPrefix
-                placeholder="0"
-                className="text-xl font-bold rounded-xl h-14"
-              />
-              <div className="flex gap-2">
-                {quickAmounts.map((qa) => (
-                  <button
-                    key={qa}
-                    onClick={() => setAmount(qa.toString())}
-                    className="flex-1 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-[10px] font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    {formatCurrency(qa)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label>Descripción</Label>
-              <Input
-                placeholder="Ej: Pago de salario"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="rounded-xl"
-              />
-            </div>
-
-            {/* Account selection */}
-            {type === "transfer" ? (
-              <>
-                {renderAccountSelect(accountId, setAccountId, "Desde cuenta")}
-                {renderSubAccountSelect(accountId, subAccountId, setSubAccountId, subAccounts)}
-                {renderAccountSelect(toAccountId, setToAccountId, "Hacia cuenta", accountId)}
-                {renderSubAccountSelect(toAccountId, toSubAccountId, setToSubAccountId, toSubAccounts)}
-              </>
-            ) : (
-              <>
-                {renderAccountSelect(accountId, setAccountId, "Cuenta")}
-                {renderSubAccountSelect(accountId, subAccountId, setSubAccountId, subAccounts)}
-              </>
-            )}
-
-            {/* Category & SubCategory */}
-            {type !== "transfer" && (
-              <>
-                {/* Category */}
-                <div className="space-y-2">
-                  <Label>Categoría</Label>
-                  {!useCustomCategory ? (
-                    <Select
-                      value={category}
-                      onValueChange={(val) => {
-                        if (val === "__custom__") {
-                          setUseCustomCategory(true);
-                          setCategory("");
-                        } else {
-                          setCategory(val);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue placeholder="Seleccionar categoría" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.name} value={cat.name}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="__custom__">+ Personalizada...</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nombre de categoría"
-                        value={customCategory}
-                        onChange={(e) => setCustomCategory(e.target.value)}
-                        className="rounded-xl flex-1"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-xl"
-                        onClick={() => {
-                          setUseCustomCategory(false);
-                          setCustomCategory("");
-                        }}
-                      >
-                        Lista
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                {/* SubCategory - shown when a category is selected */}
-                {(category || (useCustomCategory && customCategory)) && (
-                  <div className="space-y-2">
-                    <Label>Subcategoría (opcional)</Label>
-
-                    {/* Existing subcategories as tags */}
-                    {availableSubCategories.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-1">
-                        {availableSubCategories.map((sub) => (
-                          <button
-                            key={sub}
-                            onClick={() => setSubCategory(sub === subCategory ? "" : sub)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-                              sub === subCategory
-                                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-300"
-                                : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-600"
-                            }`}
-                          >
-                            {sub}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* New subcategory creation or input */}
-                    {showNewSubCategory ? (
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Nueva subcategoría..."
-                          value={newSubCategory}
-                          onChange={(e) => setNewSubCategory(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleAddSubCategory();
-                          }}
-                          className="rounded-xl flex-1 text-sm h-9"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-xl h-9"
-                          onClick={handleAddSubCategory}
-                          disabled={!newSubCategory.trim()}
-                        >
-                          <Check className="size-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="rounded-xl h-9"
-                          onClick={() => {
-                            setShowNewSubCategory(false);
-                            setNewSubCategory("");
-                          }}
-                        >
-                          <X className="size-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder={subCategory || "Sin subcategoría"}
-                          value={subCategory}
-                          onChange={(e) => setSubCategory(e.target.value)}
-                          className="rounded-xl flex-1 text-sm h-9"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-xl h-9 text-xs gap-1"
-                          onClick={() => setShowNewSubCategory(true)}
-                        >
-                          <Plus className="size-3" />
-                          Nueva
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Date */}
-            <div className="space-y-2">
-              <Label>Fecha</Label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="rounded-xl"
-              />
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label>Notas (opcional)</Label>
-              <Input
-                placeholder="Notas adicionales..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="rounded-xl"
-              />
-            </div>
-          </DialogBody>
-          <DialogStickyFooter>
-            {submitButton}
-          </DialogStickyFooter>
+          {formContent}
         </DialogContent>
       </Dialog>
     );

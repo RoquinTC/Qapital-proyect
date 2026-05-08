@@ -4,28 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { apiFetch, formatCurrency } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CurrencyInput } from "@/components/ui/currency-input";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from "recharts";
-import {
-  TrendingUp,
-  Check,
-  Edit3,
-  ChevronDown,
-  ChevronUp,
-  Undo2,
-  AlertTriangle,
-  CalendarClock,
-} from "lucide-react";
+import { TrendingUp, Check, Edit3, ChevronDown, ChevronUp, Undo2, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 interface YieldItem {
   id: string | null;
@@ -41,12 +24,6 @@ interface YieldItem {
   transactionId: string | null;
 }
 
-interface YieldHistoryItem {
-  month: string;
-  projected: number;
-  actual: number | null;
-}
-
 interface YieldManagerProps {
   accounts: Array<{
     id: string;
@@ -55,32 +32,23 @@ interface YieldManagerProps {
     yieldPercentage?: number | null;
     balance: number;
   }>;
-  yieldHistory?: YieldHistoryItem[];
 }
-
-const yieldChartConfig = {
-  projected: { label: "Proyectado", color: "#f59e0b" },
-  actual: { label: "Real", color: "#10b981" },
-} satisfies ChartConfig;
 
 /**
- * Check if we're within 2 days of the end of the month.
- * If so, we should show "Próximo Mes" yields.
+ * Returns how many days remain until the end of the current month
+ * using Colombia timezone (America/Bogota).
+ * Returns 0 on the last day of the month.
  */
-function isNearMonthEnd(): boolean {
-  const now = new Date();
-  const today = now.getDate();
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  return today >= lastDay - 1; // 2 days before end (inclusive of last day itself)
+function getDaysUntilMonthEnd(): number {
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+  const currentDay = now.getDate();
+  return lastDayOfMonth - currentDay;
 }
 
-function getNextMonthLabel(): string {
-  const now = new Date();
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return nextMonth.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
-}
-
-export function YieldManager({ accounts, yieldHistory }: YieldManagerProps) {
+export function YieldManager({ accounts }: YieldManagerProps) {
   const [yields, setYields] = useState<YieldItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -88,7 +56,6 @@ export function YieldManager({ accounts, yieldHistory }: YieldManagerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isPendingExpanded, setIsPendingExpanded] = useState(true);
   const [isConfirmedExpanded, setIsConfirmedExpanded] = useState(false);
-  const [isNextMonthExpanded, setIsNextMonthExpanded] = useState(false);
   const [reversingId, setReversingId] = useState<string | null>(null);
   const [confirmReverseId, setConfirmReverseId] = useState<string | null>(null);
 
@@ -113,7 +80,11 @@ export function YieldManager({ accounts, yieldHistory }: YieldManagerProps) {
       : item.actualYield || item.projectedYield;
 
     try {
-      await apiFetch("/api/yield", {
+      const result = await apiFetch<{
+        id: string;
+        updatedBalance?: number;
+        updatedAccountName?: string;
+      }>("/api/yield", {
         method: "POST",
         body: JSON.stringify({
           yieldRecordId: item.id,
@@ -125,6 +96,14 @@ export function YieldManager({ accounts, yieldHistory }: YieldManagerProps) {
           parentAccountId: item.parentAccountId,
         }),
       });
+
+      // Show floating notification with updated balance
+      if (result.updatedAccountName && result.updatedBalance !== undefined) {
+        toast.success(result.updatedAccountName, {
+          description: `Nuevo saldo: ${formatCurrency(result.updatedBalance)}`,
+          duration: 4000,
+        });
+      }
 
       fetchYields();
       setEditingId(null);
@@ -154,38 +133,19 @@ export function YieldManager({ accounts, yieldHistory }: YieldManagerProps) {
 
   if (loading || yields.length === 0) return null;
 
+  const daysUntilMonthEnd = getDaysUntilMonthEnd();
+  const isNearMonthEnd = daysUntilMonthEnd <= 2;
+
   const pendingYields = yields.filter((y) => !y.isConfirmed);
   const confirmedYields = yields.filter((y) => y.isConfirmed);
   const totalProjected = pendingYields.reduce((sum, y) => sum + y.projectedYield, 0);
   const totalConfirmed = confirmedYields.reduce((sum, y) => sum + (y.actualYield || 0), 0);
   const confirmedCount = confirmedYields.length;
 
-  // Next month projected yields (based on current balances)
-  const showNextMonth = isNearMonthEnd();
-  const nextMonthYields = showNextMonth
-    ? accounts.map((acc) => ({
-        accountId: acc.id,
-        accountName: acc.name,
-        balance: acc.balance,
-        yieldPercentage: acc.yieldPercentage || 0,
-        projectedYield: acc.balance * ((acc.yieldPercentage || 0) / 100) / 12,
-      }))
-    : [];
-  const totalNextMonthProjected = nextMonthYields.reduce((sum, y) => sum + y.projectedYield, 0);
-
-  // Yield history chart data
-  const chartData = (yieldHistory || [])
-    .filter((h) => h.actual !== null)
-    .map((h) => ({
-      month: h.month,
-      projected: Math.round(h.projected),
-      actual: Math.round(h.actual || 0),
-    }));
-
   return (
     <Card className="border-0 shadow-md rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 overflow-hidden">
       <CardContent className="p-0">
-        {/* Collapsible Header */}
+        {/* Collapsible Header - always visible */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-full p-4 flex items-center justify-between hover:bg-emerald-100/50 dark:hover:bg-emerald-800/20 transition-colors"
@@ -231,123 +191,145 @@ export function YieldManager({ accounts, yieldHistory }: YieldManagerProps) {
               <div className="px-4 pb-4 space-y-3">
                 <div className="h-px bg-emerald-200 dark:bg-emerald-800/50" />
 
-                {/* Pending Section */}
+                {/* Pending Section - only visible 2 days before month-end */}
                 {pendingYields.length > 0 && (
                   <div>
-                    <button
-                      onClick={() => setIsPendingExpanded(!isPendingExpanded)}
-                      className="w-full flex items-center justify-between py-1.5 mb-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        {isPendingExpanded ? (
-                          <ChevronUp className="size-3.5 text-amber-500" />
-                        ) : (
-                          <ChevronDown className="size-3.5 text-amber-500" />
-                        )}
-                        <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                          Pendientes
-                        </span>
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-700 h-5 px-1.5"
+                    {isNearMonthEnd ? (
+                      <>
+                        <button
+                          onClick={() => setIsPendingExpanded(!isPendingExpanded)}
+                          className="w-full flex items-center justify-between py-1.5 mb-2"
                         >
-                          {pendingYields.length}
-                        </Badge>
-                      </div>
-                      <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                        {formatCurrency(totalProjected)}
-                      </span>
-                    </button>
+                          <div className="flex items-center gap-2">
+                            {isPendingExpanded ? (
+                              <ChevronUp className="size-3.5 text-amber-500" />
+                            ) : (
+                              <ChevronDown className="size-3.5 text-amber-500" />
+                            )}
+                            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                              Pendientes
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-700 h-5 px-1.5"
+                            >
+                              {pendingYields.length}
+                            </Badge>
+                          </div>
+                          <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                            {formatCurrency(totalProjected)}
+                          </span>
+                        </button>
 
-                    <AnimatePresence>
-                      {isPendingExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.15 }}
-                          className="overflow-hidden space-y-2"
-                        >
-                          {pendingYields.map((item) => {
-                            const itemKey = item.accountId || item.subAccountId || "";
-                            const isEditing = editingId === itemKey;
+                        <AnimatePresence>
+                          {isPendingExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.15 }}
+                              className="overflow-hidden space-y-2"
+                            >
+                              {pendingYields.map((item) => {
+                                const itemKey = item.accountId || item.subAccountId || "";
+                                const isEditing = editingId === itemKey;
 
-                            return (
-                              <div
-                                key={itemKey}
-                                className="p-3 bg-white/60 dark:bg-gray-800/60 rounded-xl"
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                    {item.accountName}
-                                  </span>
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[10px] bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-700"
+                                return (
+                                  <div
+                                    key={itemKey}
+                                    className="p-3 bg-white/60 dark:bg-gray-800/60 rounded-xl"
                                   >
-                                    Pendiente
-                                  </Badge>
-                                </div>
-
-                                <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                                  <span>
-                                    Balance: {formatCurrency(item.balance)} · {item.yieldPercentage}% anual
-                                  </span>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  {isEditing ? (
-                                    <>
-                                      <div className="flex-1">
-                                        <CurrencyInput
-                                          value={editValue}
-                                          onChange={setEditValue}
-                                          showPrefix
-                                          placeholder={item.projectedYield.toString()}
-                                          className="h-8 text-xs rounded-lg"
-                                        />
-                                      </div>
-                                      <Button
-                                        size="sm"
-                                        className="h-8 rounded-lg bg-emerald-500 text-xs"
-                                        onClick={() => handleConfirm(item)}
-                                      >
-                                        <Check className="size-3" />
-                                      </Button>
-                                    </>
-                                  ) : (
-                                    <>
+                                    <div className="flex items-center justify-between mb-1">
                                       <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                        {formatCurrency(item.projectedYield)}
+                                        {item.accountName}
                                       </span>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 text-[10px] rounded-lg"
-                                        onClick={() => {
-                                          setEditingId(itemKey);
-                                          setEditValue(item.projectedYield.toString());
-                                        }}
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[10px] bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-700"
                                       >
-                                        <Edit3 className="size-3 mr-1" />
-                                        Editar
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        className="h-7 text-[10px] rounded-lg bg-emerald-500"
-                                        onClick={() => handleConfirm(item)}
-                                      >
-                                        Confirmar
-                                      </Button>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                                        Pendiente
+                                      </Badge>
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                                      <span>
+                                        Balance: {formatCurrency(item.balance)} · {item.yieldPercentage}% anual
+                                      </span>
+                                      <span>Proyectado: {formatCurrency(item.projectedYield)}</span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      {isEditing ? (
+                                        <>
+                                          <div className="relative flex-1">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
+                                              $
+                                            </span>
+                                            <Input
+                                              type="number"
+                                              value={editValue}
+                                              onChange={(e) => setEditValue(e.target.value)}
+                                              className="pl-5 h-8 text-xs rounded-lg"
+                                              placeholder={item.projectedYield.toString()}
+                                            />
+                                          </div>
+                                          <Button
+                                            size="sm"
+                                            className="h-8 rounded-lg bg-emerald-500 text-xs"
+                                            onClick={() => handleConfirm(item)}
+                                          >
+                                            <Check className="size-3" />
+                                          </Button>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                            {formatCurrency(item.projectedYield)}
+                                          </span>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 text-[10px] rounded-lg"
+                                            onClick={() => {
+                                              setEditingId(itemKey);
+                                              setEditValue(item.projectedYield.toString());
+                                            }}
+                                          >
+                                            <Edit3 className="size-3 mr-1" />
+                                            Editar
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            className="h-7 text-[10px] rounded-lg bg-emerald-500"
+                                            onClick={() => handleConfirm(item)}
+                                          >
+                                            Confirmar
+                                          </Button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </>
+                    ) : (
+                      /* Not near month-end: show teaser with projected total */
+                      <div className="py-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-amber-500/70 dark:text-amber-400/70">
+                              {pendingYields.length} pendiente{pendingYields.length !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                            Se mostrarán {daysUntilMonthEnd === 1 ? "mañana" : `en ${daysUntilMonthEnd} días`}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -411,7 +393,9 @@ export function YieldManager({ accounts, yieldHistory }: YieldManagerProps) {
                                 </div>
 
                                 <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                                  <span>{item.yieldPercentage}% anual</span>
+                                  <span>
+                                    {item.yieldPercentage}% anual
+                                  </span>
                                 </div>
 
                                 <div className="flex items-center justify-between">
@@ -425,7 +409,9 @@ export function YieldManager({ accounts, yieldHistory }: YieldManagerProps) {
                                   {isConfirmingReverse ? (
                                     <div className="flex items-center gap-1.5">
                                       <AlertTriangle className="size-3.5 text-red-500" />
-                                      <span className="text-[10px] text-red-600 dark:text-red-400 font-medium">¿Revertir?</span>
+                                      <span className="text-[10px] text-red-600 dark:text-red-400 font-medium">
+                                        ¿Revertir?
+                                      </span>
                                       <Button
                                         size="sm"
                                         variant="outline"
@@ -463,122 +449,6 @@ export function YieldManager({ accounts, yieldHistory }: YieldManagerProps) {
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </div>
-                )}
-
-                {/* Next Month Projected Section — shows 2 days before month end */}
-                {showNextMonth && nextMonthYields.length > 0 && (
-                  <div>
-                    <div className="h-px bg-blue-200 dark:bg-blue-800/50" />
-                    <button
-                      onClick={() => setIsNextMonthExpanded(!isNextMonthExpanded)}
-                      className="w-full flex items-center justify-between py-1.5 mb-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        {isNextMonthExpanded ? (
-                          <ChevronUp className="size-3.5 text-blue-500" />
-                        ) : (
-                          <ChevronDown className="size-3.5 text-blue-500" />
-                        )}
-                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                          Próximo Mes
-                        </span>
-                        <CalendarClock className="size-3 text-blue-400" />
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700 h-5 px-1.5"
-                        >
-                          {getNextMonthLabel()}
-                        </Badge>
-                      </div>
-                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                        {formatCurrency(totalNextMonthProjected)}
-                      </span>
-                    </button>
-
-                    <AnimatePresence>
-                      {isNextMonthExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.15 }}
-                          className="overflow-hidden space-y-2"
-                        >
-                          {nextMonthYields.map((item) => (
-                            <div
-                              key={`next-${item.accountId}`}
-                              className="p-3 bg-blue-50/60 dark:bg-blue-900/20 rounded-xl"
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                  {item.accountName}
-                                </span>
-                                <Badge
-                                  variant="outline"
-                                  className="text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700"
-                                >
-                                  Proyectado
-                                </Badge>
-                              </div>
-                              <div className="flex items-center justify-between text-xs text-gray-500">
-                                <span>
-                                  Balance: {formatCurrency(item.balance)} · {item.yieldPercentage}% anual
-                                </span>
-                                <span className="font-medium text-blue-600 dark:text-blue-400">
-                                  {formatCurrency(item.projectedYield)}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                          <p className="text-[9px] text-blue-400 dark:text-blue-500 text-center">
-                            Basado en el balance actual · Se actualizará al iniciar el nuevo mes
-                          </p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
-
-                {/* Mini Yield History Chart */}
-                {chartData.length >= 2 && (
-                  <div>
-                    <div className="h-px bg-emerald-200 dark:bg-emerald-800/50" />
-                    <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 mt-2 mb-1">
-                      Historial de rendimientos
-                    </p>
-                    <ChartContainer config={yieldChartConfig} className="h-[120px] w-full">
-                      <BarChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                          dataKey="month"
-                          tick={{ fontSize: 8 }}
-                          interval="preserveStartEnd"
-                        />
-                        <YAxis
-                          tick={{ fontSize: 8 }}
-                          tickFormatter={(v: number) => {
-                            if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
-                            if (v >= 1000) return `${(v / 1000).toFixed(0)}k`;
-                            return `${v}`;
-                          }}
-                        />
-                        <ChartTooltip
-                          content={
-                            <ChartTooltipContent
-                              formatter={(value) => (
-                                <span className="font-mono font-medium">
-                                  {formatCurrency(Number(value))}
-                                </span>
-                              )}
-                            />
-                          }
-                        />
-                        <ChartLegend content={<ChartLegendContent />} />
-                        <Bar dataKey="projected" fill="var(--color-projected)" radius={[3, 3, 0, 0]} maxBarSize={20} />
-                        <Bar dataKey="actual" fill="var(--color-actual)" radius={[3, 3, 0, 0]} maxBarSize={20} />
-                      </BarChart>
-                    </ChartContainer>
                   </div>
                 )}
               </div>

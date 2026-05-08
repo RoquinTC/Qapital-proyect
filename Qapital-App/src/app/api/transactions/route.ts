@@ -187,6 +187,9 @@ export async function POST(req: NextRequest) {
     }
 
     // If transfer, create the counterpart income transaction and link them
+    // Collect updated balances for notification
+    const updatedBalances: Array<{ name: string; balance: number; isSubAccount: boolean }> = [];
+
     if (type === "transfer" && transferToAccountId) {
       const sourceAccount = await db.account.findUnique({
         where: { id: accountId || "" },
@@ -228,7 +231,66 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(transaction, { status: 201 });
+    // Fetch updated balances for the affected account/subaccount
+    if (subAccountId) {
+      const updatedSub = await db.subAccount.findUnique({
+        where: { id: subAccountId },
+        select: { balance: true, name: true, account: { select: { name: true } } },
+      });
+      if (updatedSub) {
+        updatedBalances.push({
+          name: `${updatedSub.account.name} → ${updatedSub.name}`,
+          balance: updatedSub.balance,
+          isSubAccount: true,
+        });
+      }
+    } else if (accountId) {
+      const updatedAcc = await db.account.findUnique({
+        where: { id: accountId },
+        select: { balance: true, name: true },
+      });
+      if (updatedAcc) {
+        updatedBalances.push({
+          name: updatedAcc.name,
+          balance: updatedAcc.balance,
+          isSubAccount: false,
+        });
+      }
+    }
+
+    // For transfers, also fetch destination balance
+    if (type === "transfer" && transferToAccountId) {
+      if (transferToSubAccountId) {
+        const updatedDestSub = await db.subAccount.findUnique({
+          where: { id: transferToSubAccountId },
+          select: { balance: true, name: true, account: { select: { name: true } } },
+        });
+        if (updatedDestSub) {
+          updatedBalances.push({
+            name: `${updatedDestSub.account.name} → ${updatedDestSub.name}`,
+            balance: updatedDestSub.balance,
+            isSubAccount: true,
+          });
+        }
+      } else {
+        const updatedDestAcc = await db.account.findUnique({
+          where: { id: transferToAccountId },
+          select: { balance: true, name: true },
+        });
+        if (updatedDestAcc) {
+          updatedBalances.push({
+            name: updatedDestAcc.name,
+            balance: updatedDestAcc.balance,
+            isSubAccount: false,
+          });
+        }
+      }
+    }
+
+    return NextResponse.json({
+      ...transaction,
+      updatedBalances,
+    }, { status: 201 });
   } catch (error) {
     console.error("Create transaction error:", error);
     return NextResponse.json({ error: "Error al crear transacción" }, { status: 500 });

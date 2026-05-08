@@ -43,7 +43,19 @@ export async function GET() {
     });
 
     // Calculate projected yields
-    const yields = [];
+    const yields: Array<{
+      id: string | null;
+      accountId: string | null;
+      subAccountId: string | null;
+      parentAccountId: string | null;
+      accountName: string;
+      balance: number;
+      yieldPercentage: number;
+      projectedYield: number;
+      actualYield: number | null;
+      isConfirmed: boolean;
+      transactionId: string | null;
+    }> = [];
 
     for (const account of highYieldAccounts) {
       const existingRecord = account.yieldHistory[0];
@@ -138,6 +150,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Initialize response variables
+    let updatedBalance: number | undefined;
+    let updatedAccountName: string | undefined;
+
     // Add income transaction for the yield
     if (actualYield > 0) {
       const monthLabel = monthStart.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
@@ -173,16 +189,38 @@ export async function POST(req: NextRequest) {
           where: { id: subAccountId },
           data: { balance: { increment: actualYield } },
         });
+        // Fetch updated sub-account with parent name
+        const updatedSub = await db.subAccount.findUnique({
+          where: { id: subAccountId },
+          select: { balance: true, name: true, account: { select: { name: true } } },
+        });
+        if (updatedSub) {
+          updatedBalance = updatedSub.balance;
+          updatedAccountName = `${updatedSub.account.name} → ${updatedSub.name}`;
+        }
       } else {
         // Account-level yield: increment account balance
         await db.account.update({
           where: { id: targetAccountId },
           data: { balance: { increment: actualYield } },
         });
+        // Fetch updated account name
+        const updatedAcc = await db.account.findUnique({
+          where: { id: targetAccountId },
+          select: { balance: true, name: true },
+        });
+        if (updatedAcc) {
+          updatedBalance = updatedAcc.balance;
+          updatedAccountName = updatedAcc.name;
+        }
       }
     }
 
-    return NextResponse.json(yieldRecord);
+    return NextResponse.json({
+      ...yieldRecord,
+      updatedBalance,
+      updatedAccountName,
+    });
   } catch (error) {
     console.error("Confirm yield error:", error);
     return NextResponse.json({ error: "Error al confirmar rendimiento" }, { status: 500 });
