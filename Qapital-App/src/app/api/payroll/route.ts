@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { adjustToBusinessDay, clampDayToMonth } from "@/lib/holidays";
+import { verifyEntityOwnership } from "@/lib/auth-guards";
 
 interface ScheduleItem {
   day?: number;       // Day of month (1-31) for monthly/biweekly
@@ -55,6 +56,14 @@ export async function POST(req: NextRequest) {
     if (!schedules || !Array.isArray(schedules) || schedules.length === 0) {
       return NextResponse.json({ error: "Horarios requeridos" }, { status: 400 });
     }
+
+    // Verify ownership of account/subAccount
+    const payrollEntities: { type: "account" | "subAccount" | "debt"; id: string }[] = [];
+    payrollEntities.push({ type: "account", id: accountId });
+    if (subAccountId) payrollEntities.push({ type: "subAccount", id: subAccountId });
+
+    const payrollOwnershipError = await verifyEntityOwnership(session.user.id, payrollEntities);
+    if (payrollOwnershipError) return payrollOwnershipError;
 
     // Validate schedules based on frequency
     if (frequency === "monthly" && schedules.length !== 1) {

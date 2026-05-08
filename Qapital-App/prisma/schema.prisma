@@ -42,6 +42,7 @@ model User {
   recurringPayments   RecurringPayment[]
   cdts                CDT[]
   payrollGroups       PayrollGroup[]
+  fuelPrices          FuelPrice[]
   settings            UserSettings?
 }
 
@@ -77,7 +78,6 @@ model Account {
   goalSources           SavingsGoal[] @relation("GoalSourceAccount")
   goalDestinations      SavingsGoal[] @relation("GoalDestinationAccount")
   payrollGroups         PayrollGroup[]
-  debts                 Debt[]
 
   @@map("accounts")
 }
@@ -103,7 +103,6 @@ model SubAccount {
   savingsGoalLinks      SavingsGoalAccount[]
   recurringPayments     RecurringPayment[]
   payrollGroups         PayrollGroup[]
-  debts                 Debt[]
 
   @@map("sub_accounts")
 }
@@ -209,26 +208,17 @@ model Debt {
   bank            String?
   totalAmount     Float     // Total credit limit or loan amount
   currentBalance  Float     // Current balance owed
-  interestRate    Float?    // Tasa de interés mensual (nominal vencida para préstamos)
+  interestRate    Float?
   cutoffDate      Int?      // Day of month for cutoff (credit card)
-  paymentDate     Int?      // Day of month for payment (credit card / loan)
-  monthlyPayment  Float?    // Valor de la cuota fija (para préstamos con cuota fija)
-  remainingPayments Int?    // Cuotas restantes
+  paymentDate     Int?      // Day of month for payment (credit card)
+  monthlyPayment  Float?
+  remainingPayments Int?
   startDate       DateTime?
   endDate         DateTime?
-  // ── Préstamo (loan) specific fields ──
-  paymentType     String?   // "fixed" (cuota fija) or "variable" (cuota variable), null for credit_card
-  otherCharges    Float?    // Gastos fijos mensuales (seguro, papelería, IVA, etc.)
-  category        String?   // Categoría de presupuesto para préstamos (se propaga a las cuotas)
-  subCategory     String?   // Subcategoría de presupuesto para préstamos
-  accountId       String?   // Cuenta desde donde se pagan las cuotas del préstamo
-  subAccountId    String?   // Subcuenta desde donde se pagan las cuotas del préstamo
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account         Account?  @relation(fields: [accountId], references: [id])
-  subAccount      SubAccount? @relation(fields: [subAccountId], references: [id])
   installments    Installment[]
   abonos          Abono[]
   recurringPayments RecurringPayment[]
@@ -243,11 +233,10 @@ model Installment {
   totalAmount         Float
   totalInstallments   Int
   currentInstallment  Int       @default(1)
-  installmentAmount   Float     // Capital fijo = totalAmount / totalInstallments (TC) o capital del préstamo
-  paidAmount          Float     @default(0) // Total pagado (capital + interés + otros)
+  installmentAmount   Float     // Capital fijo = totalAmount / totalInstallments
+  paidAmount          Float     @default(0) // Total pagado (capital + interés)
   interestRate        Float?    // Tasa de interés mensual para esta cuota (%), ingresada al pagar
   interestAmount      Float?    // Monto del interés pagado en esta cuota
-  otherChargesAmount  Float?    // Otros gastos pagados en esta cuota (seguro, papelería, IVA)
   remainingBalance    Float?    // Saldo pendiente ANTES de pagar esta cuota (para calcular interés)
   purchaseDate        DateTime
   nextPaymentDate     DateTime
@@ -664,6 +653,8 @@ model FuelPrice {
   pricePerGallon  Float
   updatedAt       DateTime  @updatedAt
   createdAt       DateTime  @default(now())
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("fuel_prices")
 }

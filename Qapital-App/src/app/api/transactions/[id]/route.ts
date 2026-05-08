@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate } from "@/lib/api";
+import { verifyEntityOwnership } from "@/lib/auth-guards";
 
 export async function PUT(
   req: NextRequest,
@@ -24,6 +25,16 @@ export async function PUT(
     if (!existing) {
       return NextResponse.json({ error: "Transacción no encontrada" }, { status: 404 });
     }
+
+    // Verify ownership of new account/subAccount if changed
+    const newAccountId = body.accountId !== undefined ? body.accountId : existing.accountId;
+    const newSubAccountId = body.subAccountId !== undefined ? body.subAccountId : existing.subAccountId;
+    const entitiesToVerify: { type: "account" | "subAccount" | "debt"; id: string }[] = [];
+    if (newAccountId) entitiesToVerify.push({ type: "account", id: newAccountId });
+    if (newSubAccountId) entitiesToVerify.push({ type: "subAccount", id: newSubAccountId });
+
+    const ownershipError = await verifyEntityOwnership(session.user.id, entitiesToVerify);
+    if (ownershipError) return ownershipError;
 
     // If amount or type changed, reverse old balance change and apply new one
     const oldAmount = existing.amount;

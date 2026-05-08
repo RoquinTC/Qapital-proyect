@@ -137,3 +137,77 @@ export async function getAccessibleAccountIds(userId: string): Promise<string[]>
     ...sharedAccounts.map((s) => s.accountId),
   ];
 }
+
+// ============================================
+// ENTITY OWNERSHIP HELPERS
+// Use these to verify that IDs from request body
+// belong to the authenticated user BEFORE using them.
+// ============================================
+
+/**
+ * Verify an account belongs to the user. Returns the account or throws an error response.
+ */
+export async function verifyAccountOwnership(accountId: string, userId: string) {
+  const account = await db.account.findFirst({ where: { id: accountId, userId } });
+  if (!account) {
+    return {
+      data: null,
+      error: NextResponse.json({ error: "Cuenta no encontrada o sin permisos" }, { status: 403 }),
+    };
+  }
+  return { data: account, error: null };
+}
+
+/**
+ * Verify a sub-account belongs to the user (through its parent account).
+ */
+export async function verifySubAccountOwnership(subAccountId: string, userId: string) {
+  const sub = await db.subAccount.findFirst({
+    where: { id: subAccountId, account: { userId } },
+  });
+  if (!sub) {
+    return {
+      data: null,
+      error: NextResponse.json({ error: "Subcuenta no encontrada o sin permisos" }, { status: 403 }),
+    };
+  }
+  return { data: sub, error: null };
+}
+
+/**
+ * Verify a debt belongs to the user.
+ */
+export async function verifyDebtOwnership(debtId: string, userId: string) {
+  const debt = await db.debt.findFirst({ where: { id: debtId, userId } });
+  if (!debt) {
+    return {
+      data: null,
+      error: NextResponse.json({ error: "Deuda no encontrada o sin permisos" }, { status: 403 }),
+    };
+  }
+  return { data: debt, error: null };
+}
+
+/**
+ * Verify multiple entity IDs at once. Returns the first error or null if all pass.
+ * Useful for transaction/recurring payment creation where multiple IDs need validation.
+ */
+export async function verifyEntityOwnership(
+  userId: string,
+  entities: { type: "account" | "subAccount" | "debt"; id: string }[]
+) {
+  for (const entity of entities) {
+    if (!entity.id) continue;
+    if (entity.type === "account") {
+      const { error } = await verifyAccountOwnership(entity.id, userId);
+      if (error) return error;
+    } else if (entity.type === "subAccount") {
+      const { error } = await verifySubAccountOwnership(entity.id, userId);
+      if (error) return error;
+    } else if (entity.type === "debt") {
+      const { error } = await verifyDebtOwnership(entity.id, userId);
+      if (error) return error;
+    }
+  }
+  return null;
+}

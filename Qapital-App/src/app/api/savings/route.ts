@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { verifyEntityOwnership } from '@/lib/auth-guards'
 
 // GET /api/savings — list savings goals for authenticated user
 export async function GET() {
@@ -97,17 +98,31 @@ export async function POST(request: Request) {
     let linkedAccountsTotal = 0
     for (const item of linkedAccountItems) {
       if (item.subAccountId) {
-        const sub = await db.subAccount.findUnique({
-          where: { id: item.subAccountId },
+        const sub = await db.subAccount.findFirst({
+          where: { id: item.subAccountId, account: { userId } },
         })
-        if (sub) linkedAccountsTotal += sub.balance
+        if (!sub) {
+          return NextResponse.json({ error: 'Subcuenta vinculada no encontrada o sin permisos' }, { status: 403 })
+        }
+        linkedAccountsTotal += sub.balance
       } else {
-        const acc = await db.account.findUnique({
-          where: { id: item.accountId },
+        const acc = await db.account.findFirst({
+          where: { id: item.accountId, userId },
         })
-        if (acc) linkedAccountsTotal += acc.balance
+        if (!acc) {
+          return NextResponse.json({ error: 'Cuenta vinculada no encontrada o sin permisos' }, { status: 403 })
+        }
+        linkedAccountsTotal += acc.balance
       }
     }
+
+    // Verify ownership of source/destination accounts
+    const savingsEntitiesToVerify: { type: "account" | "subAccount" | "debt"; id: string }[] = [];
+    if (sourceAccountId) savingsEntitiesToVerify.push({ type: "account", id: sourceAccountId });
+    if (destinationAccountId) savingsEntitiesToVerify.push({ type: "account", id: destinationAccountId });
+
+    const savingsOwnershipError = await verifyEntityOwnership(userId, savingsEntitiesToVerify);
+    if (savingsOwnershipError) return savingsOwnershipError;
 
     const totalAlreadyCovered = linkedCDTTotal + linkedAccountsTotal
     const remainingAmount = Math.max(0, targetAmount - totalAlreadyCovered)

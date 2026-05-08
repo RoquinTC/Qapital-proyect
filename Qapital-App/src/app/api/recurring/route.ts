@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { verifyEntityOwnership } from "@/lib/auth-guards";
 
 export async function GET() {
   try {
@@ -97,6 +98,17 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Verify ownership of all referenced entities
+    const entitiesToVerify: { type: "account" | "subAccount" | "debt"; id: string }[] = [];
+    if (accountId) entitiesToVerify.push({ type: "account", id: accountId });
+    if (subAccountId) entitiesToVerify.push({ type: "subAccount", id: subAccountId });
+    if (debtId) entitiesToVerify.push({ type: "debt", id: debtId });
+    if (destinationAccountId) entitiesToVerify.push({ type: "account", id: destinationAccountId });
+    if (destinationSubAccountId) entitiesToVerify.push({ type: "subAccount", id: destinationSubAccountId });
+
+    const ownershipError = await verifyEntityOwnership(session.user.id, entitiesToVerify);
+    if (ownershipError) return ownershipError;
 
     const recurringPayment = await db.recurringPayment.create({
       data: {

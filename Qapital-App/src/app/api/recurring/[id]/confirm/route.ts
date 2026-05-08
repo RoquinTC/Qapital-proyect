@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { syncSavingsBudget } from "@/lib/savings-budget-sync";
+import { verifyEntityOwnership } from "@/lib/auth-guards";
 
 /**
  * Calculate the next scheduled date for a recurring payment.
@@ -128,6 +129,17 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    // Re-verify ownership of all referenced entities before mutating balances
+    const entitiesToVerify: { type: "account" | "subAccount" | "debt"; id: string }[] = [];
+    if (payment.accountId) entitiesToVerify.push({ type: "account", id: payment.accountId });
+    if (payment.subAccountId) entitiesToVerify.push({ type: "subAccount", id: payment.subAccountId });
+    if (payment.debtId) entitiesToVerify.push({ type: "debt", id: payment.debtId });
+    if (effectiveDestAccountId) entitiesToVerify.push({ type: "account", id: effectiveDestAccountId });
+    if (effectiveDestSubAccountId) entitiesToVerify.push({ type: "subAccount", id: effectiveDestSubAccountId });
+
+    const ownershipError = await verifyEntityOwnership(session.user.id, entitiesToVerify);
+    if (ownershipError) return ownershipError;
 
     const confirmedAmount = actualAmount !== undefined ? actualAmount : payment.amount;
     const now = new Date();
@@ -384,9 +396,7 @@ export async function POST(
         },
       });
 
-      // 3. Update budget spent — the money is already committed when the purchase is made
-      // even if the CC bill hasn't been paid yet. This is the accrual principle:
-      // budget reflects commitments, not just cash outflows.
+      // 3. Update budget spent if category matches
       const categoryToMatch = payment.category || "Deudas";
       const subCatToMatch = payment.subCategory || null;
       let budget = null;
