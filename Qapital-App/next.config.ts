@@ -2,16 +2,40 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
   allowedDevOrigins: [
     "preview-chat-41b9dbe3-bce7-4662-9956-f567893b29f4.space-z.ai",
+    "preview-chat-b80b2029-f1a8-4d96-b68f-f5033414930a.space-z.ai",
     ".space-z.ai",
     ".space.chatglm.site",
     "192.168.1.10",
+  ],
+  headers: async () => [
+    {
+      source: "/sw.js",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=0, must-revalidate",
+        },
+        {
+          key: "Service-Worker-Allowed",
+          value: "/",
+        },
+      ],
+    },
+    {
+      source: "/manifest.json",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=604800",
+        },
+      ],
+    },
   ],
 };
 
