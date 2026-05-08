@@ -10,12 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -43,10 +37,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Settings2,
-  Eye,
-  EyeOff,
-  ChevronUp,
-  ChevronDown,
   GripVertical,
   RotateCcw,
 } from "lucide-react";
@@ -174,22 +164,34 @@ interface MonthlySummaryResponse {
 // Widget configuration types
 export type WidgetId = "balance" | "quickActions" | "evolution" | "expenses" | "accounts" | "transactions" | "yields";
 
+type IconName = "Wallet" | "Plus" | "Activity" | "BarChart3" | "Landmark" | "Receipt" | "TrendingUp";
+
+// Icon lookup map — avoids serializing React components to localStorage
+const WIDGET_ICONS: Record<WidgetId, { component: typeof Wallet; name: IconName }> = {
+  balance: { component: Wallet, name: "Wallet" },
+  quickActions: { component: Plus, name: "Plus" },
+  evolution: { component: Activity, name: "Activity" },
+  expenses: { component: BarChart3, name: "BarChart3" },
+  accounts: { component: Landmark, name: "Landmark" },
+  transactions: { component: Receipt, name: "Receipt" },
+  yields: { component: TrendingUp, name: "TrendingUp" },
+};
+
 interface WidgetConfig {
   id: WidgetId;
   label: string;
-  icon: typeof Wallet;
   visible: boolean;
   order: number;
 }
 
 const DEFAULT_WIDGET_ORDER: WidgetConfig[] = [
-  { id: "balance", label: "Disponible", icon: Wallet, visible: true, order: 0 },
-  { id: "quickActions", label: "Acciones Rápidas", icon: Plus, visible: true, order: 1 },
-  { id: "evolution", label: "Evolución Financiera", icon: Activity, visible: true, order: 2 },
-  { id: "expenses", label: "Tus Gastos", icon: BarChart3, visible: true, order: 3 },
-  { id: "accounts", label: "Mis Cuentas", icon: Landmark, visible: true, order: 4 },
-  { id: "transactions", label: "Transacciones", icon: Receipt, visible: true, order: 5 },
-  { id: "yields", label: "Rendimientos", icon: TrendingUp, visible: true, order: 6 },
+  { id: "balance", label: "Disponible", visible: true, order: 0 },
+  { id: "quickActions", label: "Acciones Rápidas", visible: true, order: 1 },
+  { id: "evolution", label: "Evolución Financiera", visible: true, order: 2 },
+  { id: "expenses", label: "Tus Gastos", visible: true, order: 3 },
+  { id: "accounts", label: "Mis Cuentas", visible: true, order: 4 },
+  { id: "transactions", label: "Transacciones", visible: true, order: 5 },
+  { id: "yields", label: "Rendimientos", visible: true, order: 6 },
 ];
 
 // ============================================
@@ -278,18 +280,30 @@ function loadWidgetConfig(): WidgetConfig[] {
   try {
     const saved = localStorage.getItem(WIDGET_STORAGE_KEY);
     if (saved) {
-      const parsed = JSON.parse(saved) as WidgetConfig[];
-      const savedIds = new Set(parsed.map((w) => w.id));
-      const merged = [...parsed];
+      const parsed = JSON.parse(saved) as Array<Record<string, unknown>>;
+      // Only keep valid, serializable fields (id, label, visible, order) — discard any stale `icon` references
+      const valid = parsed
+        .filter((w) => typeof w.id === "string" && DEFAULT_WIDGET_ORDER.some((d) => d.id === w.id))
+        .map((w) => ({
+          id: w.id as WidgetId,
+          label: DEFAULT_WIDGET_ORDER.find((d) => d.id === w.id)?.label || (w.label as string) || "",
+          visible: typeof w.visible === "boolean" ? w.visible : true,
+          order: typeof w.order === "number" ? w.order : 0,
+        }));
+      const savedIds = new Set(valid.map((w) => w.id));
+      const merged = [...valid];
       for (const def of DEFAULT_WIDGET_ORDER) {
         if (!savedIds.has(def.id)) {
           merged.push({ ...def, order: merged.length });
         }
       }
-      return merged.sort((a, b) => a.order - b.order);
+      // Re-index orders to ensure no gaps
+      const sorted = merged.sort((a, b) => a.order - b.order);
+      return sorted.map((w, i) => ({ ...w, order: i }));
     }
   } catch {
-    // ignore
+    // If localStorage is corrupted, clear it and use defaults
+    try { localStorage.removeItem(WIDGET_STORAGE_KEY); } catch { /* ignore */ }
   }
   return DEFAULT_WIDGET_ORDER;
 }
@@ -357,153 +371,6 @@ function FinancialEvolutionTooltip({ active, payload, label }: { active?: boolea
         </div>
       ))}
     </div>
-  );
-}
-
-// ============================================
-// WIDGET CUSTOMIZATION DIALOG
-// ============================================
-
-function WidgetCustomizationDialog({
-  open,
-  onOpenChange,
-  widgetConfig,
-  setWidgetConfig,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  widgetConfig: WidgetConfig[];
-  setWidgetConfig: (config: WidgetConfig[]) => void;
-}) {
-  const toggleVisibility = (id: WidgetId) => {
-    if (id === "balance") return;
-    setWidgetConfig(
-      widgetConfig.map((w) =>
-        w.id === id ? { ...w, visible: !w.visible } : w
-      )
-    );
-  };
-
-  const moveUp = (order: number) => {
-    const sorted = [...widgetConfig].sort((a, b) => a.order - b.order);
-    const idx = sorted.findIndex((w) => w.order === order);
-    if (idx <= 0) return;
-    const prev = sorted[idx - 1];
-    const curr = sorted[idx];
-    setWidgetConfig(
-      widgetConfig.map((w) => {
-        if (w.id === prev.id) return { ...w, order: curr.order };
-        if (w.id === curr.id) return { ...w, order: prev.order };
-        return w;
-      })
-    );
-  };
-
-  const moveDown = (order: number) => {
-    const sorted = [...widgetConfig].sort((a, b) => a.order - b.order);
-    const idx = sorted.findIndex((w) => w.order === order);
-    if (idx >= sorted.length - 1) return;
-    const curr = sorted[idx];
-    const next = sorted[idx + 1];
-    setWidgetConfig(
-      widgetConfig.map((w) => {
-        if (w.id === curr.id) return { ...w, order: next.order };
-        if (w.id === next.id) return { ...w, order: curr.order };
-        return w;
-      })
-    );
-  };
-
-  const resetToDefaults = () => {
-    setWidgetConfig(DEFAULT_WIDGET_ORDER.map((w) => ({ ...w })));
-  };
-
-  const sorted = [...widgetConfig].sort((a, b) => a.order - b.order);
-  const maxOrder = sorted.length - 1;
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings2 className="size-5 text-emerald-500" />
-            Personalizar Widgets
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2 py-2 max-h-[60vh] overflow-y-auto">
-          {sorted.map((widget) => {
-            const isBalance = widget.id === "balance";
-            const WidgetIcon = widget.icon;
-            return (
-              <div
-                key={widget.id}
-                className={`flex items-center gap-2 p-2.5 rounded-xl transition-colors ${
-                  widget.visible
-                    ? "bg-gray-50 dark:bg-gray-800/60"
-                    : "bg-gray-50/50 dark:bg-gray-800/30 opacity-60"
-                }`}
-              >
-                <WidgetIcon className="size-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
-                <span className={`flex-1 text-sm font-medium ${
-                  widget.visible
-                    ? "text-gray-900 dark:text-gray-100"
-                    : "text-gray-400 dark:text-gray-500"
-                }`}>
-                  {widget.label}
-                  {isBalance && (
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1.5">
-                      (siempre visible)
-                    </span>
-                  )}
-                </span>
-                <button
-                  onClick={() => toggleVisibility(widget.id)}
-                  disabled={isBalance}
-                  className={`p-1.5 rounded-lg transition-colors ${
-                    isBalance
-                      ? "text-emerald-500 cursor-default"
-                      : "hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
-                  }`}
-                >
-                  {widget.visible ? (
-                    <Eye className="size-4" />
-                  ) : (
-                    <EyeOff className="size-4" />
-                  )}
-                </button>
-                <div className="flex flex-col gap-0.5">
-                  <button
-                    onClick={() => moveUp(widget.order)}
-                    disabled={widget.order === 0}
-                    className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 disabled:opacity-30 disabled:cursor-default transition-colors"
-                  >
-                    <ChevronUp className="size-3" />
-                  </button>
-                  <button
-                    onClick={() => moveDown(widget.order)}
-                    disabled={widget.order === maxOrder}
-                    className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 disabled:opacity-30 disabled:cursor-default transition-colors"
-                  >
-                    <ChevronDown className="size-3" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={resetToDefaults}
-            className="w-full text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-          >
-            <RotateCcw className="size-3.5 mr-1.5" />
-            Restablecer
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -668,7 +535,7 @@ function SortableSheetItem({
     isDragging,
   } = useSortable({ id: widget.id });
 
-  const WidgetIcon = widget.icon;
+  const WidgetIcon = WIDGET_ICONS[widget.id]?.component || Wallet;
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -1555,13 +1422,6 @@ export function AccountsView() {
 
   return (
     <>
-      <WidgetCustomizationDialog
-        open={customizeOpen}
-        onOpenChange={setCustomizeOpen}
-        widgetConfig={widgetConfig}
-        setWidgetConfig={setWidgetConfig}
-      />
-
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -1595,7 +1455,7 @@ export function AccountsView() {
               </button>
             </div>
             <button
-              onClick={() => setCustomizeOpen(true)}
+              onClick={openCustomize}
               className="p-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <Settings2 className="size-4 text-gray-500 dark:text-gray-400" />

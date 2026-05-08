@@ -98,7 +98,7 @@ export function AppShell() {
 
   // Authenticated and onboarded - show main app
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50/50 dark:bg-gray-950">
+    <div className="h-screen flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
       <Header />
       <ModuleContent />
       <BottomNav />
