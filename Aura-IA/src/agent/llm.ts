@@ -164,6 +164,43 @@ export async function createChatCompletion(messages: any[], tools?: any[]) {
   } catch (error: any) {
     console.warn('⚠️ Fallback a Groq falló:', error.message);
   }
-  throw new Error('Todos los proveedores de LLM (Gemini y Groq) fallaron.');
+
+  // 3. Fallback a IA Local (Ollama / LM Studio)
+  try {
+    const localBaseUrl = env.LOCAL_AI_BASE_URL || 'http://host.docker.internal:11434/v1';
+    console.log(`🤖 Intentando fallback a IA Local en: ${localBaseUrl}...`);
+    
+    const localClient = new OpenAI({
+      apiKey: 'local-no-key-required',
+      baseURL: localBaseUrl,
+    });
+
+    const localMessages = messages.slice(-10).map(m => {
+      const msg: any = { role: m.role };
+      if (m.role === 'assistant' && m.tool_calls) {
+        msg.content = m.content || null;
+        msg.tool_calls = m.tool_calls;
+      } else if (m.role === 'tool') {
+        msg.content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+        msg.tool_call_id = m.tool_call_id;
+        msg.name = m.name;
+      } else {
+        msg.content = truncate(m.content || '', 1000);
+      }
+      if (!msg.content && !msg.tool_calls) msg.content = '[Mensaje vacío]';
+      return msg;
+    });
+
+    const response = await localClient.chat.completions.create({
+      model: env.LOCAL_AI_MODEL || 'llama3.2', // modelo por defecto para Ollama
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...localMessages],
+      tools: tools && tools.length > 0 ? tools : undefined,
+    });
+    return response.choices[0].message;
+  } catch (error: any) {
+    console.warn('⚠️ Fallback a IA Local falló:', error.message);
+  }
+
+  throw new Error('Todos los proveedores de LLM (Gemini, Groq, y Local) fallaron.');
 }
 

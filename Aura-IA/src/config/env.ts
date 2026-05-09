@@ -29,7 +29,7 @@ export const env = {
   GITHUB_REPO: getEnv('GITHUB_REPO', false),
 
   LOCAL_AI_BASE_URL: getEnv('LOCAL_AI_BASE_URL', false),
-  LOCAL_AI_MODEL: getEnv('LOCAL_AI_MODEL', false, 'llama3'),
+  LOCAL_AI_MODEL: getEnv('LOCAL_AI_MODEL', false, 'llama3.2'),
 
   ELEVENLABS_API_KEY: getEnv('ELEVENLABS_API_KEY', false),
   ELEVENLABS_VOICE_ID: getEnv('ELEVENLABS_VOICE_ID', false, '21m00Tcm4TlvDq8ikWAM'),
