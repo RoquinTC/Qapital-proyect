@@ -12,16 +12,14 @@ export async function POST() {
 
     const userId = session.user.id;
 
-    // Delete ALL user data in correct FK order, then the User itself.
-    // This covers ALL modules: finance, transport, health, pantry, payroll, etc.
-
-    // 1. Savings module (deepest children first)
+    // Delete ALL user data in correct FK order, then the User itself
+    // 1. Savings module
     await db.savingsContribution.deleteMany({ where: { goal: { userId } } });
     await db.savingsGoalAccount.deleteMany({ where: { goal: { userId } } });
     await db.cDT.deleteMany({ where: { userId } });
     await db.savingsGoal.deleteMany({ where: { userId } });
 
-    // 2. Debt module (installments → abono details → abonos → debt)
+    // 2. Debt module
     await db.abonoDetail.deleteMany({ where: { abono: { userId } } });
     await db.abono.deleteMany({ where: { userId } });
     await db.installment.deleteMany({ where: { debt: { userId } } });
@@ -32,7 +30,7 @@ export async function POST() {
     await db.payrollGroup.deleteMany({ where: { userId } });
     await db.recurringPayment.deleteMany({ where: { userId } });
 
-    // 4. Transactions (standalone, not linked to accounts)
+    // 4. Transactions
     await db.transaction.deleteMany({ where: { userId } });
 
     // 5. Budgets
@@ -54,17 +52,17 @@ export async function POST() {
     await db.shoppingList.deleteMany({ where: { userId } });
     await db.pantryItem.deleteMany({ where: { userId } });
 
-    // 9. Account structure (yield records → shared users → sub-accounts → accounts)
+    // 9. Account structure
     await db.yieldRecord.deleteMany({ where: { account: { userId } } });
     await db.sharedAccountUser.deleteMany({ where: { account: { userId } } });
-    await db.savingsGoalAccount.deleteMany({ where: { account: { userId } } }); // any remaining
+    await db.savingsGoalAccount.deleteMany({ where: { account: { userId } } });
     await db.subAccount.deleteMany({ where: { account: { userId } } });
     await db.account.deleteMany({ where: { userId } });
 
     // 10. User settings
     await db.userSettings.deleteMany({ where: { userId } });
 
-    // 11. Finally, delete the User record itself
+    // 11. Delete the User record itself
     await db.user.delete({ where: { id: userId } });
 
     return NextResponse.json({ success: true, message: "Cuenta eliminada permanentemente" });
