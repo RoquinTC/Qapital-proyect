@@ -186,8 +186,14 @@ bot.on('message:document', async (ctx) => {
     const file = await ctx.api.getFile(doc.file_id);
     const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
     
-    // Mensaje persuasivo para que el agente no ignore el archivo
-    const agentPrompt = `DOCUMENTO RECIBIDO: ${doc.file_name}\nEl usuario te ha enviado este archivo PDF. Para leer su contenido, DEBES usar inmediatamente la herramienta 'read_pdf' con esta URL: ${fileUrl}\n\nNo respondas que no puedes leerlo, simplemente usa la herramienta.`;
+    // Extraer texto automáticamente
+    const { pdfService } = await import('../services/pdf.js');
+    const pdfText = await pdfService.extractText(fileUrl);
+    
+    await ctx.api.editMessageText(ctx.chat.id, waitMsg.message_id, `📄 He leído el PDF: "${doc.file_name}"\n\n⏳ Procesando contenido...`);
+    
+    // Enviar el contenido al agente con un prompt claro
+    const agentPrompt = `[ARCHIVO PDF]: ${doc.file_name}\nCONTENIDO:\n${pdfText}\n\nEl usuario te ha enviado este PDF. Analiza el contenido de arriba y responde a lo que necesite.`;
     
     const responseText = await runAgentLoop(ctx.from.id, agentPrompt, ctx);
     

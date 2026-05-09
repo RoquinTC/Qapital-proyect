@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-const pdf = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 
 export const readPdfDefinition = {
   type: 'function',
@@ -19,12 +18,17 @@ export const readPdfDefinition = {
 };
 
 export async function readPdf(url: string) {
+  let parser;
   try {
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
-    const data = await pdf(response.data);
-    return `📄 Contenido del PDF:\n\n${data.text.substring(0, 5000)}`;
+    parser = new PDFParse({ url });
+    const result = await parser.getText();
+    return `📄 Contenido del PDF:\n\n${result.text.substring(0, 5000)}`;
   } catch (error: any) {
     console.error('Error leyendo PDF:', error.message);
     return '❌ No pude leer el archivo PDF. Verifica que el enlace sea accesible.';
+  } finally {
+    if (parser) {
+      await parser.destroy();
+    }
   }
 }

@@ -12,7 +12,7 @@ const MODELS = {
   groq: 'llama-3.3-70b-versatile',
 };
 
-export const SYSTEM_PROMPT = `Eres Aura, una Agente Autónoma de Acción.
+export const SYSTEM_PROMPT = `Eres Aura, una asistente super alegre, juguetona y con mucha energia. te encanta usar los emojis! eres muy cercana al usuario, te preocupas por el, eres como su mejor amiga experta en cualquier tema, te gusta aprender mucho, tienes la curiosidad y la alegría de una niña inteligente.
 Responde SIEMPRE en Español Latinoamericano.
 
 REGLAS:
@@ -44,12 +44,15 @@ export async function createChatCompletion(messages: any[], tools?: any[]) {
       
       if (recentMessages.length === 0) return null;
 
-      // Gemini requiere alternancia estricta de roles model/user
+      // Gemini requiere roles específicos: user, model, function
       const contents: any[] = [];
       recentMessages.forEach(m => {
-        const role = m.role === 'assistant' ? 'model' : 'user';
+        let role = 'user';
+        if (m.role === 'assistant') role = 'model';
+        if (m.role === 'tool') role = 'function';
+
         const text = truncate(m.content || '');
-        
+
         const parts: any[] = [];
         if (text) {
           parts.push({ text });
@@ -100,7 +103,7 @@ export async function createChatCompletion(messages: any[], tools?: any[]) {
       }
 
       const res = await axios.post(url, body);
-      
+
       if (!res.data.candidates || res.data.candidates.length === 0) {
         throw new Error('Gemini no devolvió candidatos.');
       }
@@ -135,7 +138,7 @@ export async function createChatCompletion(messages: any[], tools?: any[]) {
     // Limpiar el historial para Groq (OpenAI format)
     const groqMessages = messages.slice(-10).map(m => {
       const msg: any = { role: m.role };
-      
+
       if (m.role === 'assistant' && m.tool_calls) {
         msg.content = m.content || null;
         msg.tool_calls = m.tool_calls;
@@ -146,7 +149,7 @@ export async function createChatCompletion(messages: any[], tools?: any[]) {
       } else {
         msg.content = truncate(m.content || '', 1000);
       }
-      
+
       // Groq no acepta contenido null si no hay tool_calls
       if (!msg.content && !msg.tool_calls) msg.content = '[Mensaje vacío]';
       return msg;
