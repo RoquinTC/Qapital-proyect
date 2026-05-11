@@ -47,7 +47,7 @@ export async function GET() {
       }
     }
 
-    // Get all transactions in the current period (exclude transfers)
+    // Get all transactions in the current period (exclude transfers and excluded-from-budget)
     const transactions = await db.transaction.findMany({
       where: {
         userId,
@@ -55,6 +55,7 @@ export async function GET() {
         type: { in: ["income", "expense"] },
         category: { not: null },
         sourceModule: { not: "finance_transfer" },
+        excludeFromBudget: { not: true },
       },
       select: {
         category: true,

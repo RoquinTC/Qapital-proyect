@@ -21,6 +21,53 @@ function normalizeHeader(header: string): string {
     .replace(/[()]/g, "");
 }
 
+// Caching system for Budgets
+class BudgetCache {
+  private userId: string;
+  private budgetsMap = new Map<string, string>(); // key: "type:category:subCategory" -> budget id
+
+  constructor(userId: string) {
+    this.userId = userId;
+  }
+
+  async initialize() {
+    const budgets = await db.budget.findMany({
+      where: { userId: this.userId },
+      select: { id: true, type: true, category: true, subCategory: true },
+    });
+
+    for (const b of budgets) {
+      const key = `${b.type}:${b.category}:${b.subCategory || ""}`;
+      this.budgetsMap.set(key, b.id);
+    }
+  }
+
+  async ensureBudget(type: string, category: string | null, subCategory: string | null): Promise<string | null> {
+    if (!category) return null;
+    const key = `${type}:${category}:${subCategory || ""}`;
+
+    if (this.budgetsMap.has(key)) {
+      return this.budgetsMap.get(key)!;
+    }
+
+    // Create a new budget with amount: 0, spent: 0, period: "monthly"
+    const newBudget = await db.budget.create({
+      data: {
+        userId: this.userId,
+        type,
+        category,
+        subCategory: subCategory || null,
+        amount: 0,
+        spent: 0,
+        period: "monthly",
+      },
+    });
+
+    this.budgetsMap.set(key, newBudget.id);
+    return newBudget.id;
+  }
+}
+
 // Caching system for Accounts and SubAccounts
 class AccountCache {
   private userId: string;
@@ -161,9 +208,11 @@ export async function POST(request: Request) {
 
     const result: ImportResult = { total: 0, created: 0, skipped: 0, errors: [] };
 
-    // Initialize cache
+    // Initialize caches
     const cache = new AccountCache(userId);
     await cache.initialize();
+    const budgetCache = new BudgetCache(userId);
+    await budgetCache.initialize();
 
     // Process each sheet
     for (const sheetName of wb.SheetNames) {
@@ -412,6 +461,9 @@ export async function POST(request: Request) {
             // Update account balance
             const amountChange = transactionType === "income" ? amount : -amount;
             await cache.updateBalance(accountId, subAccountId, amountChange);
+
+            // Auto-create budget entry for this category (not for transfers)
+            await budgetCache.ensureBudget(transactionType, category, subCategory);
 
             result.created++;
           }

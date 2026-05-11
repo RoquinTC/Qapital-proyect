@@ -91,6 +91,9 @@ export async function PUT(
     const categoryChanged = oldCategory !== newCategory || oldSubCategory !== newSubCategory || oldType !== newType;
     const amountChangedForBudget = body.amount !== undefined;
 
+    // Determine new excludeFromBudget value
+    const newExcludeFromBudget = body.excludeFromBudget !== undefined ? body.excludeFromBudget : existing.excludeFromBudget;
+
     if ((categoryChanged || amountChangedForBudget) && (oldType === "income" || oldType === "expense" || (body.type && body.type !== "transfer"))) {
       const effectiveNewType = newType === "transfer" ? null : newType;
       const effectiveOldType = oldType === "transfer" ? null : oldType;
@@ -109,8 +112,8 @@ export async function PUT(
         });
       };
 
-      // Reverse old budget spent
-      if (effectiveOldType && oldCategory) {
+      // Reverse old budget spent (only if old transaction was NOT excluded from budget)
+      if (effectiveOldType && oldCategory && !existing.excludeFromBudget) {
         const oldBudget = await findBudget(oldCategory, oldSubCategory, effectiveOldType);
         if (oldBudget) {
           await db.budget.update({
@@ -120,8 +123,8 @@ export async function PUT(
         }
       }
 
-      // Apply new budget spent
-      if (effectiveNewType && newCategory) {
+      // Apply new budget spent (only if new transaction is NOT excluded from budget)
+      if (effectiveNewType && newCategory && !newExcludeFromBudget) {
         const newBudget = await findBudget(newCategory, newSubCategory, effectiveNewType);
         if (newBudget) {
           await db.budget.update({
@@ -143,6 +146,7 @@ export async function PUT(
     if (body.date !== undefined) updateData.date = createColombiaDate(body.date.split("T")[0]);
     if (body.notes !== undefined) updateData.notes = body.notes;
     if (body.isRecurring !== undefined) updateData.isRecurring = body.isRecurring;
+    if (body.excludeFromBudget !== undefined) updateData.excludeFromBudget = body.excludeFromBudget;
 
     const transaction = await db.transaction.update({
       where: { id },

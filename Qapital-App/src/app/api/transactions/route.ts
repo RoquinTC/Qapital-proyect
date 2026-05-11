@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { type, amount, description, accountId, subAccountId, category, subCategory, date, sourceModule, sourceId, isRecurring, notes, transferToAccountId, transferToSubAccountId } = body;
+    const { type, amount, description, accountId, subAccountId, category, subCategory, date, sourceModule, sourceId, isRecurring, notes, transferToAccountId, transferToSubAccountId, excludeFromBudget } = body;
 
     if (!type || !amount || !description) {
       return NextResponse.json({ error: "Tipo, monto y descripción son requeridos" }, { status: 400 });
@@ -132,6 +132,7 @@ export async function POST(req: NextRequest) {
         sourceId: sourceId || null,
         isRecurring: isRecurring || false,
         notes: notes || null,
+        excludeFromBudget: excludeFromBudget || false,
       },
       include: {
         account: { select: { id: true, name: true, type: true, color: true } },
@@ -176,7 +177,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Update budget spent if expense
-    if (type === "expense" && category) {
+    if (type === "expense" && category && !excludeFromBudget) {
       const budget = await findMatchingBudget(category, subCategory || null, "expense");
       if (budget) {
         await db.budget.update({
@@ -187,7 +188,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Update income budget if income
-    if (type === "income" && category) {
+    if (type === "income" && category && !excludeFromBudget) {
       const budget = await findMatchingBudget(category, subCategory || null, "income");
       if (budget) {
         await db.budget.update({

@@ -90,6 +90,8 @@ export async function POST() {
         category: budget.category,
         // Exclude transfer-type transactions (CC payments)
         sourceModule: { not: "finance_transfer" },
+        // Exclude transactions marked as excluded from budget
+        excludeFromBudget: { not: true },
       };
 
       if (budget.subCategory) {

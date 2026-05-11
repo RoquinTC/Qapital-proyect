@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch, formatCurrency, parseLocalDate, getColombiaTodayString, toColombiaDateString } from "@/lib/api";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, ArrowUpRight, ArrowDownRight, Repeat, PiggyBank, Plus, X, Check } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
@@ -69,6 +70,7 @@ interface TransactionFormProps {
     subCategory?: string | null;
     date: string;
     notes?: string | null;
+    excludeFromBudget?: boolean;
   } | null;
   onSuccess?: () => void;
 }
@@ -97,6 +99,7 @@ export function TransactionForm({
     editTransaction?.date ? toColombiaDateString(editTransaction.date) : getColombiaTodayString()
   );
   const [notes, setNotes] = useState(editTransaction?.notes || "");
+  const [excludeFromBudget, setExcludeFromBudget] = useState(editTransaction?.excludeFromBudget || false);
 
   // Categories from API
   const [categories, setCategories] = useState<CategoryData[]>([]);
@@ -130,6 +133,7 @@ export function TransactionForm({
       setSubCategory(editTransaction.subCategory || "");
       setDate(toColombiaDateString(editTransaction.date));
       setNotes(editTransaction.notes || "");
+      setExcludeFromBudget(editTransaction.excludeFromBudget || false);
     } else if (defaultDescription) {
       setDescription(defaultDescription);
     }
@@ -216,6 +220,7 @@ export function TransactionForm({
             subCategory: type !== "transfer" ? (subCategory || null) : null,
             date,
             notes: notes || null,
+            excludeFromBudget,
           }),
         });
       } else {
@@ -234,6 +239,7 @@ export function TransactionForm({
             subCategory: type !== 'transfer' ? (subCategory || null) : null,
             date,
             notes: notes || null,
+            excludeFromBudget,
             transferToAccountId: type === 'transfer' ? toAccountId : undefined,
             transferToSubAccountId: type === 'transfer' ? (toSubAccountId || undefined) : undefined,
           }),
@@ -279,6 +285,7 @@ export function TransactionForm({
     setToAccountId("");
     setToSubAccountId("");
     setNotes("");
+    setExcludeFromBudget(false);
     setUseCustomCategory(false);
     setCustomCategory("");
     setShowNewSubCategory(false);
@@ -602,6 +609,20 @@ export function TransactionForm({
           className="rounded-xl"
         />
       </div>
+
+      {/* Exclude from Budget */}
+      {type !== "transfer" && (
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <Label className="text-xs">Excluir del presupuesto</Label>
+            <p className="text-[10px] text-gray-400">Este movimiento no afectará tu presupuesto</p>
+          </div>
+          <Switch
+            checked={excludeFromBudget}
+            onCheckedChange={setExcludeFromBudget}
+          />
+        </div>
+      )}
 
       {/* Submit */}
       <Button

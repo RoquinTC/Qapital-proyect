@@ -98,3 +98,197 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Error al obtener categorías" }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { type, oldCategory, oldSubCategory, newCategory, newSubCategory } = body;
+
+    if (!type || !oldCategory || !newCategory) {
+      return NextResponse.json({ error: "Tipo, categoría antigua y nueva categoría son requeridos" }, { status: 400 });
+    }
+
+    let updatedTransactions = 0;
+    let updatedBudgets = 0;
+    let updatedInstallments = 0;
+
+    // Update transactions
+    const txWhere: Record<string, unknown> = {
+      userId: session.user.id,
+      type,
+      category: oldCategory,
+    };
+    if (oldSubCategory !== undefined && oldSubCategory !== null) {
+      txWhere.subCategory = oldSubCategory;
+    }
+
+    const txUpdateData: Record<string, unknown> = {
+      category: newCategory,
+    };
+    if (newSubCategory !== undefined) {
+      txUpdateData.subCategory = newSubCategory || null;
+    }
+
+    updatedTransactions = await db.transaction.updateMany({
+      where: txWhere,
+      data: txUpdateData,
+    }).then((r) => r.count);
+
+    // Update budgets
+    const budgetWhere: Record<string, unknown> = {
+      userId: session.user.id,
+      type,
+      category: oldCategory,
+    };
+    if (oldSubCategory !== undefined && oldSubCategory !== null) {
+      budgetWhere.subCategory = oldSubCategory;
+    }
+
+    const budgetUpdateData: Record<string, unknown> = {
+      category: newCategory,
+    };
+    if (newSubCategory !== undefined) {
+      budgetUpdateData.subCategory = newSubCategory || null;
+    }
+
+    updatedBudgets = await db.budget.updateMany({
+      where: budgetWhere,
+      data: budgetUpdateData,
+    }).then((r) => r.count);
+
+    // Update installments
+    const instWhere: Record<string, unknown> = {
+      category: oldCategory,
+    };
+    if (oldSubCategory !== undefined && oldSubCategory !== null) {
+      instWhere.subCategory = oldSubCategory;
+    }
+
+    const instUpdateData: Record<string, unknown> = {
+      category: newCategory,
+    };
+    if (newSubCategory !== undefined) {
+      instUpdateData.subCategory = newSubCategory || null;
+    }
+
+    // Only update installments belonging to the user's debts
+    const userDebtIds = await db.debt.findMany({
+      where: { userId: session.user.id },
+      select: { id: true },
+    });
+    const debtIds = userDebtIds.map((d) => d.id);
+
+    if (debtIds.length > 0) {
+      updatedInstallments = await db.installment.updateMany({
+        where: {
+          ...instWhere,
+          debtId: { in: debtIds },
+        },
+        data: instUpdateData,
+      }).then((r) => r.count);
+    }
+
+    return NextResponse.json({
+      updatedTransactions,
+      updatedBudgets,
+      updatedInstallments,
+    });
+  } catch (error) {
+    console.error("Update categories error:", error);
+    return NextResponse.json({ error: "Error al actualizar categorías" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { type, category, subCategory } = body;
+
+    if (!type || !category) {
+      return NextResponse.json({ error: "Tipo y categoría son requeridos" }, { status: 400 });
+    }
+
+    let updatedTransactions = 0;
+    let deletedBudgets = 0;
+    let updatedInstallments = 0;
+
+    // For transactions: set category/subCategory to null (don't delete the transaction)
+    const txWhere: Record<string, unknown> = {
+      userId: session.user.id,
+      type,
+      category,
+    };
+    if (subCategory) {
+      txWhere.subCategory = subCategory;
+    }
+
+    updatedTransactions = await db.transaction.updateMany({
+      where: txWhere,
+      data: {
+        category: null,
+        subCategory: null,
+      },
+    }).then((r) => r.count);
+
+    // For budgets: delete the budget entries matching the criteria
+    const budgetWhere: Record<string, unknown> = {
+      userId: session.user.id,
+      type,
+      category,
+    };
+    if (subCategory) {
+      budgetWhere.subCategory = subCategory;
+    }
+
+    deletedBudgets = await db.budget.deleteMany({
+      where: budgetWhere,
+    }).then((r) => r.count);
+
+    // For installments: set category/subCategory to null
+    const instWhere: Record<string, unknown> = {
+      category,
+    };
+    if (subCategory) {
+      instWhere.subCategory = subCategory;
+    }
+
+    // Only update installments belonging to the user's debts
+    const userDebtIds = await db.debt.findMany({
+      where: { userId: session.user.id },
+      select: { id: true },
+    });
+    const debtIds = userDebtIds.map((d) => d.id);
+
+    if (debtIds.length > 0) {
+      updatedInstallments = await db.installment.updateMany({
+        where: {
+          ...instWhere,
+          debtId: { in: debtIds },
+        },
+        data: {
+          category: null,
+          subCategory: null,
+        },
+      }).then((r) => r.count);
+    }
+
+    return NextResponse.json({
+      updatedTransactions,
+      deletedBudgets,
+      updatedInstallments,
+    });
+  } catch (error) {
+    console.error("Delete categories error:", error);
+    return NextResponse.json({ error: "Error al eliminar categorías" }, { status: 500 });
+  }
+}

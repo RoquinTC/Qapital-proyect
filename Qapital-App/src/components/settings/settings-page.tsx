@@ -53,8 +53,10 @@ import {
   PiggyBank,
   Landmark as BankIcon,
   Download,
+  Tags,
 } from "lucide-react";
 import { AccountManager } from "@/components/finance/account-manager";
+import { CategoriesManager } from "@/components/finance/categories-manager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -516,7 +518,9 @@ export function SettingsPage() {
                   <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-2.5">
                     <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mb-0.5">Período actual</p>
                     <p className="text-[11px] text-gray-700 dark:text-gray-300">
-                      {formatDateShort(settings.currentPeriod.start)} — {formatDateShort(settings.currentPeriod.end)}
+                      {settings.currentPeriod
+                        ? `${formatDateShort(settings.currentPeriod.start)} — ${formatDateShort(settings.currentPeriod.end)}`
+                        : "Sin período configurado"}
                     </p>
                   </div>
                 </CardContent>
@@ -590,6 +594,31 @@ export function SettingsPage() {
                     </div>
                   </div>
                   <AccountManager />
+                </CardContent>
+              </Card>
+            </AccordionContent>
+          </AccordionItem>
+        </Card>
+
+        {/* ── PRESUPUESTO - CATEGORÍAS ── */}
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+          <AccordionItem value="categorias" className="border-0">
+            <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-50 dark:hover:bg-gray-800/50">
+              <SectionHeader icon={Tags} iconColor="text-violet-600" iconBg="bg-violet-100 dark:bg-violet-900/30" title="Presupuesto - Categorías" />
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <Card className="border border-gray-100 dark:border-gray-700/50 shadow-none rounded-xl">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="size-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                      <Tags className="size-3.5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-900 dark:text-white">Categorías y subcategorías</p>
+                      <p className="text-[10px] text-gray-400">Editar nombres o eliminar categorías de presupuesto</p>
+                    </div>
+                  </div>
+                  <CategoriesManager />
                 </CardContent>
               </Card>
             </AccordionContent>
