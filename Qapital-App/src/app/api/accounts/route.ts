@@ -39,6 +39,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
     }
 
+    // Verify user exists first to avoid P2003
+    const userExists = await db.user.findUnique({ where: { id: session.user.id } });
+    if (!userExists) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
     const account = await db.account.create({
       data: {
         userId: session.user.id,

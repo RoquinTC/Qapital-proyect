@@ -17,6 +17,12 @@ export async function GET() {
     });
 
     if (!settings) {
+      // Verify user exists first to avoid P2003
+      const userExists = await db.user.findUnique({ where: { id: session.user.id } });
+      if (!userExists) {
+        return NextResponse.json({ error: "Usuario no encontrado en la base de datos" }, { status: 404 });
+      }
+
       settings = await db.userSettings.create({
         data: { userId: session.user.id },
       });
