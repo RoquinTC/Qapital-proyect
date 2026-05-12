@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { toNumber } from "@/lib/decimal-serializer";
 
 const COLOMBIA_TIMEZONE = "America/Bogota";
 
@@ -54,6 +55,15 @@ export async function GET(req: NextRequest) {
     const [lastY, lastM] = lastMonth.split("-").map(Number);
     const endDate = new Date(Date.UTC(lastY, lastM, 1, 4, 59, 59, 999));
 
+    // IMPORTANT: Exclude transfer counterpart transactions.
+    // When you transfer $500K from Account A → B, two records are created:
+    //   1. A "transfer" type on Account A (deducts from A)
+    //   2. An "income" type on Account B (adds to B) — this is the COUNTERPART
+    // Without exclusion, the counterpart income inflates the monthly income total,
+    // making it look like you earned $500K when you just moved money between accounts.
+    // We exclude by:
+    //   - sourceModule: "finance_transfer" — explicitly tagged transfers
+    //   - relatedTransactionId IS NOT NULL — transfer counterpart incomes
     const transactions = await db.transaction.findMany({
       where: {
         userId: session.user.id,
@@ -62,6 +72,8 @@ export async function GET(req: NextRequest) {
           lt: endDate,
         },
         type: { in: ["income", "expense"] },
+        sourceModule: { not: "finance_transfer" },
+        relatedTransactionId: null,
       },
       select: {
         type: true,
@@ -93,10 +105,15 @@ export async function GET(req: NextRequest) {
       const monthKey = colombiaDateStr.substring(0, 7); // "YYYY-MM"
 
       if (monthlyData[monthKey]) {
+        // IMPORTANT: tx.amount is a Prisma.Decimal object.
+        // We must convert it to number BEFORE adding to avoid string concatenation:
+        //   0 + Decimal("800000") → "0800000" (string!) without toNumber()
+        //   0 + toNumber(Decimal("800000")) → 800000 (number!) ✓
+        const amount = toNumber(tx.amount);
         if (tx.type === "income") {
-          monthlyData[monthKey].income += tx.amount;
+          monthlyData[monthKey].income += amount;
         } else if (tx.type === "expense") {
-          monthlyData[monthKey].expenses += tx.amount;
+          monthlyData[monthKey].expenses += amount;
         }
       }
     }

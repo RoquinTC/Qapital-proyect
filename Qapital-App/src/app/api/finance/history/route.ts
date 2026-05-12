@@ -60,12 +60,14 @@ export async function GET() {
       const { start: periodStart, end: periodEnd } = periods[i];
 
       // 1) Income: transactions of type "income" in the period
+      //    Exclude finance_transfer and transfer counterpart incomes (relatedTransactionId)
       const incomeTransactions = await db.transaction.findMany({
         where: {
           userId,
           date: { gte: periodStart, lte: periodEnd },
           type: "income",
           sourceModule: { not: "finance_transfer" },
+          relatedTransactionId: null,
         },
         select: { amount: true },
       });

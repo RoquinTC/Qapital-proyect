@@ -563,14 +563,15 @@ export function FinanceOverview() {
   // ── Month-aware income/expenses from monthly-summary API ──
   // The monthly-summary API provides historical income/expenses per month.
   // Use this to show the correct values for the SELECTED month.
+  // Defensive: Number() wrapping ensures valid numbers even with stale cache data
   const selectedMonthKey = `${selectedDate.year}-${String(selectedDate.month).padStart(2, "0")}`;
   const selectedMonthData = monthlySummary?.historical?.find((d) => d.month === selectedMonthKey);
   // Fallback to budget totals if monthly-summary doesn't have data for the selected month
   const monthlyIncome = selectedMonthData
-    ? selectedMonthData.income
+    ? Number(selectedMonthData.income) || 0
     : incomeBudgets.reduce((sum, b) => sum + Number(b.spent), 0);
   const monthlyExpenses = selectedMonthData
-    ? selectedMonthData.expenses
+    ? Number(selectedMonthData.expenses) || 0
     : expenseBudgets.reduce((sum, b) => sum + Number(b.spent), 0);
 
   // Month display name
@@ -604,12 +605,17 @@ export function FinanceOverview() {
   };
 
   // Financial Evolution chart data
+  // Defensive: Number() wrapping ensures values are valid numbers even if
+  // the API returns strings or NaN from stale caches or edge cases
   const evolutionData = useMemo(() => {
     if (!monthlySummary?.historical) return [];
     const months = evolutionRange === "6M" ? 6 : 12;
     const data = monthlySummary.historical.slice(-months);
     return data.map((d) => ({
       ...d,
+      income: Number(d.income) || 0,
+      expenses: Number(d.expenses) || 0,
+      balance: Number(d.balance) || 0,
       monthLabel: d.month,
     }));
   }, [monthlySummary, evolutionRange]);
@@ -619,14 +625,14 @@ export function FinanceOverview() {
     if (!monthlySummary?.historical || !monthlySummary?.projection) return [];
     const historical = monthlySummary.historical.map((d) => ({
       month: d.month,
-      historical: d.balance,
+      historical: Number(d.balance) || 0,
       projected: null as number | null,
     }));
     const lastHistBalance = historical.length > 0 ? historical[historical.length - 1].historical : 0;
     const projected = monthlySummary.projection.map((d, i) => ({
       month: d.month,
       historical: i === 0 ? lastHistBalance : null,
-      projected: d.balance,
+      projected: Number(d.balance) || 0,
     }));
     return [...historical, ...projected];
   }, [monthlySummary]);
