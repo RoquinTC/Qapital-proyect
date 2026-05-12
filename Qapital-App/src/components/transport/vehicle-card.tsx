@@ -3,6 +3,7 @@
 import { formatCurrency, formatDate } from "@/lib/api";
 import { Bike, Car, Truck, HelpCircle, Fuel, Wrench, AlertTriangle, Gauge } from "lucide-react";
 import { motion } from "framer-motion";
+import { FuelGauge } from "./Fuel-gauge";
 
 interface VehicleCardProps {
   vehicle: {
@@ -32,6 +33,8 @@ interface VehicleCardProps {
       nextDueKm?: number | null;
       nextDueDate?: string | null;
     }>;
+    fuelLevel?: number;
+    currentFuel?: number;
   };
   onClick?: () => void;
 }
@@ -117,7 +120,7 @@ export function VehicleCard({ vehicle, onClick }: VehicleCardProps) {
               )}
               <div className={`size-2.5 rounded-full ${statusColors[maintenanceStatus]}`} title={
                 maintenanceStatus === "overdue" ? "Mantenimiento vencido" :
-                maintenanceStatus === "warning" ? "Mantenimiento próximo" : "Al día"
+                  maintenanceStatus === "warning" ? "Mantenimiento próximo" : "Al día"
               } />
             </div>
           </div>
@@ -125,6 +128,19 @@ export function VehicleCard({ vehicle, onClick }: VehicleCardProps) {
 
         {/* Body */}
         <div className="p-4 space-y-3">
+          {/* Fuel Gauge */}
+          {vehicle.tankCapacity && (
+            <div className="flex justify-center py-2">
+              <FuelGauge
+                fuelLevel={vehicle.fuelLevel ?? 0}
+                vehicleType={vehicle.type}
+                tankCapacity={vehicle.tankCapacity}
+                currentFuel={vehicle.currentFuel}
+                showDetails={false}
+              />
+            </div>
+          )}
+
           {/* KM Display */}
           <div className="flex items-center gap-2">
             <Gauge className="size-4 text-gray-400" />

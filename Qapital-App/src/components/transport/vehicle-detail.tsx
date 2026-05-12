@@ -27,6 +27,7 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -45,6 +46,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
+import { FuelGauge } from "./Fuel-gauge";
 
 interface Vehicle {
   id: string;
@@ -80,6 +82,19 @@ interface MaintenanceRecord {
   nextDueKm?: number | null;
   nextDueDate?: string | null;
   reminderEnabled: boolean;
+}
+
+interface FuelLevelData {
+  fuelLevel: number;
+  currentFuel: number;
+  estimatedRange: number;
+  avgKmPerGallon: number;
+  lastFullTankDate: string | null;
+  lastFullTankKm: number;
+  totalConsumed: number;
+  anomalyDetected: boolean;
+  expectedConsumption: number;
+  actualConsumption: number;
 }
 
 interface VehicleDetailProps {
@@ -150,6 +165,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: "fuel" | "maintenance"; id: string } | null>(null);
+  const [fuelLevelData, setFuelLevelData] = useState<FuelLevelData | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -170,9 +186,26 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
     }
   }, [vehicleId]);
 
+  const fetchFuelLevel = useCallback(async () => {
+    if (!vehicleId || !vehicle?.tankCapacity) return;
+
+    try {
+      const data = await apiFetch<FuelLevelData>(`/api/vehicles/${vehicleId}/fuel-level`);
+      setFuelLevelData(data);
+    } catch (error) {
+      console.error("Error fetching fuel level:", error);
+    }
+  }, [vehicleId, vehicle?.tankCapacity]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (vehicle && vehicle.tankCapacity) {
+      fetchFuelLevel();
+    }
+  }, [vehicle, vehicle?.tankCapacity, fetchFuelLevel]);
 
   const handleDeleteVehicle = async () => {
     if (!vehicle) return;
@@ -193,6 +226,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         await apiFetch(`/api/vehicles/${vehicle.id}/maintenance/${deleteTarget.id}`, { method: "DELETE" });
       }
       await fetchData();
+      await fetchFuelLevel();
     } catch (error) {
       console.error("Error deleting record:", error);
     } finally {
@@ -218,8 +252,8 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
   const totalMaintenanceSpent = maintenanceRecords.reduce((s, r) => s + r.cost, 0);
 
   // Average km/gallon
-  let avgKmPerGallon = 0;
-  if (fuelLogs.length >= 2) {
+  let avgKmPerGallon = fuelLevelData?.avgKmPerGallon || 0;
+  if (avgKmPerGallon === 0 && fuelLogs.length >= 2) {
     const sorted = [...fuelLogs].sort((a, b) => a.km - b.km);
     const totalKm = sorted[sorted.length - 1].km - sorted[0].km;
     const totalGallons = sorted.slice(1).reduce((s, l) => s + l.gallons, 0);
@@ -262,7 +296,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         </DropdownMenu>
       </div>
 
-      {/* Vehicle Info Card */}
+      {/* Vehicle Info Card with Fuel Gauge */}
       <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
         <div className={`bg-gradient-to-r ${gradient} p-5 relative`}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.15),transparent)] pointer-events-none" />
@@ -293,7 +327,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
             </div>
           </div>
         </div>
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-4">
           <div className="flex items-center gap-2">
             <Gauge className="size-4 text-gray-400" />
             <span className="text-xs text-gray-500">Kilometraje actual</span>
@@ -301,6 +335,65 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
               {vehicle.currentKm.toLocaleString("es-CO")} km
             </span>
           </div>
+
+          {/* Fuel Gauge Visual */}
+          {vehicle.tankCapacity && fuelLevelData && (
+            <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex justify-center mb-3">
+                <FuelGauge
+                  fuelLevel={fuelLevelData.fuelLevel}
+                  vehicleType={vehicle.type}
+                  tankCapacity={vehicle.tankCapacity}
+                  currentFuel={fuelLevelData.currentFuel}
+                  showDetails={true}
+                />
+              </div>
+
+              {/* Fuel Stats Grid */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
+                  <div className="flex items-center gap-1 text-gray-500 mb-1">
+                    <TrendingDown className="size-3" />
+                    <span>Rendimiento</span>
+                  </div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                    {fuelLevelData.avgKmPerGallon > 0 ? `${fuelLevelData.avgKmPerGallon} km/gal` : "—"}
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
+                  <div className="flex items-center gap-1 text-gray-500 mb-1">
+                    <Gauge className="size-3" />
+                    <span>Autonomía</span>
+                  </div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                    {fuelLevelData.estimatedRange > 0 ? `${fuelLevelData.estimatedRange} km` : "—"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Anomaly Warning */}
+              {fuelLevelData.anomalyDetected && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="size-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-semibold text-red-700 dark:text-red-300">
+                        Consumo Anormal Detectado
+                      </p>
+                      <p className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">
+                        El consumo real ({fuelLevelData.actualConsumption.toFixed(2)} gal) excede el esperado ({fuelLevelData.expectedConsumption.toFixed(2)} gal).
+                        Puede indicar problemas mecánicos o fugas.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -339,7 +432,9 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
       <div className="flex gap-2">
         <Button
           className="flex-1 h-11 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600"
-          onClick={() => setShowFuelLogForm(true)}
+          onClick={() => {
+            setShowFuelLogForm(true);
+          }}
         >
           <Fuel className="size-4 mr-1.5" />
           Registrar Recarga
@@ -465,11 +560,10 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                           {record.nextDueKm && (
                             <Badge
                               variant="secondary"
-                              className={`text-[8px] h-3.5 px-1 ${
-                                isUpcoming
+                              className={`text-[8px] h-3.5 px-1 ${isUpcoming
                                   ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
                                   : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                              }`}
+                                }`}
                             >
                               Próx: {record.nextDueKm.toLocaleString("es-CO")} km
                             </Badge>
@@ -514,7 +608,10 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         open={showFuelLogForm}
         onOpenChange={setShowFuelLogForm}
         preselectedVehicleId={vehicleId}
-        onSuccess={fetchData}
+        onSuccess={() => {
+          fetchData();
+          fetchFuelLevel();
+        }}
       />
 
       <MaintenanceForm
