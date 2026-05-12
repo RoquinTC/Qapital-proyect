@@ -1,8 +1,8 @@
 import { create } from "zustand";
 
-export type ModuleType = "dashboard" | "finance" | "transport" | "health" | "pantry";
+export type ModuleType = "dashboard" | "finance" | "transport" | "health" | "pantry" | "settings";
 
-export type FinanceSubView = "accounts" | "transactions" | "budgets" | "debts" | "savings" | "cdts" | "recurring" | "account-detail" | "debt-detail" | "savings-detail";
+export type FinanceSubView = "overview" | "accounts" | "transactions" | "budgets" | "debts" | "savings" | "cdts" | "recurring" | "account-detail" | "debt-detail" | "savings-detail";
 export type TransportSubView = "vehicles" | "fuel" | "maintenance";
 export type HealthSubView = "medications" | "appointments" | "profiles";
 export type PantrySubView = "items" | "shopping-lists";

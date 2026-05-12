@@ -684,17 +684,17 @@ export function AccountsView() {
   // COMPUTED VALUES
   // ============================================
 
-  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+  const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
   const totalSubAccountBalance = accounts.reduce(
-    (sum, a) => sum + a.subAccounts.reduce((s, sa) => s + sa.balance, 0),
+    (sum, a) => sum + a.subAccounts.reduce((s, sa) => s + Number(sa.balance), 0),
     0
   );
   const grandTotal = totalBalance + totalSubAccountBalance;
 
   const availableBalance = accounts.reduce((sum, a) => {
-    const accountPortion = a.excludeFromAvailable ? 0 : a.balance;
+    const accountPortion = a.excludeFromAvailable ? 0 : Number(a.balance);
     const subAccountPortion = a.subAccounts.reduce(
-      (s, sa) => (sa.excludeFromAvailable ? s : s + sa.balance),
+      (s, sa) => (sa.excludeFromAvailable ? s : s + Number(sa.balance)),
       0
     );
     return sum + accountPortion + subAccountPortion;
@@ -706,8 +706,8 @@ export function AccountsView() {
 
   const incomeBudgets = budgets.filter((b) => b.type === "income");
   const expenseBudgets = budgets.filter((b) => b.type === "expense");
-  const monthlyIncome = incomeBudgets.reduce((sum, b) => sum + b.spent, 0);
-  const monthlyExpenses = expenseBudgets.reduce((sum, b) => sum + b.spent, 0);
+  const monthlyIncome = incomeBudgets.reduce((sum, b) => sum + Number(b.spent), 0);
+  const monthlyExpenses = expenseBudgets.reduce((sum, b) => sum + Number(b.spent), 0);
 
   // Evolution chart data
   const evolutionData = useMemo(() => {
@@ -726,7 +726,7 @@ export function AccountsView() {
     for (const b of expenseBudgets) {
       const existing = categoryMap.get(b.category);
       if (existing) {
-        existing.amount += b.spent;
+      existing.amount += Number(b.spent);
       } else {
         categoryMap.set(b.category, {
           name: b.category,
@@ -746,7 +746,7 @@ export function AccountsView() {
       }));
   }, [expenseBudgets]);
 
-  const totalSpentOnCategories = expenseByCategory.reduce((s, c) => s + c.amount, 0);
+  const totalSpentOnCategories = expenseByCategory.reduce((s, c) => s + Number(c.amount), 0);
 
   // Recent transactions with date grouping (last 10)
   const groupedTransactions = useMemo(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useAppStore } from "@/lib/store";
+import { useAppStore, type ModuleType } from "@/lib/store";
 import {
   Sheet,
   SheetContent,
@@ -42,7 +42,7 @@ export function AppSidebar() {
         .slice(0, 2)
     : "Q";
 
-  const handleNavigate = (moduleId: "dashboard" | "finance" | "transport" | "health" | "pantry" | "settings") => {
+  const handleNavigate = (moduleId: ModuleType) => {
     setActiveModule(moduleId);
     setSidebarOpen(false);
   };

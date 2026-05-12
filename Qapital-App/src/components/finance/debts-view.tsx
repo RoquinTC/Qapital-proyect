@@ -66,7 +66,9 @@ export function DebtsView() {
   }, []);
 
   useEffect(() => {
-    fetchDebts();
+    let cancelled = false;
+    fetchDebts().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchDebts]);
 
   const totalDebt = debts.reduce((sum, d) => sum + d.currentBalance, 0);

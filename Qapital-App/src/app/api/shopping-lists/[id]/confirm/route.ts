@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getColombiaNow } from "@/lib/api";
+import { toNumber } from "@/lib/decimal-serializer";
 
 export async function POST(
   _req: NextRequest,
@@ -31,8 +32,8 @@ export async function POST(
 
     // Calculate total amount
     const totalAmount = list.items.reduce((sum, item) => {
-      const price = item.actualPrice ?? item.estimatedPrice ?? 0;
-      return sum + price * item.quantity;
+      const price = toNumber(item.actualPrice ?? item.estimatedPrice ?? 0);
+      return sum + price * toNumber(item.quantity);
     }, 0);
 
     // Update pantry items - add purchased quantities

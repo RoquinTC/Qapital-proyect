@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  reactStrictMode: false,
+  reactStrictMode: true,
   allowedDevOrigins: [
     "preview-chat-41b9dbe3-bce7-4662-9956-f567893b29f4.space-z.ai",
     "preview-chat-b80b2029-f1a8-4d96-b68f-f5033414930a.space-z.ai",

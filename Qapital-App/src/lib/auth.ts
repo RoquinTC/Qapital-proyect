@@ -137,9 +137,25 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60,
   },
   // Secret comes from NEXTAUTH_SECRET env var (set in docker-compose.yml or .env).
-  // Falls back to a dev-only secret when not configured, so the build doesn't crash
-  // and local development works without extra setup. NextAuth itself will fail
-  // at runtime if the secret is missing in a real production deployment.
-  secret: process.env.NEXTAUTH_SECRET || "dev-only-secret-set-NEXTAUTH_SECRET-in-production",
+  // IMPORTANT: No hardcoded fallback! If NEXTAUTH_SECRET is not set:
+  //   - In development: generate a temporary one (with a loud warning)
+  //   - In production: throw an error (app will not start without it)
+  // This prevents the security risk of a publicly known secret in production.
+  secret: (() => {
+    if (process.env.NEXTAUTH_SECRET) return process.env.NEXTAUTH_SECRET;
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "NEXTAUTH_SECRET is required in production. " +
+        "Set it in your .env file or docker-compose.yml."
+      );
+    }
+    // Dev-only: generate a random secret so local dev works without .env
+    const devSecret = "dev-only-secret-" + Math.random().toString(36).slice(2) + "-CHANGE-IN-PROD";
+    console.warn(
+      "[Auth] WARNING: Using auto-generated NEXTAUTH_SECRET for development. " +
+      "Set NEXTAUTH_SECRET in your .env file for production."
+    );
+    return devSecret;
+  })(),
   cookies: getCookieConfig(isSecureEnvironment),
 };

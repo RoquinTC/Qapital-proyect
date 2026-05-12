@@ -207,22 +207,25 @@ export function useLocalQuery<T extends { id: string }>(
   }, [userId]); // Only re-run when user changes
 
   // Listen for Dexie live queries (reactive updates from mutations)
+  // StrictMode-safe: uses a cancelled flag so async setup can bail out
+  // if the effect was cleaned up before the subscription completes.
   useEffect(() => {
     if (!userId || !tableName) return;
 
-    let observer: { unsubscribe: () => void } | null = null;
+    let cancelled = false;
+    let subscription: { unsubscribe: () => void } | null = null;
 
     const setupLiveQuery = async () => {
       try {
         const { liveQuery } = await import("dexie");
         const table = (localDB as any)[tableName];
-        if (!table) return;
+        if (!table || cancelled) return;
 
         const observable = liveQuery(() =>
           table.where("userId").equals(userId).toArray() as Promise<T[]>
         );
 
-        const subscription = observable.subscribe({
+        const sub = observable.subscribe({
           next: (result: T[]) => {
             if (mountedRef.current && result.length > 0) {
               setData(result);
@@ -234,7 +237,12 @@ export function useLocalQuery<T extends { id: string }>(
           },
         });
 
-        observer = { unsubscribe: () => subscription.unsubscribe() };
+        // Only keep subscription if effect hasn't been cleaned up
+        if (!cancelled) {
+          subscription = sub;
+        } else {
+          sub.unsubscribe(); // Effect already cleaned up — discard
+        }
       } catch (err) {
         // liveQuery not available, fall back to manual refresh
         console.warn(`[LocalDB] LiveQuery setup failed for ${tableName}:`, err);
@@ -244,7 +252,8 @@ export function useLocalQuery<T extends { id: string }>(
     setupLiveQuery();
 
     return () => {
-      observer?.unsubscribe();
+      cancelled = true;
+      subscription?.unsubscribe();
     };
   }, [userId, tableName]);
 

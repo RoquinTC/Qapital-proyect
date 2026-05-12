@@ -131,9 +131,9 @@ export async function POST(
       let runningTotal = 0;
       const matched: string[] = [];
       for (const inst of paidInstallments) {
-        if (runningTotal + inst.installmentAmount <= batchTotalAmount + 1) {
+        if (runningTotal + toNumber(inst.installmentAmount) <= batchTotalAmount + 1) {
           matched.push(inst.id);
-          runningTotal += inst.installmentAmount;
+          runningTotal += toNumber(inst.installmentAmount);
         }
         if (Math.abs(runningTotal - batchTotalAmount) < 1) break;
       }
@@ -263,7 +263,8 @@ export async function POST(
           categoryToMatch = budgetKey;
         }
 
-        let budget: { id: string; spent: number; [key: string]: unknown } | null = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let budget: any = null;
         if (subCatToMatch) {
           budget = await db.budget.findFirst({
             where: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +83,7 @@ export function DashboardPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   const fetchData = useCallback(async () => {
     try {
@@ -92,18 +93,23 @@ export function DashboardPage() {
         apiFetch<Debt[]>("/api/debts"),
       ]);
 
+      if (!mountedRef.current) return;
       if (accs.status === "fulfilled") setAccounts(accs.value);
       if (bdgs.status === "fulfilled") setBudgets(bdgs.value);
       if (dbts.status === "fulfilled") setDebts(dbts.value);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchData();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchData]);
 
   // ============================================================

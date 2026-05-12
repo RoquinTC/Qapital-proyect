@@ -400,7 +400,8 @@ export async function POST(
       // 3. Update budget spent if category matches
       const categoryToMatch = payment.category || "Deudas";
       const subCatToMatch = payment.subCategory || null;
-      let budget = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let budget: any = null;
       if (subCatToMatch) {
         budget = await db.budget.findFirst({
           where: { userId: session.user.id, category: categoryToMatch, subCategory: subCatToMatch, type: "expense" },
@@ -459,7 +460,8 @@ export async function POST(
       // Update income budget spent if category matches
       const categoryToMatch = payment.category || "Sueldo";
       const subCatToMatch = payment.subCategory || null;
-      let budget = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let budget: any = null;
       if (subCatToMatch) {
         budget = await db.budget.findFirst({
           where: { userId: session.user.id, category: categoryToMatch, subCategory: subCatToMatch, type: "income" },
@@ -510,7 +512,8 @@ export async function POST(
       // Update budget spent if category matches
       const categoryToMatch = payment.category || "Pagos Recurrentes";
       const subCatToMatch = payment.subCategory || null;
-      let budget = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let budget: any = null;
       if (subCatToMatch) {
         budget = await db.budget.findFirst({
           where: { userId: session.user.id, category: categoryToMatch, subCategory: subCatToMatch, type: "expense" },

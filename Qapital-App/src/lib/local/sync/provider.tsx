@@ -307,6 +307,12 @@ export function SyncProvider({ children }: SyncProviderProps) {
       return;
     }
 
+    // StrictMode-safe: reset syncing flag on cleanup so the second
+    // invocation isn't blocked by a stale isSyncingRef from the first.
+    // Use a cancelled flag to prevent the first invocation's async work
+    // from interfering with the second.
+    let cancelled = false;
+
     // Initial sync
     performInitialSync();
 
@@ -321,9 +327,14 @@ export function SyncProvider({ children }: SyncProviderProps) {
     }, QUEUE_DRAIN_INTERVAL);
 
     // Initial pending count
-    getPendingSyncCount().then(setPendingCount);
+    getPendingSyncCount().then((count) => {
+      if (!cancelled) setPendingCount(count);
+    });
 
     return () => {
+      cancelled = true;
+      // Reset syncing flag so next invocation isn't blocked
+      isSyncingRef.current = false;
       if (backgroundSyncRef.current) {
         clearInterval(backgroundSyncRef.current);
         backgroundSyncRef.current = null;
@@ -336,11 +347,14 @@ export function SyncProvider({ children }: SyncProviderProps) {
   }, [userId, status, performInitialSync, performBackgroundSync, drainSyncQueue, setPendingCount]);
 
   // Clear local data on logout
+  // StrictMode-safe: use a ref to avoid double-clearing
+  const lastLogoutStatus = useRef(status);
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (status === "unauthenticated" && lastLogoutStatus.current !== "unauthenticated") {
       clearLocalData("");
       setInitialSyncComplete(false);
     }
+    lastLogoutStatus.current = status;
   }, [status]);
 
   // ============================================

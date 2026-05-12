@@ -210,7 +210,8 @@ export async function POST(
     // ── Update budget using debt's category ──
     const categoryToMatch = debt.category || "Deudas";
     const subCatToMatch = debt.subCategory || null;
-    let budget = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let budget: any = null;
     if (subCatToMatch) {
       budget = await db.budget.findFirst({
         where: { userId: session.user.id, category: categoryToMatch, subCategory: subCatToMatch, type: "expense" },

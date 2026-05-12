@@ -99,7 +99,9 @@ export function SpendingIncomeChart() {
   }, [periodOffset]);
 
   useEffect(() => {
-    fetchData();
+    let cancelled = false;
+    fetchData().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchData]);
 
   // Aggregate daily data into weekly chunks for better readability

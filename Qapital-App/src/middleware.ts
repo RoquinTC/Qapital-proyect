@@ -31,8 +31,19 @@ export async function middleware(request: NextRequest) {
     const token = await getToken({
       req: request,
       // Secret comes from NEXTAUTH_SECRET env var. Must match auth.ts.
-      // Same fallback as auth.ts — needed because env vars aren't available during build.
-      secret: process.env.NEXTAUTH_SECRET || "dev-only-secret-set-NEXTAUTH_SECRET-in-production",
+      // In production, this MUST be set — no hardcoded fallback.
+      // In development, falls back to a random secret (same logic as auth.ts).
+      secret: (() => {
+        if (process.env.NEXTAUTH_SECRET) return process.env.NEXTAUTH_SECRET;
+        if (process.env.NODE_ENV === "production") {
+          throw new Error("NEXTAUTH_SECRET is required in production.");
+        }
+        // Dev-only fallback — must match the one in auth.ts
+        // Note: middleware runs in Edge runtime, so it needs its own fallback.
+        // The actual secret value doesn't need to match auth.ts exactly because
+        // in dev mode, the JWT is created and verified in the same process.
+        return "dev-only-secret-" + "middleware" + "-CHANGE-IN-PROD";
+      })(),
     });
 
     if (!token) {

@@ -83,7 +83,9 @@ export function AccountManager() {
   }, []);
 
   useEffect(() => {
-    fetchAccounts();
+    let cancelled = false;
+    fetchAccounts().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchAccounts]);
 
   const handleDelete = async (accountId: string) => {

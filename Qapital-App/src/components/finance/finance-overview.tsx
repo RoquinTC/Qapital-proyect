@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -493,6 +493,7 @@ export function FinanceOverview() {
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
   const [evolutionRange, setEvolutionRange] = useState<"6M" | "12M">("6M");
   const [customizeOpen, setCustomizeOpen] = useState(false);
 
@@ -529,6 +530,7 @@ export function FinanceOverview() {
         apiFetch<MonthlySummaryResponse>("/api/dashboard/monthly-summary?months=12"),
       ]);
 
+      if (!mountedRef.current) return;
       if (accs.status === "fulfilled") setAccounts(accs.value);
       if (txs.status === "fulfilled") setTransactions(txs.value);
       if (bdgs.status === "fulfilled") setBudgets(bdgs.value);
@@ -538,12 +540,16 @@ export function FinanceOverview() {
     } catch (error) {
       console.error("Error fetching finance overview data:", error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchData();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchData]);
 
   // ============================================================

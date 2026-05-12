@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { toNumber } from "@/lib/decimal-serializer";
 
 export async function POST(
   req: NextRequest,
@@ -50,10 +51,10 @@ export async function POST(
           data: {
             shoppingListId: list.id,
             name: item.name,
-            quantity: (item.minStock ?? 0) - item.quantity,
+            quantity: toNumber((item.minStock ?? 0)) - toNumber(item.quantity),
             unit: item.unit,
             estimatedPrice: item.purchasePrice
-              ? item.purchasePrice * ((item.minStock ?? 0) - item.quantity)
+              ? toNumber(item.purchasePrice) * (toNumber(item.minStock ?? 0) - toNumber(item.quantity))
               : null,
             isPurchased: false,
             checked: false,

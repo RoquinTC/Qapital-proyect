@@ -54,7 +54,7 @@ export async function GET() {
     }
 
     // ── Build monthly data ──
-    const monthlyData = [];
+    const monthlyData: { period: string; periodStart: string; periodEnd: string; income: number; expense: number; savings: number }[] = [];
 
     for (let i = 0; i < periods.length; i++) {
       const { start: periodStart, end: periodEnd } = periods[i];

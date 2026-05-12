@@ -170,7 +170,9 @@ export function BudgetsView() {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchBudgets(), fetchUnbudgeted()]);
+    let cancelled = false;
+    Promise.all([fetchBudgets(), fetchUnbudgeted()]).then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchBudgets, fetchUnbudgeted]);
 
   const incomeBudgets = budgets.filter((b) => b.type === "income");
@@ -530,13 +532,13 @@ export function BudgetsView() {
                   {group.parent && !hasChildren && (
                     <>
                       <button
-                        onClick={() => handleEdit(group.parent)}
+                        onClick={() => group.parent && handleEdit(group.parent)}
                         className="size-7 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
                       >
                         <Pencil className="size-3 text-gray-400" />
                       </button>
                       <button
-                        onClick={() => setDeleteBudgetId(group.parent.id)}
+                        onClick={() => group.parent && setDeleteBudgetId(group.parent.id)}
                         className="size-7 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center transition-colors"
                       >
                         <Trash2 className="size-3 text-gray-400 hover:text-red-500" />

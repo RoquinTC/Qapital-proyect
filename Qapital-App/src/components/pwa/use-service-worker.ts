@@ -45,9 +45,37 @@ export function useServiceWorker() {
       return;
     }
 
+    let registration: ServiceWorkerRegistration | null = null;
+    const handleUpdateFound = () => {
+      const newWorker = registration?.installing;
+      if (!newWorker) return;
+
+      const handleStateChange = () => {
+        if (newWorker.state === 'installed') {
+          if (navigator.serviceWorker.controller) {
+            // New version available
+            console.log('[PWA] New version available');
+            setWaitingWorker(newWorker);
+            setState((prev) => ({ ...prev, updateAvailable: true }));
+          } else {
+            // First install
+            console.log('[PWA] Content cached for offline use');
+          }
+        }
+      };
+
+      newWorker.addEventListener('statechange', handleStateChange);
+    };
+
+    const handleControllerChange = () => {
+      console.log('[PWA] Controller changed — new SW active');
+      // Reload to get the new version
+      window.location.reload();
+    };
+
     async function registerSW() {
       try {
-        const registration = await navigator.serviceWorker.register('/sw.js', {
+        registration = await navigator.serviceWorker.register('/sw.js', {
           scope: '/',
         });
 
@@ -55,24 +83,7 @@ export function useServiceWorker() {
         setState((prev) => ({ ...prev, registration }));
 
         // Check for updates on load
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (!newWorker) return;
-
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed') {
-              if (navigator.serviceWorker.controller) {
-                // New version available
-                console.log('[PWA] New version available');
-                setWaitingWorker(newWorker);
-                setState((prev) => ({ ...prev, updateAvailable: true }));
-              } else {
-                // First install
-                console.log('[PWA] Content cached for offline use');
-              }
-            }
-          });
-        });
+        registration.addEventListener('updatefound', handleUpdateFound);
 
         // Check if there's already a waiting worker
         if (registration.waiting) {
@@ -81,11 +92,7 @@ export function useServiceWorker() {
         }
 
         // Listen for controlling SW change (after activation)
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          console.log('[PWA] Controller changed — new SW active');
-          // Reload to get the new version
-          window.location.reload();
-        });
+        navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
 
       } catch (error) {
         console.error('[PWA] Service Worker registration failed:', error);
@@ -93,6 +100,13 @@ export function useServiceWorker() {
     }
 
     registerSW();
+
+    return () => {
+      if (registration) {
+        registration.removeEventListener('updatefound', handleUpdateFound);
+      }
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+    };
   }, []);
 
   // Apply update — tell the waiting SW to activate

@@ -58,11 +58,13 @@ export function AppShell() {
   const { setTheme: applyTheme } = useTheme();
 
   // Load user's saved theme from DB on login
+  // StrictMode-safe: uses mountedRef to avoid state updates after unmount
   useEffect(() => {
+    let cancelled = false;
     if (status === "authenticated" && session?.user?.id) {
       apiFetch<{ theme: string }>("/api/settings")
         .then((data) => {
-          if (data.theme) {
+          if (!cancelled && data.theme) {
             applyTheme(data.theme);
           }
         })
@@ -70,6 +72,9 @@ export function AppShell() {
           // Settings might not exist yet, that's fine
         });
     }
+    return () => {
+      cancelled = true;
+    };
   }, [status, session?.user?.id, applyTheme]);
 
   // Loading state

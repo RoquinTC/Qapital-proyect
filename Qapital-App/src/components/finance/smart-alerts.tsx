@@ -104,7 +104,9 @@ export function SmartAlerts() {
   }, [setFinanceSubView]);
 
   useEffect(() => {
-    fetchAlerts();
+    let cancelled = false;
+    fetchAlerts().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchAlerts]);
 
   if (loading || alerts.length === 0) return null;

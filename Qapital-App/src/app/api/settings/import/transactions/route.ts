@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { toNumber } from "@/lib/decimal-serializer";
 import * as XLSX from "xlsx";
 
 interface ImportResult {
@@ -90,7 +91,7 @@ class AccountCache {
     for (const acc of accounts) {
       this.accountsMap.set(acc.name.toLowerCase().trim(), {
         id: acc.id,
-        balance: acc.balance,
+        balance: toNumber(acc.balance),
       });
 
       for (const sub of acc.subAccounts) {
@@ -99,7 +100,7 @@ class AccountCache {
         this.subAccountsMap.set(key, {
           id: sub.id,
           accountId: acc.id,
-          balance: sub.balance,
+          balance: toNumber(sub.balance),
         });
       }
     }

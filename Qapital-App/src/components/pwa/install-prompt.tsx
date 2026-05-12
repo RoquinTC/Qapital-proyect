@@ -39,6 +39,8 @@ export function InstallPrompt() {
   }, []);
 
   useEffect(() => {
+    let bannerTimeoutId: number | null = null;
+
     // If already in standalone mode or was already installed, don't show
     if (isStandalone || getWasInstalled()) {
       return;
@@ -61,7 +63,8 @@ export function InstallPrompt() {
       setDeferredPrompt(e as BeforeInstallPromptEvent);
 
       // Show banner after a short delay (don't be too aggressive)
-      setTimeout(() => {
+      // Store timeout ID so we can clean it up on unmount (StrictMode safe)
+      bannerTimeoutId = window.setTimeout(() => {
         setShowBanner(true);
       }, 3000);
     };
@@ -81,6 +84,9 @@ export function InstallPrompt() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
       window.removeEventListener('appinstalled', installedHandler);
+      if (bannerTimeoutId !== null) {
+        clearTimeout(bannerTimeoutId);
+      }
     };
   }, [isStandalone, getWasInstalled]);
 

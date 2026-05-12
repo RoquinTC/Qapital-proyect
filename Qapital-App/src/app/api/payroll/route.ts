@@ -97,7 +97,8 @@ export async function POST(req: NextRequest) {
 
     // Generate recurring payments for the current and next month
     const now = new Date();
-    const createdPayments = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const createdPayments: any[] = [];
 
     if (frequency === "monthly") {
       // One payment per month

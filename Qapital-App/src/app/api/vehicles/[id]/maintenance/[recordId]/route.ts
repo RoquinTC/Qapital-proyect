@@ -34,16 +34,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const record = await db.maintenanceRecord.update({
       where: { id: recordId },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data: {
         ...(type !== undefined && { type }),
         ...(description !== undefined && { description }),
-        ...(cost !== undefined && { cost: parseFloat(cost) }),
-        ...(km !== undefined && { km: parseFloat(km) }),
+        ...(cost !== undefined && { cost: Number(cost) }),
+        ...(km !== undefined && { km: Number(km) }),
         ...(date !== undefined && { date: date ? createColombiaDate(date.split("T")[0]) : null }),
-        ...(nextDueKm !== undefined && { nextDueKm: nextDueKm ? parseFloat(nextDueKm) : null }),
+        ...(nextDueKm !== undefined && { nextDueKm: nextDueKm ? Number(nextDueKm) : null }),
         ...(nextDueDate !== undefined && { nextDueDate: nextDueDate ? createColombiaDate(nextDueDate.split("T")[0]) : null }),
         ...(reminderEnabled !== undefined && { reminderEnabled }),
-      },
+      } as any,
     });
 
     // Update the linked finance transaction if cost changed

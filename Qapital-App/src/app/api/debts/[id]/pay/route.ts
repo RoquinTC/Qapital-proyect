@@ -494,7 +494,8 @@ export async function POST(
           categoryToMatch = budgetKey;
         }
 
-        let budget: { id: string; spent: number; [key: string]: unknown } | null = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let budget: any = null;
         if (subCatToMatch) {
           budget = await db.budget.findFirst({
             where: { userId: session.user.id, category: categoryToMatch, subCategory: subCatToMatch, type: "expense" },

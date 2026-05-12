@@ -216,7 +216,9 @@ export function AccountDetail() {
   }, [editType]);
 
   useEffect(() => {
-    fetchCategories();
+    let cancelled = false;
+    fetchCategories().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchCategories]);
 
   const fetchSubTransactions = useCallback(async (subAccountId: string) => {

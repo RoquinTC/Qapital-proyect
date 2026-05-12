@@ -61,9 +61,9 @@ export async function GET() {
         parentAccountId: null,
         accountName: account.name,
         balance: toNumber(account.balance),
-        yieldPercentage: account.yieldPercentage || 0,
+        yieldPercentage: toNumber(account.yieldPercentage) || 0,
         projectedYield,
-        actualYield: existingRecord?.actualYield || null,
+        actualYield: existingRecord?.actualYield ? toNumber(existingRecord.actualYield) : null,
         isConfirmed: existingRecord?.isConfirmed || false,
         transactionId: existingRecord?.transactionId || null,
       });
@@ -96,9 +96,9 @@ export async function GET() {
         parentAccountId: subAccount.accountId,
         accountName: `${subAccount.account.name} → ${subAccount.name}`,
         balance: toNumber(subAccount.balance),
-        yieldPercentage: subAccount.yieldPercentage || 0,
+        yieldPercentage: toNumber(subAccount.yieldPercentage) || 0,
         projectedYield,
-        actualYield: existingRecord?.actualYield || null,
+        actualYield: existingRecord?.actualYield ? toNumber(existingRecord.actualYield) : null,
         isConfirmed: existingRecord?.isConfirmed || false,
         transactionId: existingRecord?.transactionId || null,
       });

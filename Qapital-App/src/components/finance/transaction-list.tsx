@@ -264,9 +264,11 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
   }, [editType]);
 
   useEffect(() => {
-    fetchTransactions();
-    fetchAccounts();
-    fetchCategories();
+    let cancelled = false;
+    fetchTransactions().then(() => { if (cancelled) return; });
+    fetchAccounts().then(() => { if (cancelled) return; });
+    fetchCategories().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchTransactions, fetchAccounts, fetchCategories]);
 
   const handleExpandTx = (tx: Transaction) => {

@@ -45,7 +45,8 @@ export async function GET() {
     // Manually resolve destination accounts for any transfer-type payments
     const enriched = await Promise.all(
       recurringPayments.map(async (payment) => {
-        let destinationAccount = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let destinationAccount: any = null;
         if (payment.destinationAccountId) {
           const acc = await db.account.findUnique({
             where: { id: payment.destinationAccountId },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 
 interface FuelLevelData {
@@ -20,6 +20,7 @@ export function useFuelLevel(vehicleId: string) {
     const [fuelLevel, setFuelLevel] = useState<FuelLevelData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const mountedRef = useRef(true);
 
     const fetchFuelLevel = useCallback(async () => {
         if (!vehicleId) return;
@@ -27,18 +28,28 @@ export function useFuelLevel(vehicleId: string) {
         try {
             setLoading(true);
             const data = await apiFetch<FuelLevelData>(`/api/vehicles/${vehicleId}/fuel-level`);
-            setFuelLevel(data);
-            setError(null);
+            if (mountedRef.current) {
+                setFuelLevel(data);
+                setError(null);
+            }
         } catch (err) {
-            console.error("Error fetching fuel level:", err);
-            setError("No se pudo cargar el nivel de combustible");
+            if (mountedRef.current) {
+                console.error("Error fetching fuel level:", err);
+                setError("No se pudo cargar el nivel de combustible");
+            }
         } finally {
-            setLoading(false);
+            if (mountedRef.current) {
+                setLoading(false);
+            }
         }
     }, [vehicleId]);
 
     useEffect(() => {
+        mountedRef.current = true;
         fetchFuelLevel();
+        return () => {
+            mountedRef.current = false;
+        };
     }, [fetchFuelLevel]);
 
     return {

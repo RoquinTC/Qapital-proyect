@@ -73,7 +73,9 @@ export function YieldManager({ accounts }: YieldManagerProps) {
   }, []);
 
   useEffect(() => {
-    fetchYields();
+    let cancelled = false;
+    fetchYields().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchYields]);
 
   const handleConfirm = async (item: YieldItem) => {

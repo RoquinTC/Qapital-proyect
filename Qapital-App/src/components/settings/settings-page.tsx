@@ -129,6 +129,7 @@ export function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetResult, setResetResult] = useState<string | null>(null);
@@ -162,17 +163,23 @@ export function SettingsPage() {
     setError(null);
     try {
       const data = await apiFetch<UserSettings>("/api/settings");
-      setSettings(data);
+      if (mountedRef.current) setSettings(data);
     } catch (err) {
-      console.error("Error fetching settings:", err);
-      setError(err instanceof Error ? err.message : "Error al cargar la configuración");
+      if (mountedRef.current) {
+        console.error("Error fetching settings:", err);
+        setError(err instanceof Error ? err.message : "Error al cargar la configuración");
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchSettings();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchSettings]);
 
   const updateSetting = async (key: string, value: unknown) => {

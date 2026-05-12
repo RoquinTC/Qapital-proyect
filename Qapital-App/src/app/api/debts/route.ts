@@ -131,7 +131,8 @@ export async function POST(req: NextRequest) {
         const budgetSubCategory = subCategory || null;
 
         // Check if budget already exists for this category
-        let existingBudget = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let existingBudget: any = null;
         if (budgetSubCategory) {
           existingBudget = await db.budget.findFirst({
             where: { userId: session.user.id, category: budgetCategory, subCategory: budgetSubCategory, type: "expense" },

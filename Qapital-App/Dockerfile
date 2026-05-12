@@ -9,6 +9,12 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Provide a dummy NEXTAUTH_SECRET for build time only.
+# The real value comes from docker-compose environment at runtime.
+ARG NEXTAUTH_SECRET=build-time-dummy-not-used-in-production
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+
 RUN npx prisma generate
 RUN npm run build
 

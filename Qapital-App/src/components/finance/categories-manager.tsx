@@ -81,7 +81,9 @@ export function CategoriesManager() {
   }, []);
 
   useEffect(() => {
-    fetchCategories();
+    let cancelled = false;
+    fetchCategories().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchCategories]);
 
   const toggleCategory = (name: string) => {

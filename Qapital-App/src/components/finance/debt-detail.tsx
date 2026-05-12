@@ -246,9 +246,11 @@ export function DebtDetail() {
   }, [selectedDebtId]);
 
   useEffect(() => {
+    let cancelled = false;
     if (debtIdReady) {
-      fetchData();
+      fetchData().then(() => { if (cancelled) return; });
     }
+    return () => { cancelled = true; };
   }, [fetchData, debtIdReady]);
 
   // ── Auto-select all due installments when debt changes ──

@@ -26,7 +26,9 @@ export function NetWorthCard() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    let cancelled = false;
+    fetchData().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchData]);
 
   if (loading) {

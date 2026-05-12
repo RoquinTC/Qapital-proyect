@@ -16,6 +16,7 @@ interface Transaction {
   amount: number;
   description: string;
   category?: string | null;
+  subCategory?: string | null;
   date: string;
   excludeFromBudget?: boolean;
 }
@@ -104,7 +105,9 @@ export function BudgetDetail({ budgetId, onBack }: BudgetDetailProps) {
   }, [budgetId]);
 
   useEffect(() => {
-    fetchBudgetDetail();
+    let cancelled = false;
+    fetchBudgetDetail().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchBudgetDetail]);
 
   if (loading) {

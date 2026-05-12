@@ -106,7 +106,9 @@ export function SavingsView() {
   }, []);
 
   useEffect(() => {
-    fetchGoals();
+    let cancelled = false;
+    fetchGoals().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchGoals]);
 
   const totalSaved = goals.reduce((sum, g) => sum + g.currentAmount, 0);

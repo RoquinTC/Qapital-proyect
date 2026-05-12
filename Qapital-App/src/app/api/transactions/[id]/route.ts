@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate } from "@/lib/api";
 import { verifyEntityOwnership } from "@/lib/auth-guards";
+import { toNumber } from "@/lib/decimal-serializer";
 
 export async function PUT(
   req: NextRequest,
@@ -49,7 +50,7 @@ export async function PUT(
 
     if (amountChanged || assignmentChanged) {
       // Reverse old balance change on the correct entity
-      const oldBalanceChange = oldType === "income" ? -oldAmount : (oldType === "expense" || oldType === "transfer") ? oldAmount : 0;
+      const oldBalanceChange = oldType === "income" ? -toNumber(oldAmount) : (oldType === "expense" || oldType === "transfer") ? toNumber(oldAmount) : 0;
       if (oldBalanceChange !== 0) {
         if (oldSubAccountId) {
           await db.subAccount.update({
@@ -67,7 +68,7 @@ export async function PUT(
       // Apply new balance change to the correct entity
       const newSubAccountId = body.subAccountId !== undefined ? body.subAccountId : oldSubAccountId;
       const newAccountId = body.accountId !== undefined ? body.accountId : existing.accountId;
-      const newBalanceChange = newType === "income" ? newAmount : (newType === "expense" || newType === "transfer") ? -newAmount : 0;
+      const newBalanceChange = newType === "income" ? toNumber(newAmount) : (newType === "expense" || newType === "transfer") ? -toNumber(newAmount) : 0;
       if (newBalanceChange !== 0) {
         if (newSubAccountId) {
           await db.subAccount.update({
@@ -179,20 +180,20 @@ export async function PUT(
           if (counterpart.subAccountId) {
             await db.subAccount.update({
               where: { id: counterpart.subAccountId },
-              data: { balance: { increment: reverseSign * counterpart.amount } },
+              data: { balance: { increment: reverseSign * toNumber(counterpart.amount) } },
             });
             await db.subAccount.update({
               where: { id: counterpart.subAccountId },
-              data: { balance: { increment: applySign * body.amount } },
+              data: { balance: { increment: applySign * toNumber(body.amount) } },
             });
           } else if (counterpart.accountId) {
             await db.account.update({
               where: { id: counterpart.accountId },
-              data: { balance: { increment: reverseSign * counterpart.amount } },
+              data: { balance: { increment: reverseSign * toNumber(counterpart.amount) } },
             });
             await db.account.update({
               where: { id: counterpart.accountId },
-              data: { balance: { increment: applySign * body.amount } },
+              data: { balance: { increment: applySign * toNumber(body.amount) } },
             });
           }
 
@@ -257,12 +258,12 @@ export async function DELETE(
       if (subAccId) {
         await db.subAccount.update({
           where: { id: subAccId },
-          data: { balance: { increment: amount } },
+          data: { balance: { increment: toNumber(amount) } },
         });
       } else if (accId) {
         await db.account.update({
           where: { id: accId },
-          data: { balance: { increment: amount } },
+          data: { balance: { increment: toNumber(amount) } },
         });
       }
     };
@@ -275,18 +276,19 @@ export async function DELETE(
       });
 
       // Reverse source account balance (transfer deducts from source, so add back)
-      await reverseBalance(existing.accountId, existing.subAccountId, existing.amount);
+      await reverseBalance(existing.accountId, existing.subAccountId, toNumber(existing.amount));
 
       // Reverse destination account balance and delete counterpart
       if (counterpart) {
-        await reverseBalance(counterpart.accountId, counterpart.subAccountId, -counterpart.amount);
+        await reverseBalance(counterpart.accountId, counterpart.subAccountId, -toNumber(counterpart.amount));
         await db.transaction.delete({ where: { id: counterpart.id } });
       }
 
       // Reverse budget for counterpart if applicable
       if (counterpart?.category) {
         // Find matching budget (subCategory-specific first, then parent)
-        let counterpartBudget = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let counterpartBudget: any = null;
         if (counterpart.subCategory) {
           counterpartBudget = await db.budget.findFirst({
             where: { userId: session.user.id, category: counterpart.category, subCategory: counterpart.subCategory, type: "income" },
@@ -317,11 +319,11 @@ export async function DELETE(
       });
 
       // Reverse destination account balance (income added to destination, so subtract)
-      await reverseBalance(existing.accountId, existing.subAccountId, -existing.amount);
+      await reverseBalance(existing.accountId, existing.subAccountId, -toNumber(existing.amount));
 
       // Reverse source account balance and delete source transfer
       if (sourceTransfer) {
-        await reverseBalance(sourceTransfer.accountId, sourceTransfer.subAccountId, sourceTransfer.amount);
+        await reverseBalance(sourceTransfer.accountId, sourceTransfer.subAccountId, toNumber(sourceTransfer.amount));
         await db.transaction.delete({ where: { id: sourceTransfer.id } });
       }
 
@@ -335,7 +337,7 @@ export async function DELETE(
     // --- Regular income / expense deletion (unchanged logic) ---
 
     // Reverse balance change on the correct entity
-    const reverseAmount = existing.type === "income" ? -existing.amount : existing.type === "expense" ? existing.amount : 0;
+    const reverseAmount = existing.type === "income" ? -toNumber(existing.amount) : existing.type === "expense" ? toNumber(existing.amount) : 0;
     if (reverseAmount !== 0) {
       await reverseBalance(existing.accountId, existing.subAccountId, reverseAmount);
     }
@@ -343,7 +345,8 @@ export async function DELETE(
     // Reverse budget spent (with subCategory matching)
     if (existing.category) {
       const budgetType = existing.type === "income" ? "income" : "expense";
-      let budget = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let budget: any = null;
       // Try subCategory-specific budget first
       if (existing.subCategory) {
         budget = await db.budget.findFirst({

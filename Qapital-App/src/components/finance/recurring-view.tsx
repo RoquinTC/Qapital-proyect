@@ -225,8 +225,10 @@ export function RecurringView() {
   }, []);
 
   useEffect(() => {
-    fetchPayments();
-    fetchPayrollGroups();
+    let cancelled = false;
+    fetchPayments().then(() => { if (cancelled) return; });
+    fetchPayrollGroups().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchPayments, fetchPayrollGroups]);
 
   // Filter pending payments to only show current month (+ overdue from prev months)
@@ -1494,7 +1496,7 @@ export function RecurringView() {
           if (!open) setEditingPayment(null);
         }}
         onSuccess={fetchPayments}
-        editingPayment={editingPayment}
+        editingPayment={editingPayment as any}
       />
 
       {/* Scope Dialog - Edit/Delete Series vs Single */}

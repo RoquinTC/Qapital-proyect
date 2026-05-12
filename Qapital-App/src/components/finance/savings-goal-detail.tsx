@@ -169,7 +169,9 @@ export function SavingsGoalDetail() {
   }, [selectedGoalId]);
 
   useEffect(() => {
-    fetchData();
+    let cancelled = false;
+    fetchData().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchData]);
 
   const handleLinkAccount = async () => {

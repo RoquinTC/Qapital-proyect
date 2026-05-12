@@ -98,7 +98,9 @@ export function CDTView() {
   }, []);
 
   useEffect(() => {
-    fetchCDTs();
+    let cancelled = false;
+    fetchCDTs().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [fetchCDTs]);
 
   // Defensive Number() wrappers: Prisma Decimal values may arrive as strings
