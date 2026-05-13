@@ -54,9 +54,11 @@ import {
   Landmark as BankIcon,
   Download,
   Tags,
+  ShieldCheck,
 } from "lucide-react";
 import { AccountManager } from "@/components/finance/account-manager";
 import { CategoriesManager } from "@/components/finance/categories-manager";
+import { BackupManager } from "@/components/settings/backup-manager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -825,6 +827,18 @@ export function SettingsPage() {
                 </CardContent>
               </Card>
 
+            </AccordionContent>
+          </AccordionItem>
+        </Card>
+
+        {/* ── RESPALDO Y RECUPERACIÓN ── */}
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+          <AccordionItem value="respaldo" className="border-0">
+            <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-50 dark:hover:bg-gray-800/50">
+              <SectionHeader icon={ShieldCheck} iconColor="text-amber-600" iconBg="bg-amber-100 dark:bg-amber-900/30" title="Respaldo y Recuperación" badge="Nuevo" />
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4 space-y-3">
+              <BackupManager />
             </AccordionContent>
           </AccordionItem>
         </Card>
