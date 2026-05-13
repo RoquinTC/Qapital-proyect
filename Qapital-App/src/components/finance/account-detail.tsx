@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { apiFetch, formatCurrency, formatDate, parseLocalDate, toColombiaDateString } from "@/lib/api";
 import { AccountCard } from "./account-card";
 import { AccountForm } from "./account-form";
 import { SubAccountForm } from "./sub-account-form";
 import { TransactionForm } from "./transaction-form";
+import { CategoryBreakdown } from "./category-breakdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -25,6 +27,7 @@ import {
   Users,
   Trash2,
   Pencil,
+  ChevronLeft,
   ChevronRight,
   PiggyBank,
   ArrowUpRight,
@@ -35,6 +38,11 @@ import {
   Check,
   Loader2,
   DollarSign,
+  Filter,
+  SlidersHorizontal,
+  LayoutList,
+  FolderTree,
+  Receipt,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,7 +58,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import type { Account, SubAccount, Transaction, CategoryData } from "@/lib/types";
+import type { Account, SubAccount, Transaction, CategoryData, UserSettings } from "@/lib/types";
 
 // Color config per transaction type
 const typeConfig = {
@@ -95,6 +103,46 @@ const subTypeLabels: Record<string, string> = {
   other: "Otro",
 };
 
+// Cycle date calculator
+function getCycleDates(cutoffDay: number, offset: number = 0) {
+  const now = new Date();
+  const refDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const year = refDate.getFullYear();
+  const month = refDate.getMonth();
+  const maxDay = new Date(year, month + 1, 0).getDate();
+  const startDay = Math.min(cutoffDay, maxDay);
+  const start = new Date(year, month, startDay);
+  if (offset <= 0) {
+    if (now < start) {
+      const prevMonth = new Date(year, month - 1, 1);
+      const prevMaxDay = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate();
+      start.setDate(1);
+      start.setMonth(month - 1);
+      start.setDate(Math.min(cutoffDay, prevMaxDay));
+    }
+  }
+  const nextMonth = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+  const nextMaxDay = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate();
+  const end = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), Math.min(cutoffDay, nextMaxDay) - 1);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+function formatCycleLabel(start: Date, end: Date): string {
+  const startStr = start.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+  const endStr = end.toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
+  return `${startStr} - ${endStr}`;
+}
+
+function formatDayMonth(dateStr: string): { day: string; month: string } {
+  const d = parseLocalDate(dateStr);
+  return {
+    day: d.getDate().toString(),
+    month: d.toLocaleDateString("es-CO", { month: "short" }),
+  };
+}
+
 export function AccountDetail() {
   const { setFinanceSubView } = useAppStore();
   const [account, setAccount] = useState<Account | null>(null);
@@ -126,6 +174,26 @@ export function AccountDetail() {
   // Categories from API
   const [categories, setCategories] = useState<CategoryData[]>([]);
 
+  // Cycle navigator
+  const [cycleOffset, setCycleOffset] = useState(0);
+  const [budgetCutoffDay, setBudgetCutoffDay] = useState(1);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  // Pagination
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Search & filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterMinAmount, setFilterMinAmount] = useState("");
+  const [filterMaxAmount, setFilterMaxAmount] = useState("");
+
+  // View mode
+  const [viewMode, setViewMode] = useState<"list" | "category">("list");
+
   const [selectedAccountId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return sessionStorage.getItem("selectedAccountId");
@@ -136,6 +204,44 @@ export function AccountDetail() {
   const [refreshKey, setRefreshKey] = useState(0);
   const fetchAccount = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+  // Fetch user settings for budgetCutoffDay
+  useEffect(() => {
+    apiFetch<UserSettings>("/api/settings")
+      .then((data) => setBudgetCutoffDay(data.budgetCutoffDay || 1))
+      .catch(console.error)
+      .finally(() => setSettingsLoaded(true));
+  }, []);
+
+  // Fetch transactions with cycle + pagination
+  const fetchTransactions = useCallback(async (cursor?: string, append = false) => {
+    if (!selectedAccountId) return;
+    if (!append) setLoadingMore(false);
+    else setLoadingMore(true);
+
+    const cycle = getCycleDates(budgetCutoffDay, cycleOffset);
+    const params = new URLSearchParams();
+    params.set("accountId", selectedAccountId);
+    params.set("startDate", cycle.start.toISOString().split("T")[0]);
+    params.set("endDate", cycle.end.toISOString().split("T")[0]);
+    if (cursor) params.set("cursor", cursor);
+    params.set("pageSize", "50");
+
+    try {
+      const data = await apiFetch<{ transactions: Transaction[]; nextCursor: string | null }>(
+        `/api/transactions?${params}`
+      );
+      if (append) {
+        setTransactions((prev) => [...prev, ...data.transactions]);
+      } else {
+        setTransactions(data.transactions);
+      }
+      setNextCursor(data.nextCursor);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+    }
+  }, [selectedAccountId, budgetCutoffDay, cycleOffset]);
+
+  // Fetch account info
   useEffect(() => {
     if (!selectedAccountId) return;
     let cancelled = false;
@@ -147,15 +253,15 @@ export function AccountDetail() {
       })
       .catch((error) => console.error("Error fetching account:", error));
 
-    apiFetch<Transaction[]>(`/api/transactions?accountId=${selectedAccountId}`)
-      .then((txs) => {
-        if (cancelled) return;
-        setTransactions(txs.slice(0, 50));
-      })
-      .catch((error) => console.error("Error fetching transactions:", error));
-
     return () => { cancelled = true; };
   }, [selectedAccountId, refreshKey]);
+
+  // Fetch transactions when settings are loaded or cycle changes
+  useEffect(() => {
+    if (settingsLoaded && selectedAccountId) {
+      fetchTransactions();
+    }
+  }, [fetchTransactions, settingsLoaded, selectedAccountId]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -209,6 +315,8 @@ export function AccountDetail() {
       await apiFetch(`/api/transactions/${txId}`, { method: "DELETE" });
       toast.success("Transacción eliminada");
       fetchAccount();
+      // Refresh transactions list
+      fetchTransactions();
       // Refresh sub-transactions for any expanded sub-account
       if (expandedSubAccount) {
         fetchSubTransactions(expandedSubAccount);
@@ -281,6 +389,7 @@ export function AccountDetail() {
       setEditingTxId(null);
       setExpandedTxId(null);
       fetchAccount();
+      fetchTransactions();
       // Refresh sub-transactions if editing a sub-account tx
       if (expandedSubAccount) {
         fetchSubTransactions(expandedSubAccount);
@@ -292,6 +401,73 @@ export function AccountDetail() {
       setSaving(false);
     }
   };
+
+  // Client-side filtering for main transactions
+  const mainTransactions = useMemo(() => {
+    return transactions.filter((tx) => !tx.subAccountId);
+  }, [transactions]);
+
+  const filteredMainTransactions = useMemo(() => {
+    return mainTransactions.filter((tx) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!tx.description.toLowerCase().includes(q) &&
+            !(tx.category || "").toLowerCase().includes(q) &&
+            !(tx.subCategory || "").toLowerCase().includes(q) &&
+            !(!isNaN(Number(q)) && Math.abs(tx.amount) === Number(q))) return false;
+      }
+      if (filterType !== "all" && tx.type !== filterType) return false;
+      if (filterCategory !== "all" && tx.category !== filterCategory) return false;
+      if (filterMinAmount && tx.amount < parseFloat(filterMinAmount)) return false;
+      if (filterMaxAmount && tx.amount > parseFloat(filterMaxAmount)) return false;
+      return true;
+    });
+  }, [mainTransactions, searchQuery, filterType, filterCategory, filterMinAmount, filterMaxAmount]);
+
+  // Client-side filtering for sub-account transactions
+  const filteredSubTransactions = useMemo(() => {
+    const result: Record<string, Transaction[]> = {};
+    for (const [subId, txs] of Object.entries(subTransactions)) {
+      result[subId] = txs.filter((tx) => {
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          if (!tx.description.toLowerCase().includes(q) &&
+              !(tx.category || "").toLowerCase().includes(q) &&
+              !(tx.subCategory || "").toLowerCase().includes(q) &&
+              !(!isNaN(Number(q)) && Math.abs(tx.amount) === Number(q))) return false;
+        }
+        if (filterType !== "all" && tx.type !== filterType) return false;
+        if (filterCategory !== "all" && tx.category !== filterCategory) return false;
+        if (filterMinAmount && tx.amount < parseFloat(filterMinAmount)) return false;
+        if (filterMaxAmount && tx.amount > parseFloat(filterMaxAmount)) return false;
+        return true;
+      });
+    }
+    return result;
+  }, [subTransactions, searchQuery, filterType, filterCategory, filterMinAmount, filterMaxAmount]);
+
+  // Available categories for filter
+  const filterCategoryOptions = useMemo(() => {
+    const catSet = new Set<string>();
+    transactions.forEach((tx) => {
+      if (tx.category) catSet.add(tx.category);
+    });
+    return Array.from(catSet).sort();
+  }, [transactions]);
+
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filterType !== "all") count++;
+    if (filterCategory !== "all") count++;
+    if (filterMinAmount) count++;
+    if (filterMaxAmount) count++;
+    return count;
+  }, [filterType, filterCategory, filterMinAmount, filterMaxAmount]);
+
+  const cycle = getCycleDates(budgetCutoffDay, cycleOffset);
+  const currentCategoryData = categories.find((c) => c.name === editCategory);
+  const availableSubCategories = currentCategoryData?.subcategories || [];
 
   if (!account) {
     return (
@@ -312,10 +488,6 @@ export function AccountDetail() {
   const projectedYield = account.isHighYield && account.yieldPercentage
     ? (account.balance * (account.yieldPercentage / 100)) / 12
     : 0;
-
-  const mainTransactions = transactions.filter((tx) => !tx.subAccountId);
-  const currentCategoryData = categories.find((c) => c.name === editCategory);
-  const availableSubCategories = currentCategoryData?.subcategories || [];
 
   return (
     <div className="p-4 space-y-4 pb-24">
@@ -419,7 +591,7 @@ export function AccountDetail() {
             {account.subAccounts.map((sub) => {
               const subColor = sub.color || "#10B981";
               const isExpanded = expandedSubAccount === sub.id;
-              const subTxs = subTransactions[sub.id] || [];
+              const subTxs = filteredSubTransactions[sub.id] || [];
               const subYield = sub.isHighYield && sub.yieldPercentage
                 ? (sub.balance * (sub.yieldPercentage / 100)) / 12
                 : 0;
@@ -502,6 +674,7 @@ export function AccountDetail() {
                                   const TxIcon = config.icon;
                                   const isExpanded = expandedTxId === tx.id;
                                   const isEditing = editingTxId === tx.id;
+                                  const { day, month } = formatDayMonth(tx.date);
 
                                   return (
                                     <motion.div
@@ -516,6 +689,15 @@ export function AccountDetail() {
                                         className="w-full flex items-center justify-between p-2.5 text-left"
                                       >
                                         <div className="flex items-center gap-2.5 min-w-0">
+                                          {/* Date Column */}
+                                          <div className="w-8 shrink-0 flex flex-col items-center justify-center mr-1">
+                                            <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 leading-none">
+                                              {day}
+                                            </span>
+                                            <span className="text-[8px] text-gray-400 leading-none mt-0.5">
+                                              {month}
+                                            </span>
+                                          </div>
                                           <div
                                             className="size-8 rounded-lg flex items-center justify-center shrink-0"
                                             style={{ backgroundColor: config.bgLight }}
@@ -832,6 +1014,54 @@ export function AccountDetail() {
 
       <Separator />
 
+      {/* Cycle Navigator + View Mode Toggle */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm px-1 py-1">
+          <button
+            onClick={() => setCycleOffset((prev) => prev - 1)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <ChevronLeft className="size-4 text-gray-600 dark:text-gray-300" />
+          </button>
+          <span className="text-xs font-medium text-gray-900 dark:text-gray-100 min-w-[140px] text-center px-1">
+            {formatCycleLabel(cycle.start, cycle.end)}
+          </span>
+          <button
+            onClick={() => setCycleOffset((prev) => Math.min(prev + 1, 0))}
+            disabled={cycleOffset >= 0}
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-30"
+          >
+            <ChevronRight className="size-4 text-gray-600 dark:text-gray-300" />
+          </button>
+        </div>
+
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm px-1 py-1">
+          <button
+            onClick={() => setViewMode("list")}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              viewMode === "list"
+                ? "bg-emerald-500 text-white shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            <LayoutList className="size-3" />
+            Lista
+          </button>
+          <button
+            onClick={() => setViewMode("category")}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              viewMode === "category"
+                ? "bg-emerald-500 text-white shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            <FolderTree className="size-3" />
+            Por Categoría
+          </button>
+        </div>
+      </div>
+
       {/* Recent Transactions */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -868,336 +1098,533 @@ export function AccountDetail() {
           </div>
         </div>
 
-        {mainTransactions.length === 0 ? (
-          <Card className="border-0 shadow-sm rounded-2xl bg-gray-50 dark:bg-gray-800/50">
-            <CardContent className="p-6 text-center">
-              <p className="text-sm text-gray-400">Sin transacciones</p>
-            </CardContent>
-          </Card>
+        {/* Category Breakdown View */}
+        {viewMode === "category" ? (
+          filteredMainTransactions.length === 0 ? (
+            <Card className="border-0 shadow-sm rounded-2xl bg-gray-50 dark:bg-gray-800/50">
+              <CardContent className="p-6 text-center">
+                <Receipt className="size-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">
+                  {searchQuery || activeFilterCount > 0
+                    ? "Sin resultados para los filtros aplicados"
+                    : "Sin transacciones en este ciclo"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <CategoryBreakdown transactions={filteredMainTransactions} />
+          )
         ) : (
-          <div className="space-y-2">
-            {mainTransactions.map((tx) => {
-              const txType = (tx.type as keyof typeof typeConfig) || "expense";
-              const config = typeConfig[txType] || typeConfig.expense;
-              const TxIcon = config.icon;
-              const isExpanded = expandedTxId === tx.id;
-              const isEditing = editingTxId === tx.id;
-
-              return (
-                <motion.div
-                  key={tx.id}
-                  layout
-                  className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden"
-                  style={{ borderLeft: `4px solid ${config.color}` }}
+          <>
+            {/* Search & Filters */}
+            <div className="space-y-2 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Filter className="size-4 text-gray-400" />
+                  </div>
+                  <Input
+                    placeholder="Buscar descripción, categoría, monto..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-8 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      <X className="size-4 text-gray-400" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`rounded-xl relative ${
+                    showFilters
+                      ? "border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20"
+                      : "border-gray-200 dark:border-gray-700"
+                  }`}
+                  onClick={() => setShowFilters(!showFilters)}
                 >
-                  {/* Main Row */}
-                  <button
-                    onClick={() => handleExpandTx(tx)}
-                    className="w-full flex items-center justify-between p-3 text-left"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className="size-9 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: config.bgLight }}
-                      >
-                        <TxIcon className="size-4" style={{ color: config.color }} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {tx.description}
-                        </p>
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
-                          >
-                            {config.label}
-                          </span>
-                          {tx.category && (
-                            <span className="text-[10px] text-gray-400">
-                              {tx.category}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
-                      <span
-                        className="text-sm font-bold"
-                        style={{ color: config.color }}
-                      >
-                        {tx.type === "income" ? "+" : tx.type === "transfer" ? "↔" : "-"}
-                        {formatCurrency(Math.abs(tx.amount))}
-                      </span>
-                      <motion.div
-                        animate={{ rotate: isExpanded ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <ChevronDown className="size-4 text-gray-300" />
-                      </motion.div>
-                    </div>
-                  </button>
+                  <SlidersHorizontal className="size-4" />
+                  {activeFilterCount > 0 && (
+                    <Badge className="absolute -top-1.5 -right-1.5 size-4 p-0 flex items-center justify-center text-[8px] bg-emerald-500 text-white border-0">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </Button>
+              </div>
 
-                  {/* Expanded Detail */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
+              {/* Advanced Filters Panel */}
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <Card className="border border-gray-200 dark:border-gray-700 shadow-none rounded-xl">
+                      <CardContent className="p-3 space-y-2.5">
+                        {/* Type filter buttons */}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-gray-500">Tipo</Label>
+                          <div className="flex gap-1">
+                            {[
+                              { value: "all", label: "Todos" },
+                              { value: "income", label: "Ingreso" },
+                              { value: "expense", label: "Gasto" },
+                              { value: "transfer", label: "Transferencia" },
+                            ].map((opt) => (
+                              <button
+                                key={opt.value}
+                                onClick={() => setFilterType(opt.value)}
+                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                                  filterType === opt.value
+                                    ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700"
+                                    : "bg-gray-50 dark:bg-gray-800 text-gray-400 border border-transparent"
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Category filter */}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-gray-500">Categoría</Label>
+                          <Select value={filterCategory} onValueChange={setFilterCategory}>
+                            <SelectTrigger className="rounded-lg h-8 text-xs">
+                              <SelectValue placeholder="Todas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todas las categorías</SelectItem>
+                              {filterCategoryOptions.map((cat) => (
+                                <SelectItem key={cat} value={cat}>
+                                  {cat}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Amount range */}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-gray-500">Rango de monto</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              placeholder="Mín"
+                              value={filterMinAmount}
+                              onChange={(e) => setFilterMinAmount(e.target.value)}
+                              className="rounded-lg h-8 text-xs"
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Máx"
+                              value={filterMaxAmount}
+                              onChange={(e) => setFilterMaxAmount(e.target.value)}
+                              className="rounded-lg h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Clear filters */}
+                        {activeFilterCount > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full rounded-xl text-xs text-gray-500"
+                            onClick={() => {
+                              setFilterType("all");
+                              setFilterCategory("all");
+                              setFilterMinAmount("");
+                              setFilterMaxAmount("");
+                            }}
+                          >
+                            <X className="size-3 mr-1" />
+                            Limpiar filtros ({activeFilterCount})
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Transaction List */}
+            {filteredMainTransactions.length === 0 ? (
+              <Card className="border-0 shadow-sm rounded-2xl bg-gray-50 dark:bg-gray-800/50">
+                <CardContent className="p-6 text-center">
+                  <Receipt className="size-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-400">
+                    {searchQuery || activeFilterCount > 0
+                      ? "Sin resultados para los filtros aplicados"
+                      : "Sin transacciones en este ciclo"}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {filteredMainTransactions.map((tx) => {
+                  const txType = (tx.type as keyof typeof typeConfig) || "expense";
+                  const config = typeConfig[txType] || typeConfig.expense;
+                  const TxIcon = config.icon;
+                  const isExpanded = expandedTxId === tx.id;
+                  const isEditing = editingTxId === tx.id;
+                  const { day, month } = formatDayMonth(tx.date);
+
+                  return (
+                    <motion.div
+                      key={tx.id}
+                      layout
+                      className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden"
+                      style={{ borderLeft: `4px solid ${config.color}` }}
+                    >
+                      {/* Main Row */}
+                      <button
+                        onClick={() => handleExpandTx(tx)}
+                        className="w-full flex items-center justify-between p-3 text-left"
                       >
-                        <div className="border-t border-gray-100 dark:border-gray-700">
-                          {!isEditing ? (
-                            /* Detail View */
-                            <div className="p-4 space-y-3">
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Tipo</span>
-                                  <span className={`block text-xs font-medium ${config.badgeText}`}>
-                                    {config.label}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Monto</span>
-                                  <span className="block text-xs font-bold" style={{ color: config.color }}>
-                                    {tx.type === "income" ? "+" : "-"}
-                                    {formatCurrency(Math.abs(tx.amount))}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Categoría</span>
-                                  <span className="block text-xs text-gray-700 dark:text-gray-300">
-                                    {tx.category || "Sin categoría"}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Fecha</span>
-                                  <span className="block text-xs text-gray-700 dark:text-gray-300">
-                                    {formatDate(tx.date)}
-                                  </span>
-                                </div>
-                                {tx.subAccount && (
-                                  <div>
-                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Bolsillo</span>
-                                    <span className="text-xs text-gray-700 dark:text-gray-300">
-                                      {tx.subAccount.name}
-                                    </span>
-                                  </div>
-                                )}
-                                {tx.type === "transfer" && tx.transferToAccount && (
-                                  <div>
-                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Hacia</span>
-                                    <div className="flex items-center gap-1.5">
-                                      <div className="size-2 rounded-full" style={{ backgroundColor: tx.transferToAccount.color }} />
-                                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                                        {tx.transferToAccount.name}
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {/* Date Column */}
+                          <div className="w-10 shrink-0 flex flex-col items-center justify-center mr-2">
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-none">
+                              {day}
+                            </span>
+                            <span className="text-[10px] text-gray-400 leading-none mt-0.5">
+                              {month}
+                            </span>
+                          </div>
+                          <div
+                            className="size-9 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: config.bgLight }}
+                          >
+                            <TxIcon className="size-4" style={{ color: config.color }} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {tx.description}
+                            </p>
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
+                              >
+                                {config.label}
+                              </span>
+                              {tx.category && (
+                                <span className="text-[10px] text-gray-400">
+                                  {tx.category}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                          <span
+                            className="text-sm font-bold"
+                            style={{ color: config.color }}
+                          >
+                            {tx.type === "income" ? "+" : tx.type === "transfer" ? "↔" : "-"}
+                            {formatCurrency(Math.abs(tx.amount))}
+                          </span>
+                          <motion.div
+                            animate={{ rotate: isExpanded ? 180 : 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <ChevronDown className="size-4 text-gray-300" />
+                          </motion.div>
+                        </div>
+                      </button>
+
+                      {/* Expanded Detail */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="border-t border-gray-100 dark:border-gray-700">
+                              {!isEditing ? (
+                                /* Detail View */
+                                <div className="p-4 space-y-3">
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Tipo</span>
+                                      <span className={`block text-xs font-medium ${config.badgeText}`}>
+                                        {config.label}
                                       </span>
                                     </div>
+                                    <div>
+                                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Monto</span>
+                                      <span className="block text-xs font-bold" style={{ color: config.color }}>
+                                        {tx.type === "income" ? "+" : "-"}
+                                        {formatCurrency(Math.abs(tx.amount))}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Categoría</span>
+                                      <span className="block text-xs text-gray-700 dark:text-gray-300">
+                                        {tx.category || "Sin categoría"}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Fecha</span>
+                                      <span className="block text-xs text-gray-700 dark:text-gray-300">
+                                        {formatDate(tx.date)}
+                                      </span>
+                                    </div>
+                                    {tx.subAccount && (
+                                      <div>
+                                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Bolsillo</span>
+                                        <span className="text-xs text-gray-700 dark:text-gray-300">
+                                          {tx.subAccount.name}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {tx.type === "transfer" && tx.transferToAccount && (
+                                      <div>
+                                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Hacia</span>
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="size-2 rounded-full" style={{ backgroundColor: tx.transferToAccount.color }} />
+                                          <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                                            {tx.transferToAccount.name}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {tx.notes && (
+                                      <div className="col-span-2">
+                                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Notas</span>
+                                        <span className="block text-xs text-gray-700 dark:text-gray-300">
+                                          {tx.notes}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                                {tx.notes && (
-                                  <div className="col-span-2">
-                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Notas</span>
-                                    <span className="block text-xs text-gray-700 dark:text-gray-300">
-                                      {tx.notes}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
 
-                              <div className="flex gap-2 pt-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1 rounded-xl text-xs h-9"
-                                  onClick={() => setEditingTxId(expandedTxId)}
-                                >
-                                  <Pencil className="size-3 mr-1" />
-                                  Editar
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1 rounded-xl text-xs h-9 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
-                                  onClick={() => setShowTxDeleteDialog(tx.id)}
-                                >
-                                  <Trash2 className="size-3 mr-1" />
-                                  Eliminar
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            /* Inline Edit Form */
-                            <div className="p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/50">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                  Editar Transacción
-                                </span>
-                                <button
-                                  onClick={handleCancelEdit}
-                                  className="size-6 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"
-                                >
-                                  <X className="size-3.5 text-gray-400" />
-                                </button>
-                              </div>
-
-                              {/* Type Selector */}
-                              <div className="flex gap-1.5">
-                                {(["income", "expense", "transfer"] as const).map((t) => {
-                                  const tConfig = typeConfig[t];
-                                  const TIcon = tConfig.icon;
-                                  const isActive = editType === t;
-                                  return (
-                                    <button
-                                      key={t}
-                                      onClick={() => {
-                                        setEditType(t);
-                                        setEditCategory("");
-                                      }}
-                                      className={`flex-1 py-2 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-all ${
-                                        isActive
-                                          ? `${tConfig.badgeBg} ${tConfig.badgeText} border`
-                                          : "bg-white dark:bg-gray-800 text-gray-400 border border-transparent"
-                                      }`}
-                                      style={isActive ? { borderColor: tConfig.color } : {}}
+                                  <div className="flex gap-2 pt-1">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1 rounded-xl text-xs h-9"
+                                      onClick={() => setEditingTxId(expandedTxId)}
                                     >
-                                      <TIcon className="size-3" />
-                                      {tConfig.label}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-
-                              {/* Amount */}
-                              <div className="space-y-1">
-                                <Label className="text-[10px]">Monto</Label>
-                                <CurrencyInput
-                                  value={editAmount}
-                                  onChange={setEditAmount}
-                                  showPrefix
-                                  placeholder="0"
-                                  className="text-sm font-bold rounded-lg h-10"
-                                />
-                              </div>
-
-                              {/* Description */}
-                              <div className="space-y-1">
-                                <Label className="text-[10px]">Descripción</Label>
-                                <Input
-                                  value={editDescription}
-                                  onChange={(e) => setEditDescription(e.target.value)}
-                                  className="rounded-lg h-9 text-sm"
-                                />
-                              </div>
-
-                              {/* Category */}
-                              {editType !== "transfer" && (
-                                <div className="space-y-1">
-                                  <Label className="text-[10px]">Categoría</Label>
-                                  <Select value={editCategory} onValueChange={(v) => { setEditCategory(v); setEditSubCategory(""); }}>
-                                    <SelectTrigger className="rounded-lg h-9 text-sm">
-                                      <SelectValue placeholder="Seleccionar" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {categories.map((cat) => (
-                                        <SelectItem key={cat.name} value={cat.name}>
-                                          {cat.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                      <Pencil className="size-3 mr-1" />
+                                      Editar
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1 rounded-xl text-xs h-9 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
+                                      onClick={() => setShowTxDeleteDialog(tx.id)}
+                                    >
+                                      <Trash2 className="size-3 mr-1" />
+                                      Eliminar
+                                    </Button>
+                                  </div>
                                 </div>
-                              )}
+                              ) : (
+                                /* Inline Edit Form */
+                                <div className="p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/50">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                      Editar Transacción
+                                    </span>
+                                    <button
+                                      onClick={handleCancelEdit}
+                                      className="size-6 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"
+                                    >
+                                      <X className="size-3.5 text-gray-400" />
+                                    </button>
+                                  </div>
 
-                              {/* SubCategory */}
-                              {editType !== "transfer" && editCategory && (
-                                <div className="space-y-1">
-                                  <Label className="text-[10px]">Subcategoría</Label>
-                                  {availableSubCategories.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mb-1">
-                                      {availableSubCategories.map((sub) => (
+                                  {/* Type Selector */}
+                                  <div className="flex gap-1.5">
+                                    {(["income", "expense", "transfer"] as const).map((t) => {
+                                      const tConfig = typeConfig[t];
+                                      const TIcon = tConfig.icon;
+                                      const isActive = editType === t;
+                                      return (
                                         <button
-                                          key={sub}
-                                          onClick={() => setEditSubCategory(sub === editSubCategory ? "" : sub)}
-                                          className={`px-2 py-0.5 rounded-md text-[9px] font-medium transition-all ${
-                                            sub === editSubCategory
-                                              ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
-                                              : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
+                                          key={t}
+                                          onClick={() => {
+                                            setEditType(t);
+                                            setEditCategory("");
+                                          }}
+                                          className={`flex-1 py-2 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-all ${
+                                            isActive
+                                              ? `${tConfig.badgeBg} ${tConfig.badgeText} border`
+                                              : "bg-white dark:bg-gray-800 text-gray-400 border border-transparent"
                                           }`}
+                                          style={isActive ? { borderColor: tConfig.color } : {}}
                                         >
-                                          {sub}
+                                          <TIcon className="size-3" />
+                                          {tConfig.label}
                                         </button>
-                                      ))}
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Amount */}
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px]">Monto</Label>
+                                    <CurrencyInput
+                                      value={editAmount}
+                                      onChange={setEditAmount}
+                                      showPrefix
+                                      placeholder="0"
+                                      className="text-sm font-bold rounded-lg h-10"
+                                    />
+                                  </div>
+
+                                  {/* Description */}
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px]">Descripción</Label>
+                                    <Input
+                                      value={editDescription}
+                                      onChange={(e) => setEditDescription(e.target.value)}
+                                      className="rounded-lg h-9 text-sm"
+                                    />
+                                  </div>
+
+                                  {/* Category */}
+                                  {editType !== "transfer" && (
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Categoría</Label>
+                                      <Select value={editCategory} onValueChange={(v) => { setEditCategory(v); setEditSubCategory(""); }}>
+                                        <SelectTrigger className="rounded-lg h-9 text-sm">
+                                          <SelectValue placeholder="Seleccionar" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {categories.map((cat) => (
+                                            <SelectItem key={cat.name} value={cat.name}>
+                                              {cat.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
                                     </div>
                                   )}
-                                  <Input
-                                    value={editSubCategory}
-                                    onChange={(e) => setEditSubCategory(e.target.value)}
-                                    placeholder="Opcional..."
-                                    className="rounded-lg h-8 text-xs"
-                                  />
+
+                                  {/* SubCategory */}
+                                  {editType !== "transfer" && editCategory && (
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Subcategoría</Label>
+                                      {availableSubCategories.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mb-1">
+                                          {availableSubCategories.map((sub) => (
+                                            <button
+                                              key={sub}
+                                              onClick={() => setEditSubCategory(sub === editSubCategory ? "" : sub)}
+                                              className={`px-2 py-0.5 rounded-md text-[9px] font-medium transition-all ${
+                                                sub === editSubCategory
+                                                  ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                                                  : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
+                                              }`}
+                                            >
+                                              {sub}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                      <Input
+                                        value={editSubCategory}
+                                        onChange={(e) => setEditSubCategory(e.target.value)}
+                                        placeholder="Opcional..."
+                                        className="rounded-lg h-8 text-xs"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {/* Date */}
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px]">Fecha</Label>
+                                    <Input
+                                      type="date"
+                                      value={editDate}
+                                      onChange={(e) => setEditDate(e.target.value)}
+                                      className="rounded-lg h-9 text-sm"
+                                    />
+                                  </div>
+
+                                  {/* Notes */}
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px]">Notas</Label>
+                                    <Input
+                                      value={editNotes}
+                                      onChange={(e) => setEditNotes(e.target.value)}
+                                      placeholder="Opcional..."
+                                      className="rounded-lg h-9 text-sm"
+                                    />
+                                  </div>
+
+                                  {/* Save / Cancel */}
+                                  <div className="flex gap-2 pt-1">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1 rounded-xl text-xs h-9"
+                                      onClick={handleCancelEdit}
+                                      disabled={saving}
+                                    >
+                                      Cancelar
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="flex-1 rounded-xl text-xs h-9 text-white"
+                                      style={{ backgroundColor: config.color }}
+                                      onClick={handleSaveEdit}
+                                      disabled={saving || !editAmount || !editDescription}
+                                    >
+                                      {saving ? (
+                                        <Loader2 className="size-3 animate-spin mr-1" />
+                                      ) : (
+                                        <Check className="size-3 mr-1" />
+                                      )}
+                                      Guardar
+                                    </Button>
+                                  </div>
                                 </div>
                               )}
-
-                              {/* Date */}
-                              <div className="space-y-1">
-                                <Label className="text-[10px]">Fecha</Label>
-                                <Input
-                                  type="date"
-                                  value={editDate}
-                                  onChange={(e) => setEditDate(e.target.value)}
-                                  className="rounded-lg h-9 text-sm"
-                                />
-                              </div>
-
-                              {/* Notes */}
-                              <div className="space-y-1">
-                                <Label className="text-[10px]">Notas</Label>
-                                <Input
-                                  value={editNotes}
-                                  onChange={(e) => setEditNotes(e.target.value)}
-                                  placeholder="Opcional..."
-                                  className="rounded-lg h-9 text-sm"
-                                />
-                              </div>
-
-                              {/* Save / Cancel */}
-                              <div className="flex gap-2 pt-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1 rounded-xl text-xs h-9"
-                                  onClick={handleCancelEdit}
-                                  disabled={saving}
-                                >
-                                  Cancelar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="flex-1 rounded-xl text-xs h-9 text-white"
-                                  style={{ backgroundColor: config.color }}
-                                  onClick={handleSaveEdit}
-                                  disabled={saving || !editAmount || !editDescription}
-                                >
-                                  {saving ? (
-                                    <Loader2 className="size-3 animate-spin mr-1" />
-                                  ) : (
-                                    <Check className="size-3 mr-1" />
-                                  )}
-                                  Guardar
-                                </Button>
-                              </div>
                             </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+
+                {/* Load More Button */}
+                {nextCursor && (
+                  <div className="flex justify-center pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs"
+                      onClick={() => fetchTransactions(nextCursor, true)}
+                      disabled={loadingMore}
+                    >
+                      {loadingMore ? (
+                        <Loader2 className="size-3 animate-spin mr-1" />
+                      ) : (
+                        <ChevronDown className="size-3 mr-1" />
+                      )}
+                      Cargar más
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -1222,7 +1649,10 @@ export function AccountDetail() {
         defaultType={cashbackMode ? "income" : undefined}
         defaultDescription={cashbackMode ? "Cashback" : undefined}
         editTransaction={editingTransaction}
-        onSuccess={fetchAccount}
+        onSuccess={() => {
+          fetchAccount();
+          fetchTransactions();
+        }}
       />
 
       <SubAccountForm

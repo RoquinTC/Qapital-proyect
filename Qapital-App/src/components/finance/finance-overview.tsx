@@ -1215,6 +1215,17 @@ export function FinanceOverview() {
                                               </span>
                                             </span>
                                           )}
+                                          {tx.subAccount && (
+                                            <span className="inline-flex items-center gap-0.5 bg-violet-50 dark:bg-violet-900/20 rounded px-1 py-px">
+                                              <span
+                                                className="size-1.5 rounded-full inline-block"
+                                                style={{ backgroundColor: tx.subAccount.color || "#8B5CF6" }}
+                                              />
+                                              <span className="text-[9px] text-violet-500 dark:text-violet-400">
+                                                {tx.subAccount.name}
+                                              </span>
+                                            </span>
+                                          )}
                                         </p>
                                       </div>
                                     </div>

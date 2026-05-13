@@ -70,7 +70,7 @@ export interface Transaction {
   excludeFromBudget?: boolean;
   // Denormalized relation objects from API
   account?: { id: string; name: string; color: string } | null;
-  subAccount?: { id: string; name: string } | null;
+  subAccount?: { id: string; name: string; color?: string | null } | null;
   transferToAccount?: { id: string; name: string; color: string } | null;
   transferFromAccount?: { id: string; name: string; color: string } | null;
   isTransferCounterpart?: boolean;

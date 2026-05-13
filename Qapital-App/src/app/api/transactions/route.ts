@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         account: { select: { id: true, name: true, type: true, color: true } },
-        subAccount: { select: { id: true, name: true } },
+        subAccount: { select: { id: true, name: true, color: true } },
       },
       orderBy: { date: "desc" },
       take: pageSize + 1, // Take one extra to determine if there's a next page
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
       },
       include: {
         account: { select: { id: true, name: true, type: true, color: true } },
-        subAccount: { select: { id: true, name: true } },
+        subAccount: { select: { id: true, name: true, color: true } },
       },
     });
 
