@@ -22,6 +22,12 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const sourceModule = searchParams.get("sourceModule");
+    const cursor = searchParams.get("cursor");
+    const pageSizeParam = searchParams.get("pageSize");
+    const minAmount = searchParams.get("minAmount");
+    const maxAmount = searchParams.get("maxAmount");
+
+    const pageSize = pageSizeParam ? parseInt(pageSizeParam, 10) : 50;
 
     const where: Record<string, unknown> = { userId: session.user.id };
 
@@ -38,15 +44,36 @@ export async function GET(req: NextRequest) {
       where.date = dateFilter;
     }
 
-    const transactions = await db.transaction.findMany({
+    if (minAmount || maxAmount) {
+      const amountFilter: Record<string, number> = {};
+      if (minAmount) amountFilter.gte = parseFloat(minAmount);
+      if (maxAmount) amountFilter.lte = parseFloat(maxAmount);
+      where.amount = amountFilter;
+    }
+
+    const query: Record<string, unknown> = {
       where,
       include: {
         account: { select: { id: true, name: true, type: true, color: true } },
         subAccount: { select: { id: true, name: true } },
       },
       orderBy: { date: "desc" },
-      take: 100,
-    });
+      take: pageSize + 1, // Take one extra to determine if there's a next page
+    };
+
+    if (cursor) {
+      query.skip = 1;
+      query.cursor = { id: cursor };
+    }
+
+    const transactions = await db.transaction.findMany(query as Parameters<typeof db.transaction.findMany>[0]);
+
+    // Determine next cursor
+    let nextCursor: string | null = null;
+    if (transactions.length > pageSize) {
+      const nextItem = transactions.pop(); // Remove the extra item
+      nextCursor = nextItem!.id;
+    }
 
     // For transfer transactions, fetch the destination account info via relatedTransactionId
     // For income transactions that are transfer counterparts, fetch the source account info
@@ -87,7 +114,7 @@ export async function GET(req: NextRequest) {
         : null,
     }));
 
-    return NextResponse.json(enriched);
+    return NextResponse.json({ transactions: enriched, nextCursor });
   } catch (error) {
     console.error("Get transactions error:", error);
     return NextResponse.json({ error: "Error al obtener transacciones" }, { status: 500 });

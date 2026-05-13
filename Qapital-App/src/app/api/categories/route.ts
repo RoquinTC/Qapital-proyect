@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { validateBody, categoryUpdateSchema, categoryDeleteSchema } from "@/lib/validations";
+import { validateBody, categoryUpdateSchema, categoryDeleteSchema, categoryCreateSchema } from "@/lib/validations";
 
 // Default categories that always appear
 const defaultIncomeCategories = ["Salario", "Freelance", "Inversiones", "Ventas", "Otros"];
@@ -52,6 +52,14 @@ export async function GET(req: NextRequest) {
       distinct: ["category", "subCategory"],
     });
 
+    // Get custom categories
+    const customCategories = await db.category.findMany({
+      where: {
+        userId: session.user.id,
+        ...(type ? { type } : {}),
+      },
+    });
+
     // Build a map of category -> Set of subcategories
     const categoryMap: Record<string, Record<string, Set<string>>> = {
       income: {},
@@ -64,6 +72,13 @@ export async function GET(req: NextRequest) {
     }
     for (const cat of defaultExpenseCategories) {
       categoryMap.expense[cat] = new Set();
+    }
+
+    // Merge custom categories
+    for (const cc of customCategories) {
+      const t = cc.type as "income" | "expense";
+      if (!categoryMap[t]) categoryMap[t] = {};
+      if (!categoryMap[t][cc.name]) categoryMap[t][cc.name] = new Set();
     }
 
     // Merge budget categories
@@ -97,6 +112,41 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("Get categories error:", error);
     return NextResponse.json({ error: "Error al obtener categorías" }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const body = await validateBody(req, categoryCreateSchema);
+    const { type, name, icon, color } = body;
+
+    if (!type || !name) {
+      return NextResponse.json({ error: "Tipo y nombre son requeridos" }, { status: 400 });
+    }
+
+    const category = await db.category.create({
+      data: {
+        userId: session.user.id,
+        type,
+        name,
+        icon: icon || null,
+        color: color || null,
+      },
+    });
+
+    return NextResponse.json(category, { status: 201 });
+  } catch (error: unknown) {
+    // Handle unique constraint violation
+    if (error && typeof error === 'object' && 'code' in error && (error as { code: string }).code === 'P2002') {
+      return NextResponse.json({ error: "Ya existe una categoría con ese nombre y tipo" }, { status: 409 });
+    }
+    console.error("Create category error:", error);
+    return NextResponse.json({ error: "Error al crear categoría" }, { status: 500 });
   }
 }
 
@@ -200,6 +250,18 @@ export async function PUT(req: NextRequest) {
       }).then((r) => r.count);
     }
 
+    // Also update custom category name if it exists
+    await db.category.updateMany({
+      where: {
+        userId: session.user.id,
+        type,
+        name: oldCategory,
+      },
+      data: {
+        name: newCategory,
+      },
+    });
+
     return NextResponse.json({
       updatedTransactions,
       updatedBudgets,
@@ -294,6 +356,15 @@ export async function DELETE(req: NextRequest) {
         },
       }).then((r) => r.count);
     }
+
+    // Also delete custom category if it exists
+    await db.category.deleteMany({
+      where: {
+        userId: session.user.id,
+        type,
+        name: category,
+      },
+    });
 
     return NextResponse.json({
       updatedTransactions,

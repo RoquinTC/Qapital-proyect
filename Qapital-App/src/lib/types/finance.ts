@@ -382,6 +382,19 @@ export interface MonthlySummaryResponse {
   };
 }
 
+// ─── Custom Category ───
+
+export interface CustomCategory {
+  id: string;
+  userId: string;
+  type: string; // income, expense
+  name: string;
+  icon?: string | null;
+  color?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // ─── User Settings ───
 
 export interface UserSettings {

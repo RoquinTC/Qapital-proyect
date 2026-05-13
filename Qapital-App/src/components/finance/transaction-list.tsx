@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiFetch, formatCurrency, formatDate, parseLocalDate, toColombiaDateString } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -36,9 +37,14 @@ import {
   Pencil,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   X,
   Check,
   Loader2,
+  LayoutList,
+  FolderTree,
+  SlidersHorizontal,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -52,13 +58,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import type { Transaction, SubAccount, Account, CategoryData } from "@/lib/types";
+import type { Transaction, SubAccount, Account, CategoryData, UserSettings } from "@/lib/types";
+import { CategoryBreakdown } from "./category-breakdown";
 
 // Color config per transaction type
 const typeConfig = {
   income: {
-    color: "#10B981", // emerald-500
-    bgLight: "#ECFDF5", // emerald-50
+    color: "#10B981",
+    bgLight: "#ECFDF5",
     bgDark: "rgba(16,185,129,0.1)",
     borderClass: "border-l-emerald-500",
     textClass: "text-emerald-600",
@@ -68,8 +75,8 @@ const typeConfig = {
     icon: ArrowUpRight,
   },
   expense: {
-    color: "#EF4444", // red-500
-    bgLight: "#FEF2F2", // red-50
+    color: "#EF4444",
+    bgLight: "#FEF2F2",
     bgDark: "rgba(239,68,68,0.1)",
     borderClass: "border-l-red-500",
     textClass: "text-red-500",
@@ -79,8 +86,8 @@ const typeConfig = {
     icon: ArrowDownRight,
   },
   transfer: {
-    color: "#3B82F6", // blue-500
-    bgLight: "#EFF6FF", // blue-50
+    color: "#3B82F6",
+    bgLight: "#EFF6FF",
     bgDark: "rgba(59,130,246,0.1)",
     borderClass: "border-l-blue-500",
     textClass: "text-blue-500",
@@ -90,8 +97,6 @@ const typeConfig = {
     icon: Repeat,
   },
 } as const;
-
-
 
 const categoryIcons: Record<string, typeof DollarSign> = {
   Alimentación: Utensils,
@@ -143,12 +148,53 @@ function groupByDate(transactions: Transaction[]) {
   return groups.filter((g) => g.transactions.length > 0);
 }
 
-interface TransactionListProps {
-  accountId?: string;
-  limit?: number;
+// Cycle date calculator
+function getCycleDates(cutoffDay: number, offset: number = 0) {
+  const now = new Date();
+  const refDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const year = refDate.getFullYear();
+  const month = refDate.getMonth();
+  const maxDay = new Date(year, month + 1, 0).getDate();
+  const startDay = Math.min(cutoffDay, maxDay);
+  const start = new Date(year, month, startDay);
+  if (offset <= 0) {
+    if (now < start) {
+      const prevMonth = new Date(year, month - 1, 1);
+      const prevMaxDay = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate();
+      start.setDate(1);
+      start.setMonth(month - 1);
+      start.setDate(Math.min(cutoffDay, prevMaxDay));
+    }
+  }
+  const nextMonth = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+  const nextMaxDay = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate();
+  const end = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), Math.min(cutoffDay, nextMaxDay) - 1);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
 }
 
-export function TransactionList({ accountId, limit }: TransactionListProps) {
+function formatCycleLabel(start: Date, end: Date): string {
+  const startStr = start.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+  const endStr = end.toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
+  return `${startStr} - ${endStr}`;
+}
+
+function formatDayMonth(dateStr: string): { day: string; month: string } {
+  const d = parseLocalDate(dateStr);
+  return {
+    day: d.getDate().toString(),
+    month: d.toLocaleDateString("es-CO", { month: "short" }),
+  };
+}
+
+interface TransactionListProps {
+  accountId?: string;
+}
+
+type ViewMode = "list" | "category";
+
+export function TransactionList({ accountId }: TransactionListProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,7 +202,28 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // View mode
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+  // Cycle navigator
+  const [cycleOffset, setCycleOffset] = useState(0);
+  const [budgetCutoffDay, setBudgetCutoffDay] = useState(1);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  // Pagination
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Enhanced search & filters
   const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterAccountId, setFilterAccountId] = useState<string>("all");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterMinAmount, setFilterMinAmount] = useState("");
+  const [filterMaxAmount, setFilterMaxAmount] = useState("");
 
   // Edit form state
   const [editType, setEditType] = useState<string>("expense");
@@ -171,6 +238,7 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
 
   // Categories from API
   const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [allCategories, setAllCategories] = useState<Record<string, CategoryData[]>>({ income: [], expense: [] });
 
   // Helper: check if a transaction is a CC payment (expandable with installment details)
   const isCcPayment = (tx: Transaction) =>
@@ -192,21 +260,52 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
     }
   };
 
-  const fetchTransactions = useCallback(async () => {
+  // Fetch user settings for budgetCutoffDay
+  const fetchSettings = useCallback(async () => {
     try {
-      let url = "/api/transactions";
-      const params = new URLSearchParams();
-      if (accountId) params.set("accountId", accountId);
-      if (params.toString()) url += `?${params.toString()}`;
+      const data = await apiFetch<UserSettings>("/api/settings");
+      setBudgetCutoffDay(data.budgetCutoffDay || 1);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    } finally {
+      setSettingsLoaded(true);
+    }
+  }, []);
 
-      const data = await apiFetch<Transaction[]>(url);
-      setTransactions(limit ? data.slice(0, limit) : data);
+  const fetchTransactions = useCallback(async (cursor?: string, append: boolean = false) => {
+    try {
+      if (!append) setLoading(true);
+      else setLoadingMore(true);
+
+      const cycle = getCycleDates(budgetCutoffDay, cycleOffset);
+      const startDateStr = cycle.start.toISOString().split("T")[0];
+      const endDateStr = cycle.end.toISOString().split("T")[0];
+
+      const params = new URLSearchParams();
+      params.set("startDate", startDateStr);
+      params.set("endDate", endDateStr);
+      if (accountId) params.set("accountId", accountId);
+      if (cursor) params.set("cursor", cursor);
+      params.set("pageSize", "50");
+
+      const data = await apiFetch<{ transactions: Transaction[]; nextCursor: string | null }>(
+        `/api/transactions?${params.toString()}`
+      );
+
+      if (append) {
+        setAllTransactions((prev) => [...prev, ...data.transactions]);
+      } else {
+        setAllTransactions(data.transactions);
+      }
+      setNextCursor(data.nextCursor);
+      setTransactions(data.transactions);
     } catch (error) {
       console.error("Error fetching transactions:", error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [accountId, limit]);
+  }, [accountId, budgetCutoffDay, cycleOffset]);
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -219,7 +318,8 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const data = await apiFetch<Record<string, CategoryData[]>>(`/api/categories?type=${editType}`);
+      const data = await apiFetch<Record<string, CategoryData[]>>(`/api/categories`);
+      setAllCategories(data);
       setCategories(data[editType] || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -227,12 +327,30 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
   }, [editType]);
 
   useEffect(() => {
-    let cancelled = false;
-    fetchTransactions().then(() => { if (cancelled) return; });
-    fetchAccounts().then(() => { if (cancelled) return; });
-    fetchCategories().then(() => { if (cancelled) return; });
-    return () => { cancelled = true; };
-  }, [fetchTransactions, fetchAccounts, fetchCategories]);
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settingsLoaded) {
+      fetchTransactions();
+    }
+  }, [fetchTransactions, settingsLoaded]);
+
+  useEffect(() => {
+    fetchAccounts();
+    fetchCategories();
+  }, [fetchAccounts, fetchCategories]);
+
+  // When editType changes, update categories
+  useEffect(() => {
+    setCategories(allCategories[editType] || []);
+  }, [editType, allCategories]);
+
+  const handleLoadMore = () => {
+    if (nextCursor) {
+      fetchTransactions(nextCursor, true);
+    }
+  };
 
   const handleExpandTx = (tx: Transaction) => {
     if (expandedTxId === tx.id) {
@@ -241,7 +359,6 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
     } else {
       setExpandedTxId(tx.id);
       setEditingTxId(null);
-      // Populate edit form with current values
       setEditType(tx.type);
       setEditAmount(tx.amount.toString());
       setEditDescription(tx.description);
@@ -260,8 +377,7 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
 
   const handleCancelEdit = () => {
     setEditingTxId(null);
-    // Reset to original values
-    const tx = transactions.find((t) => t.id === expandedTxId);
+    const tx = allTransactions.find((t) => t.id === expandedTxId);
     if (tx) {
       setEditType(tx.type);
       setEditAmount(tx.amount.toString());
@@ -317,7 +433,64 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
     setShowDeleteDialog(null);
   };
 
-  if (loading) {
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filterType !== "all") count++;
+    if (filterAccountId !== "all") count++;
+    if (filterCategory !== "all") count++;
+    if (filterMinAmount) count++;
+    if (filterMaxAmount) count++;
+    return count;
+  }, [filterType, filterAccountId, filterCategory, filterMinAmount, filterMaxAmount]);
+
+  // Client-side filtering
+  const filteredTransactions = useMemo(() => {
+    return allTransactions.filter((tx) => {
+      // Search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesDesc = tx.description.toLowerCase().includes(query);
+        const matchesCat = (tx.category || "").toLowerCase().includes(query);
+        const matchesSub = (tx.subCategory || "").toLowerCase().includes(query);
+        const matchesAmount = !isNaN(Number(query)) && Math.abs(tx.amount) === Number(query);
+        if (!matchesDesc && !matchesCat && !matchesSub && !matchesAmount) return false;
+      }
+
+      // Type filter
+      if (filterType !== "all" && tx.type !== filterType) return false;
+
+      // Account filter
+      if (filterAccountId !== "all" && tx.accountId !== filterAccountId) return false;
+
+      // Category filter
+      if (filterCategory !== "all" && tx.category !== filterCategory) return false;
+
+      // Amount range
+      if (filterMinAmount && tx.amount < parseFloat(filterMinAmount)) return false;
+      if (filterMaxAmount && tx.amount > parseFloat(filterMaxAmount)) return false;
+
+      return true;
+    });
+  }, [allTransactions, searchQuery, filterType, filterAccountId, filterCategory, filterMinAmount, filterMaxAmount]);
+
+  // Available categories for filter
+  const filterCategoryOptions = useMemo(() => {
+    const catSet = new Set<string>();
+    allTransactions.forEach((tx) => {
+      if (tx.category) catSet.add(tx.category);
+    });
+    return Array.from(catSet).sort();
+  }, [allTransactions]);
+
+  const cycle = getCycleDates(budgetCutoffDay, cycleOffset);
+  const groups = groupByDate(filteredTransactions);
+  const selectedAccount = accounts.find((a) => a.id === editAccountId);
+  const subAccounts = selectedAccount?.subAccounts || [];
+  const currentCategoryData = categories.find((c) => c.name === editCategory);
+  const availableSubCategories = currentCategoryData?.subcategories || [];
+
+  if (loading || !settingsLoaded) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
@@ -330,488 +503,711 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
     );
   }
 
-  if (transactions.length === 0) {
+  if (allTransactions.length === 0 && !searchQuery) {
     return (
       <Card className="border-0 shadow-sm rounded-2xl bg-gray-50 dark:bg-gray-800/50">
         <CardContent className="p-6 text-center">
           <Receipt className="size-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-400">Sin transacciones</p>
+          <p className="text-sm text-gray-400">Sin transacciones en este ciclo</p>
         </CardContent>
       </Card>
     );
   }
 
-  const filteredTransactions = transactions.filter((tx) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      tx.description.toLowerCase().includes(query) ||
-      (tx.category || "").toLowerCase().includes(query) ||
-      (tx.subCategory || "").toLowerCase().includes(query)
-    );
-  });
-
-  const groups = groupByDate(filteredTransactions);
-  const selectedAccount = accounts.find((a) => a.id === editAccountId);
-  const subAccounts = selectedAccount?.subAccounts || [];
-  const currentCategoryData = categories.find((c) => c.name === editCategory);
-  const availableSubCategories = currentCategoryData?.subcategories || [];
-
   return (
     <div className="space-y-4">
-      {/* Search Box */}
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Filter className="size-4 text-gray-400" />
-        </div>
-        <Input
-          placeholder="Buscar descripción, categoría..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-        />
-        {searchQuery && (
+      {/* Cycle Navigator + View Mode Toggle */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm px-1 py-1">
           <button
-            onClick={() => setSearchQuery("")}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            onClick={() => setCycleOffset((prev) => prev - 1)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            <X className="size-4 text-gray-400" />
+            <ChevronLeft className="size-4 text-gray-600 dark:text-gray-300" />
           </button>
-        )}
+          <span className="text-xs font-medium text-gray-900 dark:text-gray-100 min-w-[140px] text-center px-1">
+            {formatCycleLabel(cycle.start, cycle.end)}
+          </span>
+          <button
+            onClick={() => setCycleOffset((prev) => Math.min(prev + 1, 0))}
+            disabled={cycleOffset >= 0}
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-30"
+          >
+            <ChevronRight className="size-4 text-gray-600 dark:text-gray-300" />
+          </button>
+        </div>
+
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm px-1 py-1">
+          <button
+            onClick={() => setViewMode("list")}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              viewMode === "list"
+                ? "bg-emerald-500 text-white shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            <LayoutList className="size-3" />
+            Lista
+          </button>
+          <button
+            onClick={() => setViewMode("category")}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              viewMode === "category"
+                ? "bg-emerald-500 text-white shadow-sm"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            <FolderTree className="size-3" />
+            Por Categoría
+          </button>
+        </div>
       </div>
 
-      {groups.map((group) => (
-        <div key={group.label}>
-          <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-            {group.label}
-          </h4>
+      {/* Category Breakdown View */}
+      {viewMode === "category" ? (
+        <CategoryBreakdown transactions={filteredTransactions} />
+      ) : (
+        <>
+          {/* Enhanced Search & Filters */}
           <div className="space-y-2">
-            {group.transactions.map((tx) => {
-              const txType = (tx.type as keyof typeof typeConfig) || "expense";
-              const config = typeConfig[txType] || typeConfig.expense;
-              const Icon = categoryIcons[tx.category || ""] || config.icon;
-              const isExpanded = expandedTxId === tx.id;
-              const isEditing = editingTxId === tx.id;
-
-              return (
-                <motion.div
-                  key={tx.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden"
-                  style={{
-                    borderLeft: `4px solid ${config.color}`,
-                  }}
-                >
-                  {/* Main Row - Clickable */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Filter className="size-4 text-gray-400" />
+                </div>
+                <Input
+                  placeholder="Buscar descripción, categoría, monto..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-8 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                />
+                {searchQuery && (
                   <button
-                    onClick={() => handleExpandTx(tx)}
-                    className="w-full flex items-center justify-between p-3 text-left"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className="size-9 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: config.bgLight }}
-                      >
-                        <Icon
-                          className="size-4"
-                          style={{ color: config.color }}
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {tx.description}
-                        </p>
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
-                          >
-                            {config.label}
-                          </span>
-                          <span className="text-[10px] text-gray-400">
-                            {tx.category || ""}
-                          </span>
-                          <span className="text-[10px] text-gray-300">·</span>
-                          <span className="text-[10px] text-gray-400">
-                            {new Date(tx.date).toLocaleDateString("es-CO", { day: 'numeric', month: 'short' })}
-                          </span>
-                          {tx.account && (
-                            <>
-                              <span className="text-[10px] text-gray-300">·</span>
-                              <div className="flex items-center gap-0.5">
-                                <div
-                                  className="size-1.5 rounded-full"
-                                  style={{ backgroundColor: tx.account.color }}
-                                />
-                                <span className="text-[10px] text-gray-400">
-                                  {tx.account.name}
-                                </span>
-                              </div>
-                            </>
-                          )}
+                    <X className="size-4 text-gray-400" />
+                  </button>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`rounded-xl relative ${
+                  showFilters
+                    ? "border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20"
+                    : "border-gray-200 dark:border-gray-700"
+                }`}
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <SlidersHorizontal className="size-4" />
+                {activeFilterCount > 0 && (
+                  <Badge className="absolute -top-1.5 -right-1.5 size-4 p-0 flex items-center justify-center text-[8px] bg-emerald-500 text-white border-0">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </Button>
+            </div>
+
+            {/* Advanced Filters Panel */}
+            <AnimatePresence>
+              {showFilters && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <Card className="border border-gray-200 dark:border-gray-700 shadow-none rounded-xl">
+                    <CardContent className="p-3 space-y-2.5">
+                      {/* Type filter buttons */}
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-gray-500">Tipo</Label>
+                        <div className="flex gap-1">
+                          {[
+                            { value: "all", label: "Todos" },
+                            { value: "income", label: "Ingreso" },
+                            { value: "expense", label: "Gasto" },
+                            { value: "transfer", label: "Transferencia" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              onClick={() => setFilterType(opt.value)}
+                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                                filterType === opt.value
+                                  ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700"
+                                  : "bg-gray-50 dark:bg-gray-800 text-gray-400 border border-transparent"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
-                      <span
-                        className="text-sm font-bold"
-                        style={{ color: config.color }}
-                      >
-                        {tx.type === "income" ? "+" : tx.type === "transfer" ? "↔" : "-"}
-                        {formatCurrency(Math.abs(tx.amount))}
-                      </span>
-                      <motion.div
-                        animate={{ rotate: isExpanded ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <ChevronDown className="size-4 text-gray-300" />
-                      </motion.div>
-                    </div>
-                  </button>
 
-                  {/* Expanded Detail */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="border-t border-gray-100 dark:border-gray-700">
-                          {!isEditing ? (
-                            /* Detail View */
-                            <div className="p-4 space-y-3">
-                              {/* Detail Grid */}
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Tipo</span>
-                                  <span className={`block text-xs font-medium ${config.badgeText}`}>
+                      {/* Account filter */}
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-gray-500">Cuenta</Label>
+                        <Select value={filterAccountId} onValueChange={setFilterAccountId}>
+                          <SelectTrigger className="rounded-lg h-8 text-xs">
+                            <SelectValue placeholder="Todas" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas las cuentas</SelectItem>
+                            {accounts.map((acc) => (
+                              <SelectItem key={acc.id} value={acc.id}>
+                                <div className="flex items-center gap-2">
+                                  <div className="size-2.5 rounded-full" style={{ backgroundColor: acc.color }} />
+                                  <span>{acc.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Category filter */}
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-gray-500">Categoría</Label>
+                        <Select value={filterCategory} onValueChange={setFilterCategory}>
+                          <SelectTrigger className="rounded-lg h-8 text-xs">
+                            <SelectValue placeholder="Todas" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas las categorías</SelectItem>
+                            {filterCategoryOptions.map((cat) => (
+                              <SelectItem key={cat} value={cat}>
+                                {cat}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Amount range */}
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-gray-500">Rango de monto</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            placeholder="Mín"
+                            value={filterMinAmount}
+                            onChange={(e) => setFilterMinAmount(e.target.value)}
+                            className="rounded-lg h-8 text-xs"
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Máx"
+                            value={filterMaxAmount}
+                            onChange={(e) => setFilterMaxAmount(e.target.value)}
+                            className="rounded-lg h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Clear filters */}
+                      {activeFilterCount > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full rounded-xl text-xs text-gray-500"
+                          onClick={() => {
+                            setFilterType("all");
+                            setFilterAccountId("all");
+                            setFilterCategory("all");
+                            setFilterMinAmount("");
+                            setFilterMaxAmount("");
+                          }}
+                        >
+                          <X className="size-3 mr-1" />
+                          Limpiar filtros ({activeFilterCount})
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Transaction List */}
+          {filteredTransactions.length === 0 ? (
+            <Card className="border-0 shadow-sm rounded-2xl bg-gray-50 dark:bg-gray-800/50">
+              <CardContent className="p-6 text-center">
+                <Receipt className="size-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">
+                  {searchQuery || activeFilterCount > 0
+                    ? "Sin resultados para los filtros aplicados"
+                    : "Sin transacciones"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {groups.map((group) => (
+                <div key={group.label}>
+                  <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    {group.label}
+                  </h4>
+                  <div className="space-y-2">
+                    {group.transactions.map((tx) => {
+                      const txType = (tx.type as keyof typeof typeConfig) || "expense";
+                      const config = typeConfig[txType] || typeConfig.expense;
+                      const Icon = categoryIcons[tx.category || ""] || config.icon;
+                      const isExpanded = expandedTxId === tx.id;
+                      const isEditing = editingTxId === tx.id;
+                      const { day, month } = formatDayMonth(tx.date);
+
+                      return (
+                        <motion.div
+                          key={tx.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden"
+                          style={{
+                            borderLeft: `4px solid ${config.color}`,
+                          }}
+                        >
+                          {/* Main Row - Clickable */}
+                          <button
+                            onClick={() => handleExpandTx(tx)}
+                            className="w-full flex items-center justify-between p-3 text-left"
+                          >
+                            {/* Date Column */}
+                            <div className="w-10 shrink-0 flex flex-col items-center justify-center mr-2">
+                              <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-none">
+                                {day}
+                              </span>
+                              <span className="text-[10px] text-gray-400 leading-none mt-0.5">
+                                {month}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div
+                                className="size-9 rounded-xl flex items-center justify-center shrink-0"
+                                style={{ backgroundColor: config.bgLight }}
+                              >
+                                <Icon
+                                  className="size-4"
+                                  style={{ color: config.color }}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                  {tx.description}
+                                </p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span
+                                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
+                                  >
                                     {config.label}
                                   </span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Monto</span>
-                                  <span className="block text-xs font-bold" style={{ color: config.color }}>
-                                    {tx.type === "income" ? "+" : "-"}
-                                    {formatCurrency(Math.abs(tx.amount))}
+                                  <span className="text-[10px] text-gray-400">
+                                    {tx.category || ""}
                                   </span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Categoría</span>
-                                  <span className="block text-xs text-gray-700 dark:text-gray-300">
-                                    {tx.category || "Sin categoría"}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Fecha</span>
-                                  <span className="block text-xs text-gray-700 dark:text-gray-300">
-                                    {formatDate(tx.date)}
-                                  </span>
-                                </div>
-                                {tx.account && (
-                                  <div>
-                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Cuenta</span>
-                                    <div className="flex items-center gap-1.5">
-                                      <div className="size-2 rounded-full" style={{ backgroundColor: tx.account.color }} />
-                                      <span className="text-xs text-gray-700 dark:text-gray-300">{tx.account.name}</span>
-                                    </div>
-                                  </div>
-                                )}
-                                {tx.subAccount && (
-                                  <div>
-                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Bolsillo</span>
-                                    <span className="text-xs text-gray-700 dark:text-gray-300">
-                                      {tx.subAccount.name}
-                                    </span>
-                                  </div>
-                                )}
-                                {tx.type === "transfer" && tx.transferToAccount && (
-                                  <div>
-                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Hacia</span>
-                                    <div className="flex items-center gap-1.5">
-                                      <div className="size-2 rounded-full" style={{ backgroundColor: tx.transferToAccount.color }} />
-                                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                                        {tx.transferToAccount.name}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                                {tx.notes && !isCcPayment(tx) && (
-                                  <div className="col-span-2">
-                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider">Notas</span>
-                                    <span className="block text-xs text-gray-700 dark:text-gray-300">
-                                      {tx.notes}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* CC Payment Installment Details */}
-                              {isCcPayment(tx) && tx.notes && (
-                                <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                                    Cuotas pagadas
-                                  </span>
-                                  <div className="mt-1.5 space-y-1">
-                                    {parseCcPaymentDetails(tx.notes).map((detail, idx) => (
-                                      <div
-                                        key={idx}
-                                        className="flex items-center justify-between py-1 px-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                                      >
-                                        <div className="min-w-0 flex-1">
-                                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate block">
-                                            {detail.description}
-                                          </span>
-                                          <span className="text-[10px] text-gray-400">
-                                            Cuota {detail.currentInstallment}/{detail.totalInstallments}
-                                            {detail.category && ` · ${detail.category}`}
-                                          </span>
-                                        </div>
-                                        <span className="text-xs font-bold text-gray-600 dark:text-gray-400 ml-2 shrink-0">
-                                          {formatCurrency(detail.amount)}
+                                  {tx.account && (
+                                    <>
+                                      <span className="text-[10px] text-gray-300">·</span>
+                                      <div className="flex items-center gap-0.5">
+                                        <div
+                                          className="size-1.5 rounded-full"
+                                          style={{ backgroundColor: tx.account.color }}
+                                        />
+                                        <span className="text-[10px] text-gray-400">
+                                          {tx.account.name}
                                         </span>
                                       </div>
-                                    ))}
-                                  </div>
+                                    </>
+                                  )}
                                 </div>
-                              )}
-
-                              {/* Action Buttons */}
-                              <div className="flex gap-2 pt-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1 rounded-xl text-xs h-9"
-                                  onClick={handleStartEdit}
-                                >
-                                  <Pencil className="size-3 mr-1" />
-                                  Editar
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1 rounded-xl text-xs h-9 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
-                                  onClick={() => setShowDeleteDialog(tx.id)}
-                                >
-                                  <Trash2 className="size-3 mr-1" />
-                                  Eliminar
-                                </Button>
                               </div>
                             </div>
-                          ) : (
-                            /* Edit Form */
-                            <div className="p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/50">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                  Editar Transacción
-                                </span>
-                                <button
-                                  onClick={handleCancelEdit}
-                                  className="size-6 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"
-                                >
-                                  <X className="size-3.5 text-gray-400" />
-                                </button>
-                              </div>
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              <span
+                                className="text-sm font-bold"
+                                style={{ color: config.color }}
+                              >
+                                {tx.type === "income" ? "+" : tx.type === "transfer" ? "↔" : "-"}
+                                {formatCurrency(Math.abs(tx.amount))}
+                              </span>
+                              <motion.div
+                                animate={{ rotate: isExpanded ? 180 : 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                <ChevronDown className="size-4 text-gray-300" />
+                              </motion.div>
+                            </div>
+                          </button>
 
-                              {/* Type Selector */}
-                              <div className="flex gap-1.5">
-                                {(["income", "expense", "transfer"] as const).map((t) => {
-                                  const tConfig = typeConfig[t];
-                                  const TIcon = tConfig.icon;
-                                  const isActive = editType === t;
-                                  return (
-                                    <button
-                                      key={t}
-                                      onClick={() => {
-                                        setEditType(t);
-                                        setEditCategory("");
-                                      }}
-                                      className={`flex-1 py-2 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-all ${
-                                        isActive
-                                          ? `${tConfig.badgeBg} ${tConfig.badgeText} border`
-                                          : "bg-white dark:bg-gray-800 text-gray-400 border border-transparent"
-                                      }`}
-                                      style={isActive ? { borderColor: tConfig.color } : {}}
-                                    >
-                                      <TIcon className="size-3" />
-                                      {tConfig.label}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-
-                              {/* Amount */}
-                              <div className="space-y-1">
-                                <Label className="text-[10px]">Monto</Label>
-                                <CurrencyInput
-                                  value={editAmount}
-                                  onChange={setEditAmount}
-                                  showPrefix
-                                  placeholder="0"
-                                  className="text-sm font-bold rounded-lg h-10"
-                                />
-                              </div>
-
-                              {/* Description */}
-                              <div className="space-y-1">
-                                <Label className="text-[10px]">Descripción</Label>
-                                <Input
-                                  value={editDescription}
-                                  onChange={(e) => setEditDescription(e.target.value)}
-                                  className="rounded-lg h-9 text-sm"
-                                />
-                              </div>
-
-                              {/* Account */}
-                              <div className="space-y-1">
-                                <Label className="text-[10px]">Cuenta</Label>
-                                <Select value={editAccountId} onValueChange={(v) => { setEditAccountId(v); setEditSubAccountId(""); }}>
-                                  <SelectTrigger className="rounded-lg h-9 text-sm">
-                                    <SelectValue placeholder="Seleccionar" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {accounts.map((acc) => (
-                                      <SelectItem key={acc.id} value={acc.id}>
-                                        <div className="flex items-center gap-2">
-                                          <div className="size-2.5 rounded-full" style={{ backgroundColor: acc.color }} />
-                                          <span>{acc.name}</span>
+                          {/* Expanded Detail */}
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="border-t border-gray-100 dark:border-gray-700">
+                                  {!isEditing ? (
+                                    /* Detail View */
+                                    <div className="p-4 space-y-3">
+                                      {/* Detail Grid */}
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                          <span className="text-[10px] text-gray-400 uppercase tracking-wider">Tipo</span>
+                                          <span className={`block text-xs font-medium ${config.badgeText}`}>
+                                            {config.label}
+                                          </span>
                                         </div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
+                                        <div>
+                                          <span className="text-[10px] text-gray-400 uppercase tracking-wider">Monto</span>
+                                          <span className="block text-xs font-bold" style={{ color: config.color }}>
+                                            {tx.type === "income" ? "+" : "-"}
+                                            {formatCurrency(Math.abs(tx.amount))}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className="text-[10px] text-gray-400 uppercase tracking-wider">Categoría</span>
+                                          <span className="block text-xs text-gray-700 dark:text-gray-300">
+                                            {tx.category || "Sin categoría"}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className="text-[10px] text-gray-400 uppercase tracking-wider">Fecha</span>
+                                          <span className="block text-xs text-gray-700 dark:text-gray-300">
+                                            {formatDate(tx.date)}
+                                          </span>
+                                        </div>
+                                        {tx.account && (
+                                          <div>
+                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Cuenta</span>
+                                            <div className="flex items-center gap-1.5">
+                                              <div className="size-2 rounded-full" style={{ backgroundColor: tx.account.color }} />
+                                              <span className="text-xs text-gray-700 dark:text-gray-300">{tx.account.name}</span>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {tx.subAccount && (
+                                          <div>
+                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Bolsillo</span>
+                                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                                              {tx.subAccount.name}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {tx.type === "transfer" && tx.transferToAccount && (
+                                          <div>
+                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Hacia</span>
+                                            <div className="flex items-center gap-1.5">
+                                              <div className="size-2 rounded-full" style={{ backgroundColor: tx.transferToAccount.color }} />
+                                              <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                                                {tx.transferToAccount.name}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {tx.notes && !isCcPayment(tx) && (
+                                          <div className="col-span-2">
+                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Notas</span>
+                                            <span className="block text-xs text-gray-700 dark:text-gray-300">
+                                              {tx.notes}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
 
-                              {/* Sub-account (if available) */}
-                              {subAccounts.length > 0 && (
-                                <div className="space-y-1">
-                                  <Label className="text-[10px]">Bolsillo</Label>
-                                  <Select value={editSubAccountId || "none"} onValueChange={(v) => setEditSubAccountId(v === "none" ? "" : v)}>
-                                    <SelectTrigger className="rounded-lg h-9 text-sm">
-                                      <SelectValue placeholder="Principal" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="none">Cuenta principal</SelectItem>
-                                      {subAccounts.map((sub) => (
-                                        <SelectItem key={sub.id} value={sub.id}>
-                                          {sub.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              )}
+                                      {/* CC Payment Installment Details */}
+                                      {isCcPayment(tx) && tx.notes && (
+                                        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                                            Cuotas pagadas
+                                          </span>
+                                          <div className="mt-1.5 space-y-1">
+                                            {parseCcPaymentDetails(tx.notes).map((detail, idx) => (
+                                              <div
+                                                key={idx}
+                                                className="flex items-center justify-between py-1 px-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                                              >
+                                                <div className="min-w-0 flex-1">
+                                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate block">
+                                                    {detail.description}
+                                                  </span>
+                                                  <span className="text-[10px] text-gray-400">
+                                                    Cuota {detail.currentInstallment}/{detail.totalInstallments}
+                                                    {detail.category && ` · ${detail.category}`}
+                                                  </span>
+                                                </div>
+                                                <span className="text-xs font-bold text-gray-600 dark:text-gray-400 ml-2 shrink-0">
+                                                  {formatCurrency(detail.amount)}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
 
-                              {/* Category */}
-                              {editType !== "transfer" && (
-                                <div className="space-y-1">
-                                  <Label className="text-[10px]">Categoría</Label>
-                                  <Select value={editCategory} onValueChange={(v) => { setEditCategory(v); setEditSubCategory(""); }}>
-                                    <SelectTrigger className="rounded-lg h-9 text-sm">
-                                      <SelectValue placeholder="Seleccionar" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {categories.map((cat) => (
-                                        <SelectItem key={cat.name} value={cat.name}>
-                                          {cat.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              )}
-
-                              {/* SubCategory */}
-                              {editType !== "transfer" && editCategory && (
-                                <div className="space-y-1">
-                                  <Label className="text-[10px]">Subcategoría</Label>
-                                  {availableSubCategories.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mb-1">
-                                      {availableSubCategories.map((sub) => (
-                                        <button
-                                          key={sub}
-                                          onClick={() => setEditSubCategory(sub === editSubCategory ? "" : sub)}
-                                          className={`px-2 py-0.5 rounded-md text-[9px] font-medium transition-all ${
-                                            sub === editSubCategory
-                                              ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
-                                              : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
-                                          }`}
+                                      {/* Action Buttons */}
+                                      <div className="flex gap-2 pt-1">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="flex-1 rounded-xl text-xs h-9"
+                                          onClick={handleStartEdit}
                                         >
-                                          {sub}
+                                          <Pencil className="size-3 mr-1" />
+                                          Editar
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="flex-1 rounded-xl text-xs h-9 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
+                                          onClick={() => setShowDeleteDialog(tx.id)}
+                                        >
+                                          <Trash2 className="size-3 mr-1" />
+                                          Eliminar
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    /* Edit Form */
+                                    <div className="p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/50">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                          Editar Transacción
+                                        </span>
+                                        <button
+                                          onClick={handleCancelEdit}
+                                          className="size-6 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"
+                                        >
+                                          <X className="size-3.5 text-gray-400" />
                                         </button>
-                                      ))}
+                                      </div>
+
+                                      {/* Type Selector */}
+                                      <div className="flex gap-1.5">
+                                        {(["income", "expense", "transfer"] as const).map((t) => {
+                                          const tConfig = typeConfig[t];
+                                          const TIcon = tConfig.icon;
+                                          const isActive = editType === t;
+                                          return (
+                                            <button
+                                              key={t}
+                                              onClick={() => {
+                                                setEditType(t);
+                                                setEditCategory("");
+                                              }}
+                                              className={`flex-1 py-2 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-all ${
+                                                isActive
+                                                  ? `${tConfig.badgeBg} ${tConfig.badgeText} border`
+                                                  : "bg-white dark:bg-gray-800 text-gray-400 border border-transparent"
+                                              }`}
+                                              style={isActive ? { borderColor: tConfig.color } : {}}
+                                            >
+                                              <TIcon className="size-3" />
+                                              {tConfig.label}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+
+                                      {/* Amount */}
+                                      <div className="space-y-1">
+                                        <Label className="text-[10px]">Monto</Label>
+                                        <CurrencyInput
+                                          value={editAmount}
+                                          onChange={setEditAmount}
+                                          showPrefix
+                                          placeholder="0"
+                                          className="text-sm font-bold rounded-lg h-10"
+                                        />
+                                      </div>
+
+                                      {/* Description */}
+                                      <div className="space-y-1">
+                                        <Label className="text-[10px]">Descripción</Label>
+                                        <Input
+                                          value={editDescription}
+                                          onChange={(e) => setEditDescription(e.target.value)}
+                                          className="rounded-lg h-9 text-sm"
+                                        />
+                                      </div>
+
+                                      {/* Account */}
+                                      <div className="space-y-1">
+                                        <Label className="text-[10px]">Cuenta</Label>
+                                        <Select value={editAccountId} onValueChange={(v) => { setEditAccountId(v); setEditSubAccountId(""); }}>
+                                          <SelectTrigger className="rounded-lg h-9 text-sm">
+                                            <SelectValue placeholder="Seleccionar" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {accounts.map((acc) => (
+                                              <SelectItem key={acc.id} value={acc.id}>
+                                                <div className="flex items-center gap-2">
+                                                  <div className="size-2.5 rounded-full" style={{ backgroundColor: acc.color }} />
+                                                  <span>{acc.name}</span>
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      {/* Sub-account (if available) */}
+                                      {subAccounts.length > 0 && (
+                                        <div className="space-y-1">
+                                          <Label className="text-[10px]">Bolsillo</Label>
+                                          <Select value={editSubAccountId || "none"} onValueChange={(v) => setEditSubAccountId(v === "none" ? "" : v)}>
+                                            <SelectTrigger className="rounded-lg h-9 text-sm">
+                                              <SelectValue placeholder="Principal" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="none">Cuenta principal</SelectItem>
+                                              {subAccounts.map((sub) => (
+                                                <SelectItem key={sub.id} value={sub.id}>
+                                                  {sub.name}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      )}
+
+                                      {/* Category */}
+                                      {editType !== "transfer" && (
+                                        <div className="space-y-1">
+                                          <Label className="text-[10px]">Categoría</Label>
+                                          <Select value={editCategory} onValueChange={(v) => { setEditCategory(v); setEditSubCategory(""); }}>
+                                            <SelectTrigger className="rounded-lg h-9 text-sm">
+                                              <SelectValue placeholder="Seleccionar" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {categories.map((cat) => (
+                                                <SelectItem key={cat.name} value={cat.name}>
+                                                  {cat.name}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      )}
+
+                                      {/* SubCategory */}
+                                      {editType !== "transfer" && editCategory && (
+                                        <div className="space-y-1">
+                                          <Label className="text-[10px]">Subcategoría</Label>
+                                          {availableSubCategories.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mb-1">
+                                              {availableSubCategories.map((sub) => (
+                                                <button
+                                                  key={sub}
+                                                  onClick={() => setEditSubCategory(sub === editSubCategory ? "" : sub)}
+                                                  className={`px-2 py-0.5 rounded-md text-[9px] font-medium transition-all ${
+                                                    sub === editSubCategory
+                                                      ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                                                      : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
+                                                  }`}
+                                                >
+                                                  {sub}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          )}
+                                          <Input
+                                            value={editSubCategory}
+                                            onChange={(e) => setEditSubCategory(e.target.value)}
+                                            placeholder="Opcional..."
+                                            className="rounded-lg h-8 text-xs"
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* Date */}
+                                      <div className="space-y-1">
+                                        <Label className="text-[10px]">Fecha</Label>
+                                        <Input
+                                          type="date"
+                                          value={editDate}
+                                          onChange={(e) => setEditDate(e.target.value)}
+                                          className="rounded-lg h-9 text-sm"
+                                        />
+                                      </div>
+
+                                      {/* Notes */}
+                                      <div className="space-y-1">
+                                        <Label className="text-[10px]">Notas</Label>
+                                        <Input
+                                          value={editNotes}
+                                          onChange={(e) => setEditNotes(e.target.value)}
+                                          placeholder="Opcional..."
+                                          className="rounded-lg h-9 text-sm"
+                                        />
+                                      </div>
+
+                                      {/* Save / Cancel */}
+                                      <div className="flex gap-2 pt-1">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="flex-1 rounded-xl text-xs h-9"
+                                          onClick={handleCancelEdit}
+                                          disabled={saving}
+                                        >
+                                          Cancelar
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          className="flex-1 rounded-xl text-xs h-9 text-white"
+                                          style={{ backgroundColor: config.color }}
+                                          onClick={handleSaveEdit}
+                                          disabled={saving || !editAmount || !editDescription}
+                                        >
+                                          {saving ? (
+                                            <Loader2 className="size-3 animate-spin mr-1" />
+                                          ) : (
+                                            <Check className="size-3 mr-1" />
+                                          )}
+                                          Guardar
+                                        </Button>
+                                      </div>
                                     </div>
                                   )}
-                                  <Input
-                                    value={editSubCategory}
-                                    onChange={(e) => setEditSubCategory(e.target.value)}
-                                    placeholder="Opcional..."
-                                    className="rounded-lg h-8 text-xs"
-                                  />
                                 </div>
-                              )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
 
-                              {/* Date */}
-                              <div className="space-y-1">
-                                <Label className="text-[10px]">Fecha</Label>
-                                <Input
-                                  type="date"
-                                  value={editDate}
-                                  onChange={(e) => setEditDate(e.target.value)}
-                                  className="rounded-lg h-9 text-sm"
-                                />
-                              </div>
-
-                              {/* Notes */}
-                              <div className="space-y-1">
-                                <Label className="text-[10px]">Notas</Label>
-                                <Input
-                                  value={editNotes}
-                                  onChange={(e) => setEditNotes(e.target.value)}
-                                  placeholder="Opcional..."
-                                  className="rounded-lg h-9 text-sm"
-                                />
-                              </div>
-
-                              {/* Save / Cancel */}
-                              <div className="flex gap-2 pt-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1 rounded-xl text-xs h-9"
-                                  onClick={handleCancelEdit}
-                                  disabled={saving}
-                                >
-                                  Cancelar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="flex-1 rounded-xl text-xs h-9 text-white"
-                                  style={{ backgroundColor: config.color }}
-                                  onClick={handleSaveEdit}
-                                  disabled={saving || !editAmount || !editDescription}
-                                >
-                                  {saving ? (
-                                    <Loader2 className="size-3 animate-spin mr-1" />
-                                  ) : (
-                                    <Check className="size-3 mr-1" />
-                                  )}
-                                  Guardar
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+              {/* Load More Button */}
+              {nextCursor && (
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl text-xs"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? (
+                      <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                    ) : null}
+                    Cargar más
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
 
       {/* Delete Transaction Dialog */}
       <AlertDialog open={!!showDeleteDialog} onOpenChange={() => setShowDeleteDialog(null)}>
@@ -820,7 +1216,7 @@ export function TransactionList({ accountId, limit }: TransactionListProps) {
             <AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
             <AlertDialogDescription>
               {(() => {
-                const tx = transactions.find((t) => t.id === showDeleteDialog);
+                const tx = allTransactions.find((t) => t.id === showDeleteDialog);
                 if (tx?.isTransferCounterpart) {
                   return "Esta transacción es parte de una transferencia. Al eliminarla, también se eliminará la transacción en la cuenta origen y se ajustarán ambos balances. Esta acción no se puede deshacer.";
                 }

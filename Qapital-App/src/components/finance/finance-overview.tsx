@@ -1198,11 +1198,23 @@ export function FinanceOverview() {
                                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                           {tx.description}
                                         </p>
-                                        <p className="text-[10px] text-gray-400 dark:text-gray-500">
-                                          {tx.category
-                                            ? `${CATEGORY_ICONS[tx.category] || "📦"} ${tx.category}`
-                                            : "Sin categoría"}
-                                          {tx.account && ` · ${tx.account.name}`}
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1 flex-wrap">
+                                          <span>
+                                            {tx.category
+                                              ? `${CATEGORY_ICONS[tx.category] || "📦"} ${tx.category}`
+                                              : "Sin categoría"}
+                                          </span>
+                                          {tx.account && (
+                                            <span className="inline-flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700/50 rounded px-1 py-px">
+                                              <span
+                                                className="size-1.5 rounded-full inline-block"
+                                                style={{ backgroundColor: tx.account.color }}
+                                              />
+                                              <span className="text-[9px] text-gray-500 dark:text-gray-400">
+                                                {tx.account.name}
+                                              </span>
+                                            </span>
+                                          )}
                                         </p>
                                       </div>
                                     </div>
