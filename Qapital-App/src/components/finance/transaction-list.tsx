@@ -849,6 +849,14 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                       </div>
                                     </>
                                   )}
+                                  {tx.user && tx.user.name && (
+                                    <>
+                                      <span className="text-[10px] text-gray-300">·</span>
+                                      <span className="text-[10px] text-blue-500 dark:text-blue-400 font-medium">
+                                        {tx.user.name}
+                                      </span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -924,6 +932,14 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                             <span className="text-[10px] text-gray-400 uppercase tracking-wider">Bolsillo</span>
                                             <span className="text-xs text-gray-700 dark:text-gray-300">
                                               {tx.subAccount.name}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {tx.user && tx.user.name && (
+                                          <div>
+                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Creado por</span>
+                                            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                              {tx.user.name}
                                             </span>
                                           </div>
                                         )}

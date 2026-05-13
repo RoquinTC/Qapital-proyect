@@ -45,6 +45,9 @@ model User {
   fuelPrices          FuelPrice[]
   categories          Category[]
   settings            UserSettings?
+  sentInvitations     AccountInvitation[]  @relation("SentInvitations")
+  receivedInvitations AccountInvitation[]  @relation("ReceivedInvitations")
+  notifications       AppNotification[]
 }
 
 // ============================================
@@ -72,6 +75,7 @@ model Account {
   transactions          Transaction[]
   yieldHistory          YieldRecord[]
   sharedUsers           SharedAccountUser[]
+  invitations           AccountInvitation[]
   recurringPayments     RecurringPayment[]
   recurringDestPayments RecurringPayment[] @relation("RecurringDestination")
   cdts                  CDT[]
@@ -120,6 +124,40 @@ model SharedAccountUser {
 
   @@unique([accountId, userId])
   @@map("shared_account_users")
+}
+
+model AccountInvitation {
+  id          String    @id @default(cuid())
+  accountId   String
+  inviterId   String    // Who sent the invitation (admin)
+  inviteeId   String    // Who receives the invitation
+  inviteeEmail String   // Email at time of invitation (for display)
+  role        String    @default("editor") // viewer, editor
+  status      String    @default("pending") // pending, accepted, rejected, expired
+  message     String?   // Optional message from inviter
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  account     Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  inviter     User      @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee     User      @relation("ReceivedInvitations", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@map("account_invitations")
+}
+
+model AppNotification {
+  id          String    @id @default(cuid())
+  userId      String    // Who receives the notification
+  type        String    // invitation_sent, invitation_received, invitation_accepted, invitation_rejected, shared_transaction, member_removed, role_changed
+  title       String
+  message     String
+  read        Boolean   @default(false)
+  data        String?   // JSON string with extra data (accountId, invitationId, etc.)
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("app_notifications")
 }
 
 model YieldRecord {

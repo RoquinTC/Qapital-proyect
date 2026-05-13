@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { useAppStore } from "@/lib/store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, LogOut, Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,12 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+import { NotificationPanel } from "@/components/layout/notification-panel";
 
 export function Header() {
   const { data: session } = useSession();
-  const { notifications, unreadCount, toggleSidebar, setAuthView } = useAppStore();
-  const unread = unreadCount();
+  const { toggleSidebar, setAuthView } = useAppStore();
 
   const userInitials = session?.user?.name
     ? session.user.name
@@ -56,18 +55,7 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           {/* Notifications */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative text-white hover:bg-white/20"
-          >
-            <Bell className="size-5" />
-            {unread > 0 && (
-              <Badge className="absolute -top-1 -right-1 size-5 p-0 flex items-center justify-center bg-amber-400 text-emerald-900 text-[10px] font-bold border-0">
-                {unread}
-              </Badge>
-            )}
-          </Button>
+          <NotificationPanel />
 
           {/* User menu */}
           <DropdownMenu>

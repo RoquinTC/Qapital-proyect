@@ -8,7 +8,8 @@
 
 export interface SharedAccountUser {
   id: string;
-  user: { name: string; email: string };
+  role: string;
+  user: { id?: string; name: string; email: string };
 }
 
 // ─── SubAccount ───
@@ -41,6 +42,10 @@ export interface Account {
   excludeFromAvailable?: boolean;
   subAccounts: SubAccount[];
   sharedUsers: SharedAccountUser[];
+  // Shared account fields
+  isSharedWithMe?: boolean;
+  myRole?: 'admin' | 'editor' | 'viewer';
+  ownerName?: string | null;
   // Populated in some views (account-detail)
   transactions?: Transaction[];
   yieldHistory?: YieldRecord[];
@@ -74,6 +79,9 @@ export interface Transaction {
   transferToAccount?: { id: string; name: string; color: string } | null;
   transferFromAccount?: { id: string; name: string; color: string } | null;
   isTransferCounterpart?: boolean;
+  // Creator info for shared accounts
+  user?: { id: string; name: string } | null;
+  userId?: string;
   createdAt?: string;
   updatedAt?: string;
 }

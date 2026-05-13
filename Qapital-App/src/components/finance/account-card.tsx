@@ -15,6 +15,9 @@ interface AccountCardProps {
     isHighYield: boolean;
     yieldPercentage?: number | null;
     isShared: boolean;
+    isSharedWithMe?: boolean;
+    myRole?: string;
+    ownerName?: string | null;
     subAccounts?: Array<{
       id: string;
       name: string;
@@ -22,7 +25,8 @@ interface AccountCardProps {
     }>;
     sharedUsers?: Array<{
       id: string;
-      user: { name: string; email: string };
+      role: string;
+      user: { id?: string; name: string; email: string };
     }>;
   };
   onClick?: () => void;
@@ -90,7 +94,14 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
             {account.isShared && (
               <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
                 <Users className="size-3 text-white/90" />
-                <span className="text-[9px] text-white/90">Compartida</span>
+                <span className="text-[9px] text-white/90">
+                  {account.isSharedWithMe
+                    ? `De ${account.ownerName || "otro"}`
+                    : account.sharedUsers && account.sharedUsers.length > 0
+                      ? `Con ${account.sharedUsers.map(su => su.user.name?.split(" ")[0]).join(", ")}`
+                      : "Compartida"
+                  }
+                </span>
               </div>
             )}
           </div>

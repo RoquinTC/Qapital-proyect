@@ -8,6 +8,7 @@ import { AccountForm } from "./account-form";
 import { SubAccountForm } from "./sub-account-form";
 import { TransactionForm } from "./transaction-form";
 import { CategoryBreakdown } from "./category-breakdown";
+import { SharedAccountManager } from "./shared-account-manager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -539,22 +540,31 @@ export function AccountDetail() {
           Volver
         </Button>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="rounded-xl"
-            onClick={() => setShowAccountForm(true)}
-          >
-            <Pencil className="size-4 text-emerald-600" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="rounded-xl"
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Trash2 className="size-4 text-red-500" />
-          </Button>
+          {!account.isSharedWithMe && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-xl"
+                onClick={() => setShowAccountForm(true)}
+              >
+                <Pencil className="size-4 text-emerald-600" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-xl"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="size-4 text-red-500" />
+              </Button>
+            </>
+          )}
+          {account.isSharedWithMe && (
+            <Badge variant="outline" className="text-[10px] rounded-lg border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400">
+              {account.myRole === "editor" ? "Editor" : "Visualizador"}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -582,24 +592,15 @@ export function AccountDetail() {
         </Card>
       )}
 
-      {/* Shared Users */}
-      {account.isShared && account.sharedUsers.length > 0 && (
-        <Card className="border-0 shadow-md rounded-2xl">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="size-4 text-blue-500" />
-              <span className="text-sm font-semibold">Compartida con</span>
-            </div>
-            <div className="space-y-2">
-              {account.sharedUsers.map((su) => (
-                <div key={su.id} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{su.user.name}</span>
-                  <span className="text-[10px] text-gray-400">{su.user.email}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Shared Account Manager */}
+      {account.isShared && (
+        <SharedAccountManager
+          accountId={account.id}
+          accountName={account.name}
+          sharedUsers={account.sharedUsers || []}
+          onUpdate={fetchAccount}
+          isOwner={!account.isSharedWithMe}
+        />
       )}
 
       {/* Sub-Accounts - ONLY show when there are sub-accounts */}
@@ -609,18 +610,20 @@ export function AccountDetail() {
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
               Bolsillos ({account.subAccounts.length})
             </h3>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl text-xs"
-              onClick={() => {
-                setEditingSubAccount(null);
-                setShowSubAccountForm(true);
-              }}
-            >
-              <Plus className="size-3 mr-1" />
-              Agregar
-            </Button>
+            {(!account.isSharedWithMe || account.myRole === "editor") && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl text-xs"
+                onClick={() => {
+                  setEditingSubAccount(null);
+                  setShowSubAccountForm(true);
+                }}
+              >
+                <Plus className="size-3 mr-1" />
+                Agregar
+              </Button>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -676,29 +679,33 @@ export function AccountDetail() {
                         >
                           <div className="px-3 pb-3 space-y-2">
                             <div className="flex items-center gap-2 pt-1 pb-2 border-t border-gray-100 dark:border-gray-700">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-xl text-[11px] h-7 flex-1"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingSubAccount(sub);
-                                  setShowSubAccountForm(true);
-                                }}
-                              >
-                                <Pencil className="size-3 mr-1" /> Editar
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-xl text-[11px] h-7 flex-1 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowSubDeleteDialog(sub.id);
-                                }}
-                              >
-                                <Trash2 className="size-3 mr-1" /> Eliminar
-                              </Button>
+                              {(!account.isSharedWithMe || account.myRole === "editor") && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl text-[11px] h-7 flex-1"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingSubAccount(sub);
+                                      setShowSubAccountForm(true);
+                                    }}
+                                  >
+                                    <Pencil className="size-3 mr-1" /> Editar
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl text-[11px] h-7 flex-1 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowSubDeleteDialog(sub.id);
+                                    }}
+                                  >
+                                    <Trash2 className="size-3 mr-1" /> Eliminar
+                                  </Button>
+                                </>
+                              )}
                             </div>
 
                             {subTxs.length > 0 ? (
@@ -754,6 +761,14 @@ export function AccountDetail() {
                                                 <span className="text-[9px] text-gray-400">
                                                   {tx.category}
                                                 </span>
+                                              )}
+                                              {tx.user && tx.user.name && (
+                                                <>
+                                                  <span className="text-[9px] text-gray-300">·</span>
+                                                  <span className="text-[9px] text-blue-500 dark:text-blue-400 font-medium">
+                                                    {tx.user.name}
+                                                  </span>
+                                                </>
                                               )}
                                             </div>
                                           </div>
@@ -1105,32 +1120,36 @@ export function AccountDetail() {
             Transacciones Recientes
           </h3>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300"
-              onClick={() => {
-                setCashbackMode(true);
-                setEditingTransaction(null);
-                setShowTransactionForm(true);
-              }}
-            >
-              <DollarSign className="size-3 mr-1" />
-              Cashback
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl text-xs"
-              onClick={() => {
-                setCashbackMode(false);
-                setEditingTransaction(null);
-                setShowTransactionForm(true);
-              }}
-            >
-              <Plus className="size-3 mr-1" />
-              Agregar
-            </Button>
+            {(!account.isSharedWithMe || account.myRole === "editor") && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300"
+                  onClick={() => {
+                    setCashbackMode(true);
+                    setEditingTransaction(null);
+                    setShowTransactionForm(true);
+                  }}
+                >
+                  <DollarSign className="size-3 mr-1" />
+                  Cashback
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl text-xs"
+                  onClick={() => {
+                    setCashbackMode(false);
+                    setEditingTransaction(null);
+                    setShowTransactionForm(true);
+                  }}
+                >
+                  <Plus className="size-3 mr-1" />
+                  Agregar
+                </Button>
+              </>
+            )}
           </div>
         </div>
 

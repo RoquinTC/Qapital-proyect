@@ -31,6 +31,23 @@ export async function GET(req: NextRequest) {
 
     const where: Record<string, unknown> = { userId: session.user.id };
 
+    // For shared accounts, also include transactions created by other users
+    // that belong to accounts the current user has access to
+    const accessibleAccountIds = await db.sharedAccountUser.findMany({
+      where: { userId: session.user.id },
+      select: { accountId: true },
+    });
+    const sharedAccountIds = accessibleAccountIds.map((a) => a.accountId);
+
+    // Build the where clause: own transactions OR transactions in shared accounts
+    if (sharedAccountIds.length > 0) {
+      where.OR = [
+        { userId: session.user.id },
+        { accountId: { in: sharedAccountIds } },
+      ];
+      delete where.userId;
+    }
+
     if (accountId) where.accountId = accountId;
     if (subAccountId) where.subAccountId = subAccountId;
     if (category) where.category = category;
@@ -62,6 +79,7 @@ export async function GET(req: NextRequest) {
       include: {
         account: { select: { id: true, name: true, type: true, color: true } },
         subAccount: { select: { id: true, name: true, color: true } },
+        user: { select: { id: true, name: true } },
       },
       orderBy: { date: "desc" },
       take: pageSize + 1, // Take one extra to determine if there's a next page
@@ -141,15 +159,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tipo, monto y descripción son requeridos" }, { status: 400 });
     }
 
-    // Verify ownership of all referenced entities
+    // Verify ownership or shared access of all referenced entities
+    // For shared accounts, editors can also create transactions
     const entitiesToVerify: { type: "account" | "subAccount" | "debt"; id: string }[] = [];
     if (accountId) entitiesToVerify.push({ type: "account", id: accountId });
     if (subAccountId) entitiesToVerify.push({ type: "subAccount", id: subAccountId });
     if (transferToAccountId) entitiesToVerify.push({ type: "account", id: transferToAccountId });
     if (transferToSubAccountId) entitiesToVerify.push({ type: "subAccount", id: transferToSubAccountId });
 
+    // Check ownership first
     const ownershipError = await verifyEntityOwnership(session.user.id, entitiesToVerify);
-    if (ownershipError) return ownershipError;
+
+    if (ownershipError) {
+      // If ownership check failed, check if user has editor access via shared accounts
+      const accountEntities = entitiesToVerify.filter(e => e.type === "account");
+      let hasSharedAccess = true;
+      for (const entity of accountEntities) {
+        const sharedUser = await db.sharedAccountUser.findFirst({
+          where: { accountId: entity.id, userId: session.user.id, role: "editor" },
+        });
+        if (!sharedUser) {
+          hasSharedAccess = false;
+          break;
+        }
+      }
+      // Also verify sub-accounts belong to accessible accounts
+      const subAccountEntities = entitiesToVerify.filter(e => e.type === "subAccount");
+      for (const entity of subAccountEntities) {
+        const sub = await db.subAccount.findUnique({
+          where: { id: entity.id },
+          select: { accountId: true },
+        });
+        if (sub) {
+          const sharedUser = await db.sharedAccountUser.findFirst({
+            where: { accountId: sub.accountId, userId: session.user.id, role: "editor" },
+          });
+          if (!sharedUser) {
+            hasSharedAccess = false;
+            break;
+          }
+        }
+      }
+      if (!hasSharedAccess) return ownershipError;
+    }
 
     // Create transaction
     const transaction = await db.transaction.create({
@@ -331,6 +383,41 @@ export async function POST(req: NextRequest) {
             isSubAccount: false,
           });
         }
+      }
+    }
+
+    // Notify other shared account users about new transaction
+    if (accountId) {
+      try {
+        const accountInfo = await db.account.findUnique({
+          where: { id: accountId },
+          select: { name: true, isShared: true, userId: true },
+        });
+        if (accountInfo?.isShared) {
+          const sharedUsers = await db.sharedAccountUser.findMany({
+            where: { accountId, userId: { not: session.user.id } },
+            select: { userId: true },
+          });
+          const ownerUserId = accountInfo.userId !== session.user.id ? accountInfo.userId : null;
+          const notifyUserIds = [
+            ...sharedUsers.map(su => su.userId),
+            ...(ownerUserId ? [ownerUserId] : []),
+          ];
+          for (const uid of notifyUserIds) {
+            await db.appNotification.create({
+              data: {
+                userId: uid,
+                type: "shared_transaction",
+                title: "Nuevo movimiento",
+                message: `${session.user.name} agregó un movimiento en la cuenta compartida "${accountInfo.name}"`,
+                data: JSON.stringify({ accountId, transactionId: transaction.id }),
+              },
+            });
+          }
+        }
+      } catch (notifError) {
+        // Don't fail the transaction creation if notification fails
+        console.error("Failed to send shared transaction notification:", notifError);
       }
     }
 
