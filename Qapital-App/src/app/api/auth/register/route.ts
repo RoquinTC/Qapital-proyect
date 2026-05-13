@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/lib/db";
+import { validateBody, authRegisterSchema } from "@/lib/validations";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, authRegisterSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { name, email, password } = body;
 
     if (!name || !email || !password) {

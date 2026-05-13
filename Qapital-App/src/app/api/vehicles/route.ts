@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, vehicleCreateSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
@@ -37,12 +38,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await validateBody(req, vehicleCreateSchema);
     const { name, type, brand, model, year, color, tankCapacity, fuelType, currentKm } = body;
-
-    if (!name) {
-      return NextResponse.json({ error: "El nombre es requerido" }, { status: 400 });
-    }
 
     const vehicle = await db.vehicle.create({
       data: {
@@ -51,11 +48,11 @@ export async function POST(req: Request) {
         type: type || "motorcycle",
         brand,
         model,
-        year: year ? parseInt(year) : null,
+        year,
         color,
-        tankCapacity: tankCapacity ? parseFloat(tankCapacity) : null,
+        tankCapacity,
         fuelType: fuelType || "gasoline",
-        currentKm: currentKm ? parseFloat(currentKm) : 0,
+        currentKm: currentKm ?? 0,
       },
       include: {
         fuelLogs: true,
@@ -65,6 +62,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(vehicle, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Create vehicle error:", error);
     return NextResponse.json({ error: "Error al crear vehículo" }, { status: 500 });
   }

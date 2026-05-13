@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate, getColombiaNow } from "@/lib/api";
+import { validateBody, debtInstallmentCreateSchema } from "@/lib/validations";
 
 export async function GET(
   _req: NextRequest,
@@ -47,7 +48,13 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, debtInstallmentCreateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { description, totalAmount, totalInstallments, purchaseDate, accountId, subAccountId, category, subCategory } = body;
 
     if (!description || !totalAmount || !totalInstallments) {
@@ -164,6 +171,7 @@ export async function POST(
 
     return NextResponse.json(installment, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Create installment error:", error);
     const message = error instanceof Error ? error.message : "Error al crear cuota";
     // Detect missing DB columns (Prisma error after schema change)

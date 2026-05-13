@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, budgetCreateSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await validateBody(req, budgetCreateSchema);
     const { type, category, subCategory, amount, period, icon, color } = body;
 
     if (!type || !category || !amount) {
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(budget, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Create budget error:", error);
     return NextResponse.json({ error: "Error al crear presupuesto" }, { status: 500 });
   }

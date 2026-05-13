@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { createColombiaDate } from "@/lib/api";
 import { verifyEntityOwnership } from "@/lib/auth-guards";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, transactionUpdateSchema } from "@/lib/validations";
 
 export async function PUT(
   req: NextRequest,
@@ -17,7 +18,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, transactionUpdateSchema);
 
     const existing = await db.transaction.findFirst({
       where: { id, userId: session.user.id },
@@ -228,6 +229,7 @@ export async function PUT(
 
     return NextResponse.json(transaction);
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Update transaction error:", error);
     return NextResponse.json({ error: "Error al actualizar transacción" }, { status: 500 });
   }

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { syncSavingsBudget } from "@/lib/savings-budget-sync";
 import { verifyEntityOwnership } from "@/lib/auth-guards";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, recurringConfirmSchema } from "@/lib/validations";
 
 /**
  * Calculate the next scheduled date for a recurring payment.
@@ -104,7 +105,13 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, recurringConfirmSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { actualAmount, destinationAccountId, destinationSubAccountId } = body;
 
     // Find the recurring payment
@@ -633,6 +640,7 @@ export async function POST(
       confirmedAmount,
     });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Confirm recurring payment error:", error);
     const message = error instanceof Error ? error.message : String(error);
 

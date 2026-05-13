@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, recurringUpdateSchema } from "@/lib/validations";
 
 export async function GET(
   _req: NextRequest,
@@ -82,7 +83,13 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, recurringUpdateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const scope = body.scope || "single"; // "single" or "series"
 
     const existing = await db.recurringPayment.findFirst({
@@ -200,6 +207,7 @@ export async function PUT(
 
     return NextResponse.json(recurringPayment);
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Update recurring payment error:", error);
     return NextResponse.json(
       { error: "Error al actualizar pago recurrente" },

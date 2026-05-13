@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate } from "@/lib/api";
+import { validateBody, maintenanceUpdateSchema } from "@/lib/validations";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string; recordId: string }> }) {
   try {
@@ -12,7 +13,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const { id, recordId } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, maintenanceUpdateSchema);
 
     const vehicle = await db.vehicle.findFirst({
       where: { id, userId: session.user.id },
@@ -52,7 +53,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       await db.transaction.updateMany({
         where: { sourceModule: "transport", sourceId: recordId },
         data: {
-          amount: parseFloat(cost),
+          amount: cost,
           ...(description !== undefined && { description: `Mantenimiento - ${vehicle.name}: ${description}` }),
         },
       });
@@ -60,6 +61,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return NextResponse.json(record);
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Update maintenance record error:", error);
     return NextResponse.json({ error: "Error al actualizar registro de mantenimiento" }, { status: 500 });
   }

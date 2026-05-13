@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, yieldReverseSchema } from "@/lib/validations";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,15 +12,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await validateBody(req, yieldReverseSchema);
     const { yieldRecordId } = body;
-
-    if (!yieldRecordId) {
-      return NextResponse.json(
-        { error: "ID del registro de rendimiento es requerido" },
-        { status: 400 }
-      );
-    }
 
     // Fetch the yield record
     const yieldRecord = await db.yieldRecord.findUnique({
@@ -84,6 +78,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: "Rendimiento revertido correctamente" });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Reverse yield error:", error);
     return NextResponse.json({ error: "Error al revertir rendimiento" }, { status: 500 });
   }

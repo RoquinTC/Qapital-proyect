@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { syncSavingsBudget } from '@/lib/savings-budget-sync'
 import { toNumber } from '@/lib/decimal-serializer'
+import { validateBody, savingsUpdateSchema } from '@/lib/validations'
 
 // GET /api/savings/[id] — get a single savings goal
 export async function GET(
@@ -61,7 +62,13 @@ export async function PUT(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const body = await request.json()
+    let body
+    try {
+      body = await validateBody(request, savingsUpdateSchema)
+    } catch (err) {
+      if (err instanceof Response) return err
+      return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    }
     const {
       name,
       targetAmount,
@@ -326,6 +333,7 @@ export async function PUT(
 
     return NextResponse.json(fullGoal)
   } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Update savings goal error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

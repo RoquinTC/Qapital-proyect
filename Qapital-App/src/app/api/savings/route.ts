@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { verifyEntityOwnership } from '@/lib/auth-guards'
 import { toNumber } from '@/lib/decimal-serializer'
+import { validateBody, savingsCreateSchema } from '@/lib/validations'
 
 // GET /api/savings — list savings goals for authenticated user
 export async function GET() {
@@ -52,7 +53,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const body = await request.json()
+    let body
+    try {
+      body = await validateBody(request, savingsCreateSchema)
+    } catch (err) {
+      if (err instanceof Response) return err
+      return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    }
     const {
       name,
       description,
@@ -315,6 +322,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(fullGoal, { status: 201 })
   } catch (error: any) {
+    if (error instanceof Response) return error
     console.error('Create savings goal error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

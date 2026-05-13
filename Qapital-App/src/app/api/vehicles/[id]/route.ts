@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, vehicleUpdateSchema } from "@/lib/validations";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -35,7 +36,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, vehicleUpdateSchema);
     const { name, type, brand, model, year, color, tankCapacity, fuelType, currentKm } = body;
 
     const existing = await db.vehicle.findFirst({
@@ -53,11 +54,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         ...(type !== undefined && { type }),
         ...(brand !== undefined && { brand }),
         ...(model !== undefined && { model }),
-        ...(year !== undefined && { year: year ? parseInt(year) : null }),
+        ...(year !== undefined && { year }),
         ...(color !== undefined && { color }),
-        ...(tankCapacity !== undefined && { tankCapacity: tankCapacity ? parseFloat(tankCapacity) : null }),
+        ...(tankCapacity !== undefined && { tankCapacity }),
         ...(fuelType !== undefined && { fuelType }),
-        ...(currentKm !== undefined && { currentKm: parseFloat(currentKm) }),
+        ...(currentKm !== undefined && { currentKm }),
       },
       include: {
         fuelLogs: { orderBy: { date: "desc" } },
@@ -67,6 +68,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return NextResponse.json(vehicle);
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Update vehicle error:", error);
     return NextResponse.json({ error: "Error al actualizar vehículo" }, { status: 500 });
   }

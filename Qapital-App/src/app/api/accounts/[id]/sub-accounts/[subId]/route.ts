@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, subAccountUpdateSchema } from "@/lib/validations";
 
 export async function PUT(
   req: NextRequest,
@@ -14,7 +15,7 @@ export async function PUT(
     }
 
     const { id, subId } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, subAccountUpdateSchema);
 
     // Verify account belongs to user
     const account = await db.account.findFirst({
@@ -44,7 +45,7 @@ export async function PUT(
 
     // Balance adjustment - allows correcting the balance
     if (body.balance !== undefined) {
-      const newBalance = parseFloat(body.balance);
+      const newBalance = typeof body.balance === "string" ? parseFloat(body.balance) : body.balance;
       if (!isNaN(newBalance)) {
         updateData.balance = newBalance;
       }
@@ -57,6 +58,7 @@ export async function PUT(
 
     return NextResponse.json(subAccount);
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Update sub-account error:", error);
     return NextResponse.json({ error: "Error al actualizar sub-cuenta" }, { status: 500 });
   }

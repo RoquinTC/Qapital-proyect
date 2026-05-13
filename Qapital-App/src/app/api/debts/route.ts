@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate } from "@/lib/api";
+import { validateBody, debtCreateSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await validateBody(req, debtCreateSchema);
     const { type, name, color, icon, bank, totalAmount, currentBalance, interestRate, cutoffDate, paymentDate, monthlyPayment, remainingPayments, startDate, endDate, paymentType, otherCharges, category, subCategory, accountId, subAccountId } = body;
 
     if (!type || !name || totalAmount === undefined) {
@@ -169,6 +170,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(debt, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Create debt error:", error);
     return NextResponse.json({ error: "Error al crear deuda" }, { status: 500 });
   }

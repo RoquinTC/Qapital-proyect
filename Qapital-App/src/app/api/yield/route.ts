@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getColombiaNow } from "@/lib/api";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, yieldCreateSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
@@ -269,12 +270,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await validateBody(req, yieldCreateSchema);
     const { accountId, subAccountId, actualYield, yieldPercentage, projectedYield, parentAccountId } = body;
-
-    if (actualYield === undefined) {
-      return NextResponse.json({ error: "El rendimiento actual es requerido" }, { status: 400 });
-    }
 
     const now = getColombiaNow();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -382,6 +379,7 @@ export async function POST(req: NextRequest) {
       updatedAccountName,
     });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Confirm yield error:", error);
     return NextResponse.json({ error: "Error al confirmar rendimiento" }, { status: 500 });
   }

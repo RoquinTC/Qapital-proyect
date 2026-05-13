@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getColombiaNow } from "@/lib/api";
 import { syncSavingsBudget } from "@/lib/savings-budget-sync";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, savingsContributeSchema } from "@/lib/validations";
 
 /**
  * Recalculate the cuota for a savings goal and update its linked recurring payment
@@ -76,7 +77,13 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, savingsContributeSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { amount, description, accountId } = body;
 
     if (!amount || amount <= 0) {
@@ -139,6 +146,7 @@ export async function POST(
 
     return NextResponse.json(contribution, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Contribute to savings error:", error);
     return NextResponse.json({ error: "Error al aportar al ahorro" }, { status: 500 });
   }

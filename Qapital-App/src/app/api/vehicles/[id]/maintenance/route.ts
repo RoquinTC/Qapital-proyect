@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate, getColombiaNow } from "@/lib/api";
+import { validateBody, maintenanceCreateSchema } from "@/lib/validations";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -41,12 +42,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, maintenanceCreateSchema);
     const { type, description, cost, km, date, nextDueKm, nextDueDate, reminderEnabled } = body;
-
-    if (!description || !cost) {
-      return NextResponse.json({ error: "Descripción y costo son requeridos" }, { status: 400 });
-    }
 
     const vehicle = await db.vehicle.findFirst({
       where: { id, userId: session.user.id },
@@ -61,20 +58,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         vehicleId: id,
         type: type || "general",
         description,
-        cost: parseFloat(cost),
-        km: km ? parseFloat(km) : vehicle.currentKm,
+        cost,
+        km: km ?? vehicle.currentKm,
         date: date ? createColombiaDate(date.split("T")[0]) : getColombiaNow(),
-        nextDueKm: nextDueKm ? parseFloat(nextDueKm) : null,
+        nextDueKm: nextDueKm ?? null,
         nextDueDate: nextDueDate ? createColombiaDate(nextDueDate.split("T")[0]) : null,
         reminderEnabled: reminderEnabled ?? true,
       },
     });
 
     // Update vehicle currentKm if provided km is greater
-    if (km && parseFloat(km) > vehicle.currentKm) {
+    if (km && km > vehicle.currentKm) {
       await db.vehicle.update({
         where: { id },
-        data: { currentKm: parseFloat(km) },
+        data: { currentKm: km },
       });
     }
 
@@ -85,7 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         type: "expense",
         category: "Transporte",
         subCategory: "Mantenimiento",
-        amount: parseFloat(cost),
+        amount: cost,
         description: `Mantenimiento - ${vehicle.name}: ${description}`,
         date: date ? createColombiaDate(date.split("T")[0]) : getColombiaNow(),
         sourceModule: "transport",
@@ -96,6 +93,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json(maintenanceRecord, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Create maintenance record error:", error);
     return NextResponse.json({ error: "Error al crear registro de mantenimiento" }, { status: 500 });
   }

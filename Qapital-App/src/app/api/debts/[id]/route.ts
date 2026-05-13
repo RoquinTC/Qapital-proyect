@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate } from "@/lib/api";
+import { validateBody, debtUpdateSchema } from "@/lib/validations";
 
 export async function PUT(
   req: NextRequest,
@@ -15,7 +16,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, debtUpdateSchema);
 
     const existing = await db.debt.findFirst({
       where: { id, userId: session.user.id },
@@ -55,6 +56,7 @@ export async function PUT(
 
     return NextResponse.json(debt);
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Update debt error:", error);
     return NextResponse.json({ error: "Error al actualizar deuda" }, { status: 500 });
   }

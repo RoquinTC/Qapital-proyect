@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getColombiaNow, createColombiaDate } from "@/lib/api";
 import { verifyEntityOwnership } from "@/lib/auth-guards";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, transactionCreateSchema } from "@/lib/validations";
 
 export async function GET(req: NextRequest) {
   try {
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await validateBody(req, transactionCreateSchema);
     const { type, amount, description, accountId, subAccountId, category, subCategory, date, sourceModule, sourceId, isRecurring, notes, transferToAccountId, transferToSubAccountId, excludeFromBudget } = body;
 
     if (!type || !amount || !description) {
@@ -305,6 +306,7 @@ export async function POST(req: NextRequest) {
       updatedBalances,
     }, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Create transaction error:", error);
     return NextResponse.json({ error: "Error al crear transacción" }, { status: 500 });
   }

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { adjustToBusinessDay, clampDayToMonth } from "@/lib/holidays";
 import { verifyEntityOwnership } from "@/lib/auth-guards";
+import { validateBody, payrollCreateSchema } from "@/lib/validations";
 
 interface ScheduleItem {
   day?: number;       // Day of month (1-31) for monthly/biweekly
@@ -33,7 +34,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, payrollCreateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const {
       description = "Sueldo",
       frequency,

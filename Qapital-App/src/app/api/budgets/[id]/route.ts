@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, budgetUpdateSchema } from "@/lib/validations";
 
 export async function PUT(
   req: NextRequest,
@@ -14,7 +15,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, budgetUpdateSchema);
 
     const existing = await db.budget.findFirst({
       where: { id, userId: session.user.id },
@@ -41,6 +42,7 @@ export async function PUT(
 
     return NextResponse.json(budget);
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Update budget error:", error);
     return NextResponse.json({ error: "Error al actualizar presupuesto" }, { status: 500 });
   }

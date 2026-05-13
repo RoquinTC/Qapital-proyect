@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, shoppingItemCreateSchema } from "@/lib/validations";
 
 export async function GET(
   _req: NextRequest,
@@ -46,7 +47,13 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, shoppingItemCreateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { name, quantity, unit, estimatedPrice, pantryItemId } = body;
 
     if (!name) {

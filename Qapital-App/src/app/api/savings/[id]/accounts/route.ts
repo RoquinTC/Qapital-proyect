@@ -6,6 +6,7 @@ import { getColombiaNow } from "@/lib/api";
 import { Prisma } from "@prisma/client";
 import { syncSavingsBudget } from "@/lib/savings-budget-sync";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, savingsLinkAccountSchema } from "@/lib/validations";
 
 // GET: Get linked accounts for a savings goal
 export async function GET(
@@ -67,12 +68,8 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, savingsLinkAccountSchema);
     const { accountId, subAccountId } = body;
-
-    if (!accountId) {
-      return NextResponse.json({ error: "El accountId es requerido" }, { status: 400 });
-    }
 
     // Verify goal ownership
     const goal = await db.savingsGoal.findFirst({
@@ -168,6 +165,7 @@ export async function POST(
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     // Handle unique constraint P2002 for duplicate links
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(

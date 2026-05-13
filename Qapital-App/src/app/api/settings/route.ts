@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getCurrentBudgetPeriod, needsBudgetReset } from "@/lib/holidays";
+import { validateBody, settingsUpdateSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
@@ -57,7 +58,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, settingsUpdateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const {
       theme,
       budgetCutoffDay,

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, debtReverseAbonoSchema } from "@/lib/validations";
 
 /**
  * Reverse a specific "abono a capital" by its Abono ID.
@@ -28,7 +29,13 @@ export async function POST(
 
     const { id: debtId } = await params;
 
-    const body: { abonoId: string } = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, debtReverseAbonoSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { abonoId } = body;
 
     if (!abonoId) {
@@ -144,6 +151,7 @@ export async function POST(
       reversedDetails: abono.details.length,
     });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Reverse abono error:", error);
     return NextResponse.json({ error: "Error al reversar el abono" }, { status: 500 });
   }

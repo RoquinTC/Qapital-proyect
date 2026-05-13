@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { syncSavingsBudget } from "@/lib/savings-budget-sync";
 import { getColombiaNow, createColombiaDate } from "@/lib/api";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, cdtFinalizeSchema } from "@/lib/validations";
 
 /**
  * Finalize (withdraw) a CDT.
@@ -29,15 +30,8 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, cdtFinalizeSchema);
     const { withdrawnAmount, withdrawnDate, destinationAccountId, destinationSubAccountId } = body;
-
-    if (!withdrawnAmount || !destinationAccountId) {
-      return NextResponse.json(
-        { error: "Monto retirado y cuenta destino son requeridos" },
-        { status: 400 }
-      );
-    }
 
     // Find the CDT
     const cdt = await db.cDT.findFirst({
@@ -164,6 +158,7 @@ export async function POST(
       destinationSubAccount: destSubAccount?.name,
     });
   } catch (error: any) {
+    if (error instanceof Response) return error;
     console.error("Finalize CDT error:", error);
     const message = error?.message || "Error al finalizar CDT";
     return NextResponse.json(

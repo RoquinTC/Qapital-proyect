@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { syncSavingsBudget } from "@/lib/savings-budget-sync";
 import { getColombiaNow, createColombiaDate, formatDateToColombiaISO } from "@/lib/api";
+import { validateBody, cdtUpdateSchema } from "@/lib/validations";
 
 export async function GET(
   _req: NextRequest,
@@ -56,7 +57,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, cdtUpdateSchema);
 
     const existing = await db.cDT.findFirst({
       where: { id, userId: session.user.id },
@@ -108,6 +109,7 @@ export async function PUT(
 
     return NextResponse.json(cdt);
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Update CDT error:", error);
     return NextResponse.json({ error: "Error al actualizar CDT" }, { status: 500 });
   }

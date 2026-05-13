@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, fuelPriceCreateSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
@@ -29,12 +30,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await validateBody(req, fuelPriceCreateSchema);
     const { fuelType, pricePerGallon } = body;
-
-    if (!pricePerGallon) {
-      return NextResponse.json({ error: "El precio por galón es requerido" }, { status: 400 });
-    }
 
     // Upsert: find existing by userId+fuelType or create new
     const existing = await db.fuelPrice.findFirst({
@@ -45,20 +42,21 @@ export async function POST(req: NextRequest) {
     if (existing) {
       fuelPrice = await db.fuelPrice.update({
         where: { id: existing.id },
-        data: { pricePerGallon: parseFloat(pricePerGallon) },
+        data: { pricePerGallon },
       });
     } else {
       fuelPrice = await db.fuelPrice.create({
         data: {
           userId: session.user.id,
           fuelType: fuelType || "gasoline",
-          pricePerGallon: parseFloat(pricePerGallon),
+          pricePerGallon,
         },
       });
     }
 
     return NextResponse.json(fuelPrice, { status: existing ? 200 : 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Create/update fuel price error:", error);
     return NextResponse.json({ error: "Error al guardar precio de combustible" }, { status: 500 });
   }

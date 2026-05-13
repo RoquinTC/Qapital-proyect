@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { validateBody, cdtCreateSchema } from '@/lib/validations'
 
 // GET /api/cdts — list CDTs for authenticated user
 export async function GET() {
@@ -33,12 +34,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await validateBody(request, cdtCreateSchema)
     const { bank, amount, effectiveRate, startDate, endDate, termDays, goalId, accountId, notes, color } = body
-
-    if (!bank || !amount || !effectiveRate || !startDate || !endDate) {
-      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
-    }
 
     const cdt = await db.cDT.create({
       data: {
@@ -62,6 +59,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(cdt, { status: 201 })
   } catch (error: any) {
+    if (error instanceof Response) return error
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

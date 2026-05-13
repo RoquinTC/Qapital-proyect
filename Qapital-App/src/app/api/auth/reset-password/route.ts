@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash, compare } from "bcryptjs";
 import { db } from "@/lib/db";
+import { validateBody, authResetPasswordSchema } from "@/lib/validations";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, authResetPasswordSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { email, currentPassword, newPassword, confirmPassword } = body;
 
     if (!email || !currentPassword || !newPassword || !confirmPassword) {

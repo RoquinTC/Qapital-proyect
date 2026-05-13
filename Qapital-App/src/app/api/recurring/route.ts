@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { verifyEntityOwnership } from "@/lib/auth-guards";
+import { validateBody, recurringCreateSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
@@ -75,7 +76,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, recurringCreateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const {
       description,
       amount,
@@ -160,6 +167,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(recurringPayment, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Create recurring payment error:", error);
     return NextResponse.json(
       { error: "Error al crear pago recurrente" },

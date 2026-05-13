@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getColombiaNow } from "@/lib/api";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, debtPaySchema } from "@/lib/validations";
 
 /**
  * Determine which billing cycle an installment CURRENTLY belongs to,
@@ -48,21 +49,13 @@ export async function POST(
 
     const { id } = await params;
 
-    // ── Parse request body for interest rates and selected installments ──
-    let body: {
-      interestRates?: Record<string, number>;
-      selectedInstallmentIds?: string[];
-      // ── Loan (cuota fija) fields ──
-      confirmedCapital?: Record<string, number>;   // { installmentId: capitalAmount } — user-confirmed capital
-      confirmedInterest?: Record<string, number>;   // { installmentId: interestAmount } — user-confirmed interest
-      confirmedOtherCharges?: Record<string, number>; // { installmentId: otherChargesAmount } — user-confirmed other charges
-      payAccountId?: string | null;   // Account to debit the payment from (for loans)
-      paySubAccountId?: string | null; // Sub-account to debit from (optional)
-    } = {};
+    // ── Parse and validate request body ──
+    let body;
     try {
-      body = await req.json();
-    } catch {
-      // Empty body is OK (no interest rates provided = no interest)
+      body = await validateBody(req, debtPaySchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
     }
     const interestRates = body.interestRates || {}; // { installmentId: ratePercent }
     const selectedInstallmentIds = body.selectedInstallmentIds; // If provided, only pay these
@@ -575,6 +568,7 @@ export async function POST(
       }),
     });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Pay debt error:", error);
     return NextResponse.json({ error: "Error al procesar el pago" }, { status: 500 });
   }

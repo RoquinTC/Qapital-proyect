@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, healthProfileCreateSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
@@ -29,7 +30,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, healthProfileCreateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { name, type, diseases, restrictions, aiRestrictions } = body;
 
     if (!name) {

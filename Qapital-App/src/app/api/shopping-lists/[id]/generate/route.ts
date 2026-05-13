@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, shoppingGenerateSchema } from "@/lib/validations";
 
 export async function POST(
   req: NextRequest,
@@ -17,7 +18,13 @@ export async function POST(
     // This endpoint generates a new shopping list from low-stock pantry items
     // The [id] param is not used for generation but we keep it for consistency
     // Actually, let's use the body to get a name for the new list
-    const body = await req.json().catch(() => ({}));
+    let body;
+    try {
+      body = await validateBody(req, shoppingGenerateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { name, profileId } = body;
 
     // Get all pantry items

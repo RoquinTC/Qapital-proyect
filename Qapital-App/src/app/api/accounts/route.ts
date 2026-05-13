@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { validateBody, accountCreateSchema } from '@/lib/validations'
 
 // GET /api/accounts — list accounts for authenticated user
 export async function GET() {
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await validateBody(request, accountCreateSchema)
     const { name, type, balance, color, isHighYield, yieldPercentage, isShared, excludeFromAvailable, icon } = body
 
     if (!name || !type) {
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(account, { status: 201 })
   } catch (error: any) {
+    if (error instanceof Response) return error
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

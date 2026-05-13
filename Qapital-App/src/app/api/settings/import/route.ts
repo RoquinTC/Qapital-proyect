@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, importSchema } from "@/lib/validations";
 
 interface ImportRow {
   modulo: string;
@@ -30,7 +31,13 @@ export async function POST(request: Request) {
     }
 
     const userId = session.user.id;
-    const body = await request.json();
+    let body;
+    try {
+      body = await validateBody(request, importSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const rows: ImportRow[] = body.rows;
 
     if (!Array.isArray(rows) || rows.length === 0) {

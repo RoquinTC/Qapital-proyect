@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, subAccountCreateSchema } from "@/lib/validations";
 
 export async function GET(
   _req: NextRequest,
@@ -46,7 +47,7 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, subAccountCreateSchema);
     const { name, type, icon, color, balance, isHighYield, yieldPercentage, excludeFromAvailable } = body;
 
     if (!name) {
@@ -82,6 +83,7 @@ export async function POST(
 
     return NextResponse.json(subAccount, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Create sub-account error:", error);
     return NextResponse.json({ error: "Error al crear sub-cuenta" }, { status: 500 });
   }

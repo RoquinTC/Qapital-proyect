@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getColombiaNow } from "@/lib/api";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, debtAbonoSchema } from "@/lib/validations";
 
 /**
  * Process an "abono a capital" — an extra payment that reduces the remainingBalance
@@ -32,12 +33,13 @@ export async function POST(
 
     const { id } = await params;
 
-    const body: {
-      payments: Array<{ installmentId: string; amount: number }>;
-      accountId: string;
-      subAccountId?: string;
-      date?: string;
-    } = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, debtAbonoSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 
     const { payments, accountId, subAccountId, date } = body;
 
@@ -237,6 +239,7 @@ export async function POST(
       details,
     });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Abono a capital error:", error);
     return NextResponse.json({ error: "Error al procesar el abono" }, { status: 500 });
   }

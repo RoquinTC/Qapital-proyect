@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate, getColombiaNow } from "@/lib/api";
+import { validateBody, fuelLogCreateSchema } from "@/lib/validations";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -41,12 +42,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const body = await validateBody(req, fuelLogCreateSchema);
     const { date, km, amount, pricePerGallon, isFullTank, notes } = body;
-
-    if (!amount || !pricePerGallon) {
-      return NextResponse.json({ error: "Monto y precio por galón son requeridos" }, { status: 400 });
-    }
 
     const vehicle = await db.vehicle.findFirst({
       where: { id, userId: session.user.id },
@@ -56,15 +53,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
     }
 
-    const gallons = parseFloat(amount) / parseFloat(pricePerGallon);
+    const gallons = amount / pricePerGallon;
 
     const fuelLog = await db.fuelLog.create({
       data: {
         vehicleId: id,
         date: date ? createColombiaDate(date.split("T")[0]) : getColombiaNow(),
-        km: km ? parseFloat(km) : vehicle.currentKm,
-        amount: parseFloat(amount),
-        pricePerGallon: parseFloat(pricePerGallon),
+        km: km ?? vehicle.currentKm,
+        amount,
+        pricePerGallon,
         gallons: Math.round(gallons * 100) / 100,
         isFullTank: isFullTank ?? true,
         notes,
@@ -72,10 +69,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
 
     // Update vehicle currentKm if provided km is greater
-    if (km && parseFloat(km) > vehicle.currentKm) {
+    if (km && km > vehicle.currentKm) {
       await db.vehicle.update({
         where: { id },
-        data: { currentKm: parseFloat(km) },
+        data: { currentKm: km },
       });
     }
 
@@ -86,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         type: "expense",
         category: "Transporte",
         subCategory: "Combustible",
-        amount: parseFloat(amount),
+        amount,
         description: `Combustible - ${vehicle.name}`,
         date: date ? createColombiaDate(date.split("T")[0]) : getColombiaNow(),
         sourceModule: "transport",
@@ -97,6 +94,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json(fuelLog, { status: 201 });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Create fuel log error:", error);
     return NextResponse.json({ error: "Error al crear registro de combustible" }, { status: 500 });
   }

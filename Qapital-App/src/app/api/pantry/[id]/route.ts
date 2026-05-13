@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate } from "@/lib/api";
+import { validateBody, pantryUpdateSchema } from "@/lib/validations";
 
 export async function PUT(
   req: NextRequest,
@@ -15,7 +16,13 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, pantryUpdateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 
     const existing = await db.pantryItem.findFirst({
       where: { id, userId: session.user.id },

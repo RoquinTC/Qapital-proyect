@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { validateBody, categoryUpdateSchema, categoryDeleteSchema } from "@/lib/validations";
 
 // Default categories that always appear
 const defaultIncomeCategories = ["Salario", "Freelance", "Inversiones", "Ventas", "Otros"];
@@ -106,7 +107,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, categoryUpdateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { type, oldCategory, oldSubCategory, newCategory, newSubCategory } = body;
 
     if (!type || !oldCategory || !newCategory) {
@@ -211,7 +218,13 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, categoryDeleteSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
     const { type, category, subCategory } = body;
 
     if (!type || !category) {

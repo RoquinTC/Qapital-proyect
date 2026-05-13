@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { toNumber } from "@/lib/decimal-serializer";
+import { validateBody, installmentUpdateSchema } from "@/lib/validations";
 
 export async function PUT(
   req: NextRequest,
@@ -15,7 +16,13 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await req.json();
+    let body;
+    try {
+      body = await validateBody(req, installmentUpdateSchema);
+    } catch (err) {
+      if (err instanceof Response) return err;
+      return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    }
 
     // Find the installment and verify ownership through the debt
     const existing = await db.installment.findFirst({
@@ -44,7 +51,7 @@ export async function PUT(
     // Financial fields: only editable if no payments have been made (paidAmount === 0)
     if (toNumber(existing.paidAmount) === 0) {
       if (body.totalAmount !== undefined) {
-        const newTotal = parseFloat(body.totalAmount);
+        const newTotal = typeof body.totalAmount === "string" ? parseFloat(body.totalAmount) : body.totalAmount;
         if (isNaN(newTotal) || newTotal <= 0) {
           return NextResponse.json({ error: "Monto total inválido" }, { status: 400 });
         }
@@ -52,13 +59,13 @@ export async function PUT(
 
         // Recalculate installmentAmount if totalInstallments is also changing
         const newTotalInstallments = body.totalInstallments
-          ? parseInt(body.totalInstallments)
+          ? (typeof body.totalInstallments === "string" ? parseInt(body.totalInstallments) : body.totalInstallments)
           : existing.totalInstallments;
         updateData.installmentAmount = newTotal / newTotalInstallments;
       }
 
       if (body.totalInstallments !== undefined) {
-        const newTotalInstallments = parseInt(body.totalInstallments);
+        const newTotalInstallments = typeof body.totalInstallments === "string" ? parseInt(body.totalInstallments) : body.totalInstallments;
         if (isNaN(newTotalInstallments) || newTotalInstallments < 1) {
           return NextResponse.json({ error: "Número de cuotas inválido" }, { status: 400 });
         }
@@ -66,7 +73,7 @@ export async function PUT(
 
         // Recalculate installmentAmount
         const newTotal = body.totalAmount
-          ? parseFloat(body.totalAmount)
+          ? (typeof body.totalAmount === "string" ? parseFloat(body.totalAmount) : body.totalAmount)
           : toNumber(existing.totalAmount);
         updateData.installmentAmount = newTotal / newTotalInstallments;
       }
