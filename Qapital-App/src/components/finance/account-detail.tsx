@@ -263,13 +263,6 @@ export function AccountDetail() {
     }
   }, [fetchTransactions, settingsLoaded, selectedAccountId]);
 
-  // Re-fetch sub-account transactions when cycle changes
-  useEffect(() => {
-    if (expandedSubAccount) {
-      fetchSubTransactions(expandedSubAccount);
-    }
-  }, [fetchSubTransactions, expandedSubAccount]);
-
   const fetchCategories = useCallback(async () => {
     try {
       const data = await apiFetch<Record<string, CategoryData[]>>(`/api/categories?type=${editType}`);
@@ -298,6 +291,13 @@ export function AccountDetail() {
       console.error("Error fetching sub-account transactions:", error);
     }
   }, [budgetCutoffDay, cycleOffset]);
+
+  // Re-fetch sub-account transactions when cycle changes
+  useEffect(() => {
+    if (expandedSubAccount) {
+      fetchSubTransactions(expandedSubAccount);
+    }
+  }, [fetchSubTransactions, expandedSubAccount]);
 
   const handleExpandSubAccount = (subId: string) => {
     if (expandedSubAccount === subId) {
