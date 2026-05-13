@@ -23,27 +23,42 @@ import {
   ShieldCheck,
   FileJson,
   Info,
+  Search,
 } from "lucide-react";
 
-interface BackupMetadata {
-  magic: string;
-  version: number;
-  exportDate: string;
-  userEmail: string;
-  userName: string;
-  currency: string;
+interface ValidationSection {
+  name: string;
+  count: number;
+  label: string;
+}
+
+interface ValidationResult {
+  valid: boolean;
+  metadata: {
+    magic: string;
+    version: number;
+    exportDate: string;
+    userEmail: string;
+    userName: string;
+    currency: string;
+  };
+  totalRecords: number;
+  sections: ValidationSection[];
+  issues: string[];
+  warnings: string[];
 }
 
 export function BackupManager() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [validating, setValidating] = useState(false);
   const [importResult, setImportResult] = useState<{
     success: boolean;
     error?: string;
     stats?: Record<string, number>;
   } | null>(null);
   const [exportResult, setExportResult] = useState<string | null>(null);
-  const [pendingBackup, setPendingBackup] = useState<BackupMetadata | null>(null);
+  const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [pendingBackupRaw, setPendingBackupRaw] = useState<string | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,7 +76,6 @@ export function BackupManager() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      // Extract filename from Content-Disposition header, or use default
       const contentDisposition = response.headers.get("Content-Disposition");
       let filename = `qapital-backup-${new Date().toISOString().split("T")[0]}.json`;
       if (contentDisposition) {
@@ -90,11 +104,26 @@ export function BackupManager() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setValidating(true);
+    setValidation(null);
+    setImportResult(null);
+
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
 
-      // Quick validation before showing dialog
+      // Quick client-side check before hitting the server
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setImportResult({
+          success: false,
+          error: "No se pudo leer el archivo. Verifica que sea un JSON válido.",
+        });
+        setTimeout(() => setImportResult(null), 5000);
+        return;
+      }
+
       if (data.magic !== "qapital-backup") {
         setImportResult({
           success: false,
@@ -104,25 +133,31 @@ export function BackupManager() {
         return;
       }
 
-      // Store the backup metadata and raw text for later import
-      setPendingBackup({
-        magic: data.magic,
-        version: data.version,
-        exportDate: data.exportDate,
-        userEmail: data.userEmail,
-        userName: data.userName,
-        currency: data.currency,
+      // Send to server for full validation
+      const response = await fetch("/api/backup/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: text,
       });
+
+      const validationResult = await response.json();
+      setValidation(validationResult);
       setPendingBackupRaw(text);
-      setShowImportDialog(true);
-    } catch {
+
+      // Only show import dialog if validation passed
+      if (validationResult.valid) {
+        setShowImportDialog(true);
+      }
+      // If not valid, the validation result with issues is shown inline
+    } catch (error) {
+      console.error("Validation error:", error);
       setImportResult({
         success: false,
-        error: "No se pudo leer el archivo. Verifica que sea un archivo JSON válido.",
+        error: "Error al validar el archivo de respaldo",
       });
       setTimeout(() => setImportResult(null), 5000);
     } finally {
-      // Reset file input
+      setValidating(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -155,15 +190,15 @@ export function BackupManager() {
       });
     } finally {
       setImporting(false);
-      setPendingBackup(null);
       setPendingBackupRaw(null);
+      setValidation(null);
     }
   };
 
   const cancelImport = () => {
     setShowImportDialog(false);
-    setPendingBackup(null);
     setPendingBackupRaw(null);
+    setValidation(null);
   };
 
   const formatBackupDate = (isoDate: string) => {
@@ -178,11 +213,6 @@ export function BackupManager() {
     } catch {
       return isoDate;
     }
-  };
-
-  const getTotalRecords = (stats?: Record<string, number>) => {
-    if (!stats) return 0;
-    return Object.values(stats).reduce((sum, count) => sum + count, 0);
   };
 
   return (
@@ -223,7 +253,7 @@ export function BackupManager() {
             variant="outline"
             className="flex-1 rounded-xl text-xs gap-1.5 border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 h-8"
             onClick={handleExport}
-            disabled={exporting || importing}
+            disabled={exporting || importing || validating}
           >
             {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
             Exportar Respaldo
@@ -231,10 +261,10 @@ export function BackupManager() {
           <Button
             className="flex-1 rounded-xl text-xs gap-1.5 bg-amber-600 hover:bg-amber-700 text-white h-8"
             onClick={() => fileInputRef.current?.click()}
-            disabled={exporting || importing}
+            disabled={exporting || importing || validating}
           >
-            {importing ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-            Importar Respaldo
+            {validating ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+            {validating ? "Validando..." : "Importar Respaldo"}
           </Button>
         </div>
 
@@ -254,6 +284,81 @@ export function BackupManager() {
             <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
               {exportResult}
             </p>
+          </div>
+        )}
+
+        {/* Validation result (shown when validation fails or before import) */}
+        {validation && !showImportDialog && (
+          <div
+            className={`rounded-xl p-3 space-y-2 ${
+              validation.valid
+                ? "bg-emerald-50 dark:bg-emerald-900/10"
+                : "bg-red-50 dark:bg-red-900/10"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {validation.valid ? (
+                <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+              ) : (
+                <AlertTriangle className="size-4 text-red-500 shrink-0" />
+              )}
+              <p className={`text-xs font-medium ${validation.valid ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                {validation.valid ? "Respaldo válido" : "Respaldo con errores"}
+              </p>
+            </div>
+
+            {/* Metadata summary */}
+            <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 text-[10px] space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Usuario:</span>
+                <span className="font-medium text-gray-900 dark:text-white">{validation.metadata.userName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Email:</span>
+                <span className="font-medium text-gray-900 dark:text-white">{validation.metadata.userEmail}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Fecha:</span>
+                <span className="font-medium text-gray-900 dark:text-white">{formatBackupDate(validation.metadata.exportDate)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Total registros:</span>
+                <span className="font-medium text-gray-900 dark:text-white">{validation.totalRecords}</span>
+              </div>
+            </div>
+
+            {/* Section counts */}
+            {validation.sections.length > 0 && (
+              <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9px] text-gray-600 dark:text-gray-400 pl-1">
+                {validation.sections.map((s) => (
+                  <span key={s.name}>{s.count} {s.label.toLowerCase()}</span>
+                ))}
+              </div>
+            )}
+
+            {/* Issues */}
+            {validation.issues.length > 0 && (
+              <div className="space-y-1">
+                {validation.issues.map((issue, i) => (
+                  <div key={i} className="flex items-start gap-1.5">
+                    <AlertTriangle className="size-3 text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-red-600 dark:text-red-400">{issue}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Warnings */}
+            {validation.warnings.length > 0 && (
+              <div className="space-y-1">
+                {validation.warnings.map((warning, i) => (
+                  <div key={i} className="flex items-start gap-1.5">
+                    <Info className="size-3 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400">{warning}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -327,26 +432,61 @@ export function BackupManager() {
                 <p>
                   Estás a punto de restaurar un respaldo. <strong>Esto eliminará todos los datos actuales</strong> y los reemplazará con los del archivo.
                 </p>
-                {pendingBackup && (
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 space-y-1.5 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Usuario:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{pendingBackup.userName}</span>
+
+                {/* Validation summary from server */}
+                {validation && (
+                  <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-3 space-y-1.5">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <CheckCircle2 className="size-3.5 text-emerald-500" />
+                      <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                        Respaldo validado — {validation.totalRecords} registros
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Email:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{pendingBackup.userEmail}</span>
+                    <div className="text-[10px] space-y-1 text-gray-700 dark:text-gray-300">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Usuario:</span>
+                        <span className="font-medium">{validation.metadata.userName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Email:</span>
+                        <span className="font-medium">{validation.metadata.userEmail}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Fecha:</span>
+                        <span className="font-medium">{formatBackupDate(validation.metadata.exportDate)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Versión:</span>
+                        <Badge variant="secondary" className="text-[9px]">v{validation.metadata.version}</Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Fecha:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{formatBackupDate(pendingBackup.exportDate)}</span>
+                    {/* Quick section summary */}
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {validation.sections.slice(0, 6).map((s) => (
+                        <span key={s.name} className="text-[8px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                          {s.count} {s.label.toLowerCase()}
+                        </span>
+                      ))}
+                      {validation.sections.length > 6 && (
+                        <span className="text-[8px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                          +{validation.sections.length - 6} más
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Versión:</span>
-                      <Badge variant="secondary" className="text-[9px]">v{pendingBackup.version}</Badge>
-                    </div>
+                    {/* Warnings in dialog */}
+                    {validation.warnings.length > 0 && (
+                      <div className="space-y-0.5 pt-1">
+                        {validation.warnings.map((w, i) => (
+                          <div key={i} className="flex items-start gap-1">
+                            <Info className="size-2.5 text-amber-500 shrink-0 mt-0.5" />
+                            <p className="text-[9px] text-amber-600 dark:text-amber-400">{w}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
+
                 <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-2.5 flex items-start gap-2">
                   <AlertTriangle className="size-3.5 text-red-500 shrink-0 mt-0.5" />
                   <p className="text-[11px] text-red-600 dark:text-red-400">
