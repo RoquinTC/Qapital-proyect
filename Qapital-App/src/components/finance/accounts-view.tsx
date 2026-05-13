@@ -562,14 +562,21 @@ export function AccountsView() {
         apiFetch<MonthlySummaryResponse>("/api/dashboard/monthly-summary?months=12"),
       ]);
 
-      if (accs.status === "fulfilled") setAccounts(accs.value);
-      if (budgs.status === "fulfilled") setBudgets(budgs.value);
-      if (dbts.status === "fulfilled") setDebts(dbts.value);
-      if (savs.status === "fulfilled") setSavingsGoals(savs.value);
-      if (recs.status === "fulfilled")
+      if (accs.status === "fulfilled" && Array.isArray(accs.value)) setAccounts(accs.value);
+      if (budgs.status === "fulfilled" && Array.isArray(budgs.value)) setBudgets(budgs.value);
+      if (dbts.status === "fulfilled" && Array.isArray(dbts.value)) setDebts(dbts.value);
+      if (savs.status === "fulfilled" && Array.isArray(savs.value)) setSavingsGoals(savs.value);
+      if (recs.status === "fulfilled" && Array.isArray(recs.value))
         setRecurringPending(recs.value.filter((r) => r.status === "pending"));
-      if (txs.status === "fulfilled") setTransactions(txs.value.transactions ?? txs.value as unknown as Transaction[]);
-      if (summary.status === "fulfilled") setMonthlySummary(summary.value);
+      if (txs.status === "fulfilled") {
+        const txData = txs.value;
+        if (txData && typeof txData === "object" && "transactions" in txData && Array.isArray(txData.transactions)) {
+          setTransactions(txData.transactions);
+        } else if (Array.isArray(txData)) {
+          setTransactions(txData);
+        }
+      }
+      if (summary.status === "fulfilled" && summary.value) setMonthlySummary(summary.value);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
