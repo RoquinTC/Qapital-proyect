@@ -41,6 +41,7 @@ import {
   GripVertical,
   RotateCcw,
 } from "lucide-react";
+import { ExportMenu } from "./export-menu";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DndContext,
@@ -857,11 +858,14 @@ export function AccountsView() {
           <Card className="border-0 shadow-lg rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-500 text-white overflow-hidden relative">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent)] pointer-events-none" />
             <CardContent className="p-5 relative z-10">
-              <div className="flex items-center gap-2 mb-1">
-                <Wallet className="size-4 text-emerald-200" />
-                <span className="text-sm text-emerald-100">
-                  Disponible para Gastar
-                </span>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <Wallet className="size-4 text-emerald-200" />
+                  <span className="text-sm text-emerald-100">
+                    Disponible para Gastar
+                  </span>
+                </div>
+                <ExportMenu type="balances" variant="onGradient" />
               </div>
               <p className="text-3xl font-bold tracking-tight">
                 {formatCurrency(availableBalance)}

@@ -60,6 +60,7 @@ import {
 import { toast } from "sonner";
 import type { Transaction, SubAccount, Account, CategoryData, UserSettings } from "@/lib/types";
 import { CategoryBreakdown } from "./category-breakdown";
+import { ExportMenu } from "./export-menu";
 
 // Color config per transaction type
 const typeConfig = {
@@ -561,30 +562,45 @@ export function TransactionList({ accountId }: TransactionListProps) {
           </button>
         </div>
 
-        {/* View mode toggle */}
-        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm px-1 py-1">
-          <button
-            onClick={() => setViewMode("list")}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              viewMode === "list"
-                ? "bg-emerald-500 text-white shadow-sm"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}
-          >
-            <LayoutList className="size-3" />
-            Lista
-          </button>
-          <button
-            onClick={() => setViewMode("category")}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              viewMode === "category"
-                ? "bg-emerald-500 text-white shadow-sm"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}
-          >
-            <FolderTree className="size-3" />
-            Por Categoría
-          </button>
+        <div className="flex items-center gap-1">
+          {/* View mode toggle */}
+          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm px-1 py-1">
+            <button
+              onClick={() => setViewMode("list")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                viewMode === "list"
+                  ? "bg-emerald-500 text-white shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              }`}
+            >
+              <LayoutList className="size-3" />
+              Lista
+            </button>
+            <button
+              onClick={() => setViewMode("category")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                viewMode === "category"
+                  ? "bg-emerald-500 text-white shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              }`}
+            >
+              <FolderTree className="size-3" />
+              Por Categoría
+            </button>
+          </div>
+
+          {/* Export */}
+          <ExportMenu
+            type="transactions"
+            filters={{
+              startDate: toColombiaDateString(cycle.start),
+              endDate: toColombiaDateString(cycle.end),
+              accountId: filterAccountId,
+              category: filterCategory,
+              type: filterType,
+            }}
+            hasActiveFilters={activeFilterCount > 0}
+          />
         </div>
       </div>
 

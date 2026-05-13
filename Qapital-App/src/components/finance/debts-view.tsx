@@ -8,6 +8,7 @@ import { DebtForm } from "./debt-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, CreditCard, Landmark } from "lucide-react";
+import { ExportMenu } from "./export-menu";
 import { motion } from "framer-motion";
 import type { Debt, Installment } from "@/lib/types";
 
@@ -79,9 +80,12 @@ export function DebtsView() {
         <Card className="border-0 shadow-lg rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 text-white overflow-hidden relative">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(255,255,255,0.1),transparent)] pointer-events-none" />
           <CardContent className="p-5 relative z-10">
-            <div className="flex items-center gap-2 mb-1">
-              <CreditCard className="size-4 text-rose-200" />
-              <span className="text-sm text-rose-100">Deuda Total</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <CreditCard className="size-4 text-rose-200" />
+                <span className="text-sm text-rose-100">Deuda Total</span>
+              </div>
+              <ExportMenu type="debts" variant="onGradient" />
             </div>
             <p className="text-3xl font-bold tracking-tight">
               {formatCurrency(totalDebt)}
