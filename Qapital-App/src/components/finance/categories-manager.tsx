@@ -35,9 +35,41 @@ import {
   Tag,
   FolderOpen,
   FolderClosed,
+  Plus,
+  Palette,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { CategoryData, CategoriesByType } from "@/lib/types";
+
+// Predefined icon options for custom categories
+const ICON_OPTIONS = [
+  { value: "Utensils", label: "🍽️ Alimentación" },
+  { value: "Car", label: "🚗 Transporte" },
+  { value: "Home", label: "🏠 Vivienda" },
+  { value: "Heart", label: "❤️ Salud" },
+  { value: "Gamepad2", label: "🎮 Entretenimiento" },
+  { value: "GraduationCap", label: "📚 Educación" },
+  { value: "Shirt", label: "👕 Ropa" },
+  { value: "Receipt", label: "🧾 Servicios" },
+  { value: "CreditCard", label: "💳 Deudas" },
+  { value: "PiggyBank", label: "🐷 Ahorros" },
+  { value: "Briefcase", label: "💼 Trabajo" },
+  { value: "DollarSign", label: "💵 Dinero" },
+  { value: "Gift", label: "🎁 Regalos" },
+  { value: "Baby", label: "👶 Bebé" },
+  { value: "Dog", label: "🐕 Mascota" },
+  { value: "Dumbbell", label: "🏋️ Ejercicio" },
+  { value: "Plane", label: "✈️ Viajes" },
+  { value: "Music", label: "🎵 Música" },
+  { value: "Coffee", label: "☕ Café" },
+  { value: "Smartphone", label: "📱 Tecnología" },
+];
+
+const COLOR_OPTIONS = [
+  "#EF4444", "#F97316", "#F59E0B", "#84CC16", "#10B981",
+  "#06B6D4", "#3B82F6", "#6366F1", "#8B5CF6", "#EC4899",
+  "#6B7280", "#14B8A6", "#D946EF", "#78716C",
+];
 
 export function CategoriesManager() {
   const [categories, setCategories] = useState<CategoriesByType>({ income: [], expense: [] });
@@ -58,6 +90,14 @@ export function CategoriesManager() {
     subCategory?: string;
   } | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // New category form state
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newType, setNewType] = useState<"income" | "expense">("expense");
+  const [newIcon, setNewIcon] = useState<string | null>(null);
+  const [newColor, setNewColor] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -193,6 +233,37 @@ export function CategoriesManager() {
     }
   };
 
+  const handleCreateCategory = async () => {
+    if (!newName.trim()) return;
+    setCreating(true);
+    try {
+      await apiFetch("/api/categories", {
+        method: "POST",
+        body: JSON.stringify({
+          type: newType,
+          name: newName.trim(),
+          icon: newIcon,
+          color: newColor,
+        }),
+      });
+      toast.success("Categoría creada");
+      setNewName("");
+      setNewIcon(null);
+      setNewColor(null);
+      setShowNewForm(false);
+      fetchCategories();
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes("409")) {
+        toast.error("Ya existe una categoría con ese nombre y tipo");
+      } else {
+        console.error("Error creating category:", error);
+        toast.error("Error al crear la categoría");
+      }
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const currentCategories = categories[selectedType] || [];
 
   if (loading) {
@@ -232,6 +303,136 @@ export function CategoriesManager() {
           Ingresos
         </Button>
       </div>
+
+      {/* New Category Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full rounded-xl text-xs gap-1.5 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-emerald-400 hover:text-emerald-600 dark:hover:border-emerald-600 dark:hover:text-emerald-400"
+        onClick={() => {
+          setShowNewForm(!showNewForm);
+          setNewType(selectedType);
+        }}
+      >
+        <Plus className="size-3.5" />
+        Nueva Categoría
+      </Button>
+
+      {/* New Category Form */}
+      {showNewForm && (
+        <Card className="border border-emerald-200 dark:border-emerald-800/50 shadow-none rounded-xl overflow-hidden">
+          <CardContent className="p-3 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                Nueva Categoría
+              </span>
+              <button
+                onClick={() => {
+                  setShowNewForm(false);
+                  setNewName("");
+                  setNewIcon(null);
+                  setNewColor(null);
+                }}
+                className="size-5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center"
+              >
+                <X className="size-3 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Type selector for new category */}
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setNewType("expense")}
+                className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                  newType === "expense"
+                    ? "bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-700"
+                    : "bg-gray-50 dark:bg-gray-800 text-gray-400 border border-transparent"
+                }`}
+              >
+                Gasto
+              </button>
+              <button
+                onClick={() => setNewType("income")}
+                className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                  newType === "income"
+                    ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700"
+                    : "bg-gray-50 dark:bg-gray-800 text-gray-400 border border-transparent"
+                }`}
+              >
+                Ingreso
+              </button>
+            </div>
+
+            {/* Name */}
+            <div className="space-y-1">
+              <Label className="text-[10px]">Nombre</Label>
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Ej: Regalos, Mascota..."
+                className="rounded-lg h-8 text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateCategory();
+                }}
+              />
+            </div>
+
+            {/* Icon selector */}
+            <div className="space-y-1">
+              <Label className="text-[10px]">Icono (opcional)</Label>
+              <Select value={newIcon || "none"} onValueChange={(v) => setNewIcon(v === "none" ? null : v)}>
+                <SelectTrigger className="rounded-lg h-8 text-xs">
+                  <SelectValue placeholder="Sin icono" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin icono</SelectItem>
+                  {ICON_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Color picker */}
+            <div className="space-y-1">
+              <Label className="text-[10px] flex items-center gap-1">
+                <Palette className="size-3" /> Color (opcional)
+              </Label>
+              <div className="flex flex-wrap gap-1.5">
+                {COLOR_OPTIONS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setNewColor(newColor === c ? null : c)}
+                    className={`size-6 rounded-full border-2 transition-all ${
+                      newColor === c
+                        ? "border-gray-900 dark:border-white scale-110"
+                        : "border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Create button */}
+            <Button
+              size="sm"
+              className="w-full rounded-xl text-xs h-8 bg-emerald-500 hover:bg-emerald-600 text-white"
+              onClick={handleCreateCategory}
+              disabled={creating || !newName.trim()}
+            >
+              {creating ? (
+                <Loader2 className="size-3 animate-spin mr-1" />
+              ) : (
+                <Check className="size-3 mr-1" />
+              )}
+              Crear Categoría
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Categories List */}
       <div className="space-y-1.5">

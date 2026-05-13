@@ -23,6 +23,7 @@ export type {
   YieldRecord,
   CategoryData,
   CategoriesByType,
+  CustomCategory,
   MonthlyData,
   MonthlySummaryResponse,
   UserSettings,

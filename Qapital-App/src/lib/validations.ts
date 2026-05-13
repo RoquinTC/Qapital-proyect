@@ -743,6 +743,13 @@ export const categoryDeleteSchema = z.object({
   subCategory: z.string().nullable().optional(),
 });
 
+export const categoryCreateSchema = z.object({
+  type: z.enum(["income", "expense"]),
+  name: z.string().min(1, "El nombre es obligatorio"),
+  icon: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
+});
+
 // ============================================
 // USER ONBOARDING
 // ============================================
