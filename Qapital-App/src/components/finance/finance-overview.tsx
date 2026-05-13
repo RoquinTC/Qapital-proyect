@@ -447,7 +447,7 @@ export function FinanceOverview() {
     try {
       const [accs, txs, bdgs, dbts, recs, summary] = await Promise.allSettled([
         apiFetch<Account[]>("/api/accounts"),
-        apiFetch<Transaction[]>("/api/transactions"),
+        apiFetch<{ transactions: Transaction[]; nextCursor: string | null }>("/api/transactions"),
         apiFetch<Budget[]>("/api/budgets"),
         apiFetch<Debt[]>("/api/debts"),
         apiFetch<RecurringPayment[]>("/api/recurring"),
@@ -456,7 +456,7 @@ export function FinanceOverview() {
 
       if (!mountedRef.current) return;
       if (accs.status === "fulfilled") setAccounts(accs.value);
-      if (txs.status === "fulfilled") setTransactions(txs.value);
+      if (txs.status === "fulfilled") setTransactions(txs.value.transactions ?? txs.value as unknown as Transaction[]);
       if (bdgs.status === "fulfilled") setBudgets(bdgs.value);
       if (dbts.status === "fulfilled") setDebts(dbts.value);
       if (recs.status === "fulfilled") setRecurringPayments(recs.value);

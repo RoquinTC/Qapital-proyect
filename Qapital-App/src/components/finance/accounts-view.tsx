@@ -557,7 +557,7 @@ export function AccountsView() {
         apiFetch<Debt[]>("/api/debts"),
         apiFetch<SavingsGoal[]>("/api/savings"),
         apiFetch<RecurringPayment[]>("/api/recurring"),
-        apiFetch<Transaction[]>("/api/transactions"),
+        apiFetch<{ transactions: Transaction[]; nextCursor: string | null }>("/api/transactions"),
         apiFetch<MonthlySummaryResponse>("/api/dashboard/monthly-summary?months=12"),
       ]);
 
@@ -567,7 +567,7 @@ export function AccountsView() {
       if (savs.status === "fulfilled") setSavingsGoals(savs.value);
       if (recs.status === "fulfilled")
         setRecurringPending(recs.value.filter((r) => r.status === "pending"));
-      if (txs.status === "fulfilled") setTransactions(txs.value);
+      if (txs.status === "fulfilled") setTransactions(txs.value.transactions ?? txs.value as unknown as Transaction[]);
       if (summary.status === "fulfilled") setMonthlySummary(summary.value);
     } catch (error) {
       console.error("Error fetching data:", error);

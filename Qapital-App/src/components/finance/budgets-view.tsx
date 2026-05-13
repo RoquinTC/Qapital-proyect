@@ -235,8 +235,8 @@ export function BudgetsView() {
         type: type || "expense",
       });
 
-      const data = await apiFetch<Transaction[]>(`/api/transactions?${params.toString()}`);
-      setCategoryTransactions((prev) => ({ ...prev, [category]: data }));
+      const data = await apiFetch<{ transactions: Transaction[]; nextCursor: string | null }>(`/api/transactions?${params.toString()}`);
+      setCategoryTransactions((prev) => ({ ...prev, [category]: data.transactions ?? data as unknown as Transaction[] }));
     } catch (error) {
       console.error("Error fetching category transactions:", error);
     } finally {
