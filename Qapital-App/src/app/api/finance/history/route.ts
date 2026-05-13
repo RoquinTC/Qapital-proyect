@@ -64,7 +64,7 @@ export async function GET() {
       const incomeTransactions = await db.transaction.findMany({
         where: {
           userId,
-          date: { gte: periodStart, lte: periodEnd },
+          date: { gte: periodStart, lt: new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000) },
           type: "income",
           sourceModule: { not: "finance_transfer" },
           relatedTransactionId: null,
@@ -78,7 +78,7 @@ export async function GET() {
       const expenseTransactions = await db.transaction.findMany({
         where: {
           userId,
-          date: { gte: periodStart, lte: periodEnd },
+          date: { gte: periodStart, lt: new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000) },
           type: "expense",
           sourceModule: { not: "finance_transfer" },
         },
@@ -89,7 +89,7 @@ export async function GET() {
       // Add credit card installments with purchaseDate in the period (excluding loans)
       const ccInstallments = await db.installment.findMany({
         where: {
-          purchaseDate: { gte: periodStart, lte: periodEnd },
+          purchaseDate: { gte: periodStart, lt: new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000) },
           debt: {
             userId,
             type: { not: "loan" },
@@ -102,7 +102,7 @@ export async function GET() {
       // 3) Savings contributions in the period
       const savingsContributions = await db.savingsContribution.findMany({
         where: {
-          date: { gte: periodStart, lte: periodEnd },
+          date: { gte: periodStart, lt: new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000) },
           goal: { userId },
         },
         select: { amount: true },

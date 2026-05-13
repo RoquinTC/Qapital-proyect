@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getColombiaNow } from "@/lib/api";
+import { getColombiaNow, getColombiaTodayString, createColombiaDate } from "@/lib/api";
 import { toNumber } from "@/lib/decimal-serializer";
 import { validateBody, yieldCreateSchema } from "@/lib/validations";
 
@@ -327,7 +327,7 @@ export async function POST(req: NextRequest) {
           amount: actualYield,
           description,
           category: "Inversiones",
-          date: getColombiaNow(),
+          date: createColombiaDate(getColombiaTodayString()),
           sourceModule: "finance",
           sourceId: yieldRecord.id, // Link to yield record
         },

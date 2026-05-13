@@ -86,7 +86,7 @@ export async function POST() {
       // Exclude "transfer" type — CC payments are transfers, not new expenses
       const txWhereClause: Record<string, unknown> = {
         userId,
-        date: { gte: periodStart, lte: periodEnd },
+        date: { gte: periodStart, lt: new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000) },
         type: budget.type, // "expense" or "income"
         category: budget.category,
         // Exclude transfer-type transactions (CC payments)

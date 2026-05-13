@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getColombiaNow } from "@/lib/api";
+import { getColombiaNow, getColombiaTodayString, createColombiaDate } from "@/lib/api";
 import { toNumber } from "@/lib/decimal-serializer";
 import { validateBody, debtPaySchema } from "@/lib/validations";
 
@@ -404,7 +404,7 @@ export async function POST(
             description: `Pago tarjeta de crédito ${debt.name}`,
             category: "Pago Tarjeta de Crédito",
             subCategory: null,
-            date: getColombiaNow(),
+            date: createColombiaDate(getColombiaTodayString()),
             sourceModule: "finance",
             sourceId: debt.id,
             notes: notesWithIds, // installmentIds prefix + JSON with installment details
@@ -455,7 +455,7 @@ export async function POST(
               description: `Pago préstamo ${debt.name} — cuota ${inst.currentInstallment}/${inst.totalInstallments}`,
               category: txCategory,
               subCategory: txSubCategory,
-              date: getColombiaNow(),
+              date: createColombiaDate(getColombiaTodayString()),
               sourceModule: "finance",
               sourceId: debt.id,
               notes: `installmentIds:${inst.id} | Cuota ${inst.currentInstallment}/${inst.totalInstallments} de "${inst.description}"`,

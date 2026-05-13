@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { verifyEntityOwnership } from '@/lib/auth-guards'
+import { getColombiaTodayString, createColombiaDate } from '@/lib/api'
 import { toNumber } from '@/lib/decimal-serializer'
 import { validateBody, savingsCreateSchema } from '@/lib/validations'
 
@@ -191,7 +192,7 @@ export async function POST(request: Request) {
           data: {
             goalId: goal.id,
             amount: bal,
-            date: new Date(),
+            date: createColombiaDate(getColombiaTodayString()),
             description: `Saldo cuenta vinculada`,
           },
         })

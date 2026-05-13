@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { syncSavingsBudget } from '@/lib/savings-budget-sync'
+import { getColombiaTodayString, createColombiaDate } from '@/lib/api'
 import { toNumber } from '@/lib/decimal-serializer'
 import { validateBody, savingsUpdateSchema } from '@/lib/validations'
 
@@ -288,7 +289,7 @@ export async function PUT(
             data: {
               goalId: id,
               amount: bal,
-              date: new Date(),
+              date: createColombiaDate(getColombiaTodayString()),
               description: 'Saldo cuenta vinculada',
             },
           })

@@ -52,7 +52,7 @@ export async function GET() {
     const transactions = await db.transaction.findMany({
       where: {
         userId,
-        date: { gte: periodStart, lte: periodEnd },
+        date: { gte: periodStart, lt: new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000) },
         type: { in: ["income", "expense"] },
         category: { not: null },
         sourceModule: { not: "finance_transfer" },

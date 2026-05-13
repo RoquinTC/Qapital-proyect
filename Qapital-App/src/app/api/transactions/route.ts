@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getColombiaNow, createColombiaDate } from "@/lib/api";
+import { getColombiaNow, createColombiaDate, getColombiaTodayString } from "@/lib/api";
 import { verifyEntityOwnership } from "@/lib/auth-guards";
 import { toNumber } from "@/lib/decimal-serializer";
 import { validateBody, transactionCreateSchema } from "@/lib/validations";
@@ -40,7 +40,13 @@ export async function GET(req: NextRequest) {
     if (startDate || endDate) {
       const dateFilter: Record<string, Date> = {};
       if (startDate) dateFilter.gte = createColombiaDate(startDate.split("T")[0]);
-      if (endDate) dateFilter.lte = createColombiaDate(endDate.split("T")[0]);
+      if (endDate) {
+        // Use `lt` with the NEXT day at midnight Colombia to include the ENTIRE end date.
+        // Previously used `lte` with midnight, which excluded transactions created
+        // with non-midnight timestamps (e.g., getColombiaNow() at 3pm).
+        const endParts = endDate.split("T")[0].split("-").map(Number);
+        dateFilter.lt = new Date(Date.UTC(endParts[0], endParts[1] - 1, endParts[2] + 1, 5, 0, 0, 0));
+      }
       where.date = dateFilter;
     }
 
@@ -156,7 +162,7 @@ export async function POST(req: NextRequest) {
         subAccountId: subAccountId || null,
         category: category || null,
         subCategory: subCategory || null,
-        date: date ? createColombiaDate(date.split("T")[0]) : getColombiaNow(),
+        date: date ? createColombiaDate(date.split("T")[0]) : createColombiaDate(getColombiaTodayString()),
         sourceModule: sourceModule || null,
         sourceId: sourceId || null,
         isRecurring: isRecurring || false,
@@ -246,7 +252,7 @@ export async function POST(req: NextRequest) {
           accountId: transferToAccountId,
           subAccountId: transferToSubAccountId || null,
           category: "Otros",
-          date: date ? createColombiaDate(date.split("T")[0]) : getColombiaNow(),
+          date: date ? createColombiaDate(date.split("T")[0]) : createColombiaDate(getColombiaTodayString()),
           notes: `Transferencia desde ${sourceAccount?.name || "cuenta"}`,
           relatedTransactionId: transaction.id,
         },

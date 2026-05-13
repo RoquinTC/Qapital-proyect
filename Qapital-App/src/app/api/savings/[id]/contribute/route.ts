@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getColombiaNow } from "@/lib/api";
+import { getColombiaNow, getColombiaTodayString, createColombiaDate } from "@/lib/api";
 import { syncSavingsBudget } from "@/lib/savings-budget-sync";
 import { toNumber } from "@/lib/decimal-serializer";
 import { validateBody, savingsContributeSchema } from "@/lib/validations";
@@ -103,7 +103,7 @@ export async function POST(
       data: {
         goalId: id,
         amount,
-        date: getColombiaNow(),
+        date: createColombiaDate(getColombiaTodayString()),
         description: description || null,
         accountId: accountId || null,
       },
@@ -126,7 +126,7 @@ export async function POST(
           description: `Ahorro: ${goal.name}`,
           category: "Ahorros",
           subCategory: goal.name,
-          date: getColombiaNow(),
+          date: createColombiaDate(getColombiaTodayString()),
           sourceModule: "finance",
           sourceId: goal.id,
         },

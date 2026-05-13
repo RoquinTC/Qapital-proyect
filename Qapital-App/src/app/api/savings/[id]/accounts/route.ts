@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getColombiaNow } from "@/lib/api";
+import { getColombiaNow, getColombiaTodayString, createColombiaDate } from "@/lib/api";
 import { Prisma } from "@prisma/client";
 import { syncSavingsBudget } from "@/lib/savings-budget-sync";
 import { toNumber } from "@/lib/decimal-serializer";
@@ -150,7 +150,7 @@ export async function POST(
           data: {
             goalId: id,
             amount: linkedBalance,
-            date: getColombiaNow(),
+            date: createColombiaDate(getColombiaTodayString()),
             description: `Saldo de ${linkedName} al vincular`,
             accountId,
           },
@@ -252,7 +252,7 @@ export async function DELETE(
           data: {
             goalId: id,
             amount: -linkedBalance,
-            date: getColombiaNow(),
+            date: createColombiaDate(getColombiaTodayString()),
             description: `Desvinculación de ${unlinkName} — reversa de saldo`,
             accountId: link.accountId,
           },

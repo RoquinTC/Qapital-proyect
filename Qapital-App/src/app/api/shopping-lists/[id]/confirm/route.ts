@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getColombiaNow } from "@/lib/api";
+import { getColombiaNow, getColombiaTodayString, createColombiaDate } from "@/lib/api";
 import { toNumber } from "@/lib/decimal-serializer";
 
 export async function POST(
@@ -61,7 +61,7 @@ export async function POST(
         category: "Alimentación",
         sourceModule: "pantry",
         sourceId: list.id,
-        date: getColombiaNow(),
+        date: createColombiaDate(getColombiaTodayString()),
         accountId: null,
         subAccountId: null,
       },
