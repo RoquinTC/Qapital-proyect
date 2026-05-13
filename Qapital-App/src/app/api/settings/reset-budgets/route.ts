@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getCurrentBudgetPeriod, needsBudgetReset } from "@/lib/holidays";
+import { getColombiaNow } from "@/lib/api";
 
 export async function POST() {
   try {
@@ -21,7 +22,8 @@ export async function POST() {
 
     const period = getCurrentBudgetPeriod(
       settings.budgetCutoffDay,
-      settings.respectHolidays
+      settings.respectHolidays,
+      getColombiaNow()
     );
 
     // Check if reset is actually needed

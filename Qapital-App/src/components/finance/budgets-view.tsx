@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch, formatCurrency, calcPercentage } from "@/lib/api";
+import { apiFetch, formatCurrency, calcPercentage, toColombiaDateString } from "@/lib/api";
 import { BudgetForm } from "./budget-form";
 import { TransactionForm } from "./transaction-form";
 import { SpendingIncomeChart } from "./spending-income-chart";
@@ -230,8 +230,8 @@ export function BudgetsView() {
 
       const params = new URLSearchParams({
         category,
-        startDate: period.start.split("T")[0],
-        endDate: period.end.split("T")[0],
+        startDate: toColombiaDateString(period.start),
+        endDate: toColombiaDateString(period.end),
         type: type || "expense",
       });
 

@@ -24,8 +24,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install su-exec for privilege dropping (entrypoint runs as root, app as nextjs)
-RUN apk add --no-cache su-exec
+# Set timezone to Colombia (UTC-5) so new Date() returns Colombia time
+ENV TZ=America/Bogota
+RUN apk add --no-cache su-exec tzdata
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs

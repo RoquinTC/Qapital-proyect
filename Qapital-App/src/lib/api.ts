@@ -484,18 +484,20 @@ export function toColombiaDateString(date: Date | string): string {
   return date.toLocaleDateString("sv-SE", { timeZone: COLOMBIA_TIMEZONE });
 }
 
-// Parse a date string as a local date (avoids UTC timezone offset shifting the day)
+// Parse a date string as a Colombia-local date (avoids UTC/browser timezone offset shifting the day)
+// Always creates Date at midnight Colombia (05:00 UTC) so toColombiaDateString() returns the correct date
 function parseLocalDate(date: Date | string): Date {
   if (typeof date === "string") {
-    // Extract the date portion (YYYY-MM-DD) and build a local-midnight Date
+    // Extract the date portion (YYYY-MM-DD) and build a Colombia-midnight Date
     const datePart = date.split("T")[0]; // handles both "2026-04-10" and "2026-04-10T00:00:00.000Z"
     const [y, m, d] = datePart.split("-").map(Number);
-    return new Date(y, m - 1, d);
+    // Colombia is UTC-5, so midnight Colombia = 5:00 UTC
+    return new Date(Date.UTC(y, m - 1, d, 5, 0, 0, 0));
   }
   return date;
 }
 
-// Format date in Spanish locale
+// Format date in Spanish locale (Colombia timezone)
 export function formatDate(date: Date | string): string {
   if (!date) return "—";
   const d = parseLocalDate(date);
@@ -504,10 +506,11 @@ export function formatDate(date: Date | string): string {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: COLOMBIA_TIMEZONE,
   }).format(d);
 }
 
-// Format short date
+// Format short date (Colombia timezone)
 export function formatShortDate(date: Date | string): string {
   if (!date) return "—";
   const d = parseLocalDate(date);
@@ -515,6 +518,7 @@ export function formatShortDate(date: Date | string): string {
   return new Intl.DateTimeFormat("es-CO", {
     day: "numeric",
     month: "short",
+    timeZone: COLOMBIA_TIMEZONE,
   }).format(d);
 }
 

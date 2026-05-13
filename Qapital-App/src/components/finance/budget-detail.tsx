@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch, formatCurrency, formatDate } from "@/lib/api";
+import { apiFetch, formatCurrency, formatDate, getColombiaNow, toColombiaDateString } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -48,9 +48,9 @@ export function BudgetDetail({ budgetId, onBack }: BudgetDetailProps) {
         const settings = await apiFetch<UserSettings>("/api/settings");
         const cutoffDay = settings?.budgetCutoffDay || 1;
         const respectHolidays = settings?.respectHolidays ?? true;
-        const { start, end } = getCurrentBudgetPeriod(cutoffDay, respectHolidays, new Date());
-        startDate = start.toISOString();
-        endDate = end.toISOString();
+        const { start, end } = getCurrentBudgetPeriod(cutoffDay, respectHolidays, getColombiaNow());
+        startDate = toColombiaDateString(start);
+        endDate = toColombiaDateString(end);
       } catch {
         // If settings fetch fails, proceed without date filter
       }

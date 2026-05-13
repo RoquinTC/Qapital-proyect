@@ -87,6 +87,7 @@ function formatDateShort(dateStr: string): string {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "America/Bogota",
   });
 }
 

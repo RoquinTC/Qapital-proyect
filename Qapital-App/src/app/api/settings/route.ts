@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getCurrentBudgetPeriod, needsBudgetReset } from "@/lib/holidays";
 import { validateBody, settingsUpdateSchema } from "@/lib/validations";
+import { getColombiaNow } from "@/lib/api";
 
 export async function GET() {
   try {
@@ -29,10 +30,11 @@ export async function GET() {
       });
     }
 
-    // Calculate current budget period info
+    // Calculate current budget period info using Colombia time
     const period = getCurrentBudgetPeriod(
       settings.budgetCutoffDay,
-      settings.respectHolidays
+      settings.respectHolidays,
+      getColombiaNow()
     );
     const needsReset = needsBudgetReset(settings.lastBudgetReset, period.start);
 
@@ -105,10 +107,11 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    // Calculate updated period info
+    // Calculate updated period info using Colombia time
     const period = getCurrentBudgetPeriod(
       settings.budgetCutoffDay,
-      settings.respectHolidays
+      settings.respectHolidays,
+      getColombiaNow()
     );
     const needsReset = needsBudgetReset(settings.lastBudgetReset, period.start);
 

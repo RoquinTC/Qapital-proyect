@@ -6,6 +6,7 @@ import { syncSavingsBudget } from "@/lib/savings-budget-sync";
 import { verifyEntityOwnership } from "@/lib/auth-guards";
 import { toNumber } from "@/lib/decimal-serializer";
 import { validateBody, recurringConfirmSchema } from "@/lib/validations";
+import { createColombiaDate, getColombiaTodayString } from "@/lib/api";
 
 /**
  * Calculate the next scheduled date for a recurring payment.
@@ -139,7 +140,9 @@ export async function POST(
     }
 
     const confirmedAmount = actualAmount !== undefined ? actualAmount : payment.amount;
-    const now = new Date();
+    // Use Colombia date for transaction creation (midnight Colombia = 05:00 UTC)
+    // This ensures transactions are stored consistently regardless of server timezone
+    const todayColombia = createColombiaDate(getColombiaTodayString());
 
     // Check if this is a savings goal transfer (category: "Ahorros")
     const isSavingsGoal = payment.category === "Ahorros";
@@ -178,7 +181,7 @@ export async function POST(
       data: {
         status: "confirmed",
         actualAmount: confirmedAmount,
-        confirmedDate: now,
+        confirmedDate: todayColombia,
         // Update destination if provided (for savings goals)
         destinationAccountId: effectiveDestAccountId || payment.destinationAccountId,
         destinationSubAccountId: effectiveDestSubAccountId !== undefined ? effectiveDestSubAccountId : payment.destinationSubAccountId,
@@ -209,7 +212,7 @@ export async function POST(
           description: payment.description,
           category: payment.category || null,
           subCategory: payment.subCategory || null,
-          date: now,
+          date: todayColombia,
           sourceModule: "finance",
           sourceId: payment.id,
           isRecurring: true,
@@ -246,7 +249,7 @@ export async function POST(
           description: `Transferencia recibida: ${payment.description}`,
           category: isSavingsGoal ? "Ahorros" : "Otros",
           subCategory: isSavingsGoal ? payment.subCategory : null,
-          date: now,
+          date: todayColombia,
           sourceModule: isSavingsGoal ? "finance" : undefined,
           notes: `Transferencia recurrente desde ${sourceAccount?.name || "cuenta"}`,
           relatedTransactionId: transferTx.id,
@@ -278,7 +281,7 @@ export async function POST(
           data: {
             goalId: linkedGoalId,
             amount: confirmedAmount,
-            date: now,
+            date: todayColombia,
             description: `Cuota de ahorro (${payment.frequency})`,
             accountId: effectiveDestAccountId,
             transactionId: counterpart.id,
@@ -302,7 +305,7 @@ export async function POST(
             });
           } else {
             // Recalculate cuota for remaining payments linked to this goal
-            const diffMs = goal.deadline.getTime() - now.getTime();
+            const diffMs = goal.deadline.getTime() - todayColombia.getTime();
             const diffDays = diffMs / (1000 * 60 * 60 * 24);
             let periods: number;
             switch (goal.frequency) {
@@ -342,23 +345,23 @@ export async function POST(
 
       // 2. Create an Installment record
       // Calculate nextPaymentDate based on cutoff and payment dates
-      const nextPayment = new Date(now);
+      const nextPayment = new Date(todayColombia);
       if (payment.debt?.paymentDate) {
         // Determine which cycle this purchase belongs to
         let cycleMonth: number;
         let cycleYear: number;
-        if (payment.debt.cutoffDate && now.getDate() >= payment.debt.cutoffDate) {
+        if (payment.debt.cutoffDate && todayColombia.getDate() >= payment.debt.cutoffDate) {
           // Purchase is ON or AFTER cutoff → belongs to NEXT month's cycle
-          cycleMonth = now.getMonth() + 1;
-          cycleYear = now.getFullYear();
+          cycleMonth = todayColombia.getMonth() + 1;
+          cycleYear = todayColombia.getFullYear();
           if (cycleMonth > 11) {
             cycleMonth = 0;
             cycleYear += 1;
           }
         } else {
           // Purchase is BEFORE cutoff → belongs to THIS month's cycle
-          cycleMonth = now.getMonth();
-          cycleYear = now.getFullYear();
+          cycleMonth = todayColombia.getMonth();
+          cycleYear = todayColombia.getFullYear();
         }
 
         // Calculate payment month based on relationship between paymentDate and cutoffDate
@@ -393,7 +396,7 @@ export async function POST(
           currentInstallment: 1,
           installmentAmount: confirmedAmount,
           paidAmount: 0,
-          purchaseDate: now,
+          purchaseDate: todayColombia,
           nextPaymentDate: nextPayment,
           isPaid: false,
           accountId: payment.accountId || null,
@@ -442,7 +445,7 @@ export async function POST(
             description: payment.description,
             category: payment.category || "Sueldo",
             subCategory: payment.subCategory || null,
-            date: now,
+            date: todayColombia,
             sourceModule: "finance",
             sourceId: payment.id,
             isRecurring: true,
@@ -501,7 +504,7 @@ export async function POST(
             description: payment.description,
             category: payment.category || "Pagos Recurrentes",
             subCategory: payment.subCategory || null,
-            date: now,
+            date: todayColombia,
             sourceModule: "finance",
             sourceId: payment.id,
             isRecurring: true,
