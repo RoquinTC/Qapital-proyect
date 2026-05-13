@@ -148,35 +148,59 @@ function groupByDate(transactions: Transaction[]) {
   return groups.filter((g) => g.transactions.length > 0);
 }
 
-// Cycle date calculator
+// Cycle date calculator — all dates in Colombia timezone (UTC-5)
+// Creates Date objects at midnight Colombia (05:00 UTC) so that
+// toColombiaDateString() returns the correct date regardless of browser timezone
 function getCycleDates(cutoffDay: number, offset: number = 0) {
   const now = new Date();
-  const refDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-  const year = refDate.getFullYear();
-  const month = refDate.getMonth();
-  const maxDay = new Date(year, month + 1, 0).getDate();
-  const startDay = Math.min(cutoffDay, maxDay);
-  const start = new Date(year, month, startDay);
-  if (offset <= 0) {
-    if (now < start) {
-      const prevMonth = new Date(year, month - 1, 1);
-      const prevMaxDay = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate();
-      start.setDate(1);
-      start.setMonth(month - 1);
-      start.setDate(Math.min(cutoffDay, prevMaxDay));
-    }
+  // Get current date in Colombia as numbers (colMonth is 1-based)
+  const colombiaDateStr = now.toLocaleDateString("sv-SE", { timeZone: "America/Bogota" });
+  const [colYear, colMonth, colDay] = colombiaDateStr.split("-").map(Number);
+
+  // Reference month with offset (1-based)
+  let refYear = colYear;
+  let refMonth = colMonth + offset;
+  while (refMonth > 12) { refMonth -= 12; refYear++; }
+  while (refMonth < 1) { refMonth += 12; refYear--; }
+
+  // Determine the actual start month
+  let startYear = refYear;
+  let startMonth = refMonth; // 1-based
+  const refMaxDay = new Date(refYear, refMonth, 0).getDate();
+  const startDay = Math.min(cutoffDay, refMaxDay);
+
+  // If current Colombia day is before cutoff and no offset, go to previous month
+  if (offset <= 0 && colDay < startDay) {
+    startMonth--;
+    if (startMonth < 1) { startMonth = 12; startYear--; }
   }
-  const nextMonth = new Date(start.getFullYear(), start.getMonth() + 1, 1);
-  const nextMaxDay = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate();
-  const end = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), Math.min(cutoffDay, nextMaxDay) - 1);
-  start.setHours(0, 0, 0, 0);
-  end.setHours(23, 59, 59, 999);
+
+  // Compute start date
+  const startMaxDay = new Date(startYear, startMonth, 0).getDate();
+  const actualStartDay = Math.min(cutoffDay, startMaxDay);
+
+  // Compute end date = day before cutoff of next month
+  let endMonth = startMonth + 1;
+  let endYear = startYear;
+  if (endMonth > 12) { endMonth = 1; endYear++; }
+  const endMaxDay = new Date(endYear, endMonth, 0).getDate();
+  const endCutoffDay = Math.min(cutoffDay, endMaxDay);
+  // Use JS day arithmetic (day 0 = last day of previous month) to handle cutoffDay=1
+  const endDateObj = new Date(endYear, endMonth - 1, endCutoffDay - 1);
+  const endYearActual = endDateObj.getFullYear();
+  const endMonthActual = endDateObj.getMonth() + 1;
+  const endDayActual = endDateObj.getDate();
+
+  // Create as midnight Colombia (05:00 UTC) for correct timezone conversion
+  const start = new Date(Date.UTC(startYear, startMonth - 1, actualStartDay, 5, 0, 0, 0));
+  const end = new Date(Date.UTC(endYearActual, endMonthActual - 1, endDayActual, 5, 0, 0, 0));
+
   return { start, end };
 }
 
 function formatCycleLabel(start: Date, end: Date): string {
-  const startStr = start.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
-  const endStr = end.toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
+  const startStr = start.toLocaleDateString("es-CO", { day: "numeric", month: "short", timeZone: "America/Bogota" });
+  const endStr = end.toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Bogota" });
   return `${startStr} - ${endStr}`;
 }
 
