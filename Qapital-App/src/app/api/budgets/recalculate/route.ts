@@ -84,23 +84,42 @@ export async function POST() {
 
       // Source A: Direct transactions (expense or income) from accounts
       // Exclude "transfer" type — CC payments are transfers, not new expenses
+      //
+      // IMPORTANT: We use AND with OR sub-conditions instead of top-level
+      // `sourceModule: { not: "finance_transfer" }` because Prisma's `{ not: }`
+      // generates SQL `<>` which EXCLUDES NULL rows (NULL <> value → NULL → falsy).
+      // Manual transactions have sourceModule=NULL, so they would be silently dropped.
       const txWhereClause: Record<string, unknown> = {
         userId,
         date: { gte: periodStart, lt: new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000) },
         type: budget.type, // "expense" or "income"
-        // Exclude transfer-type transactions (CC payments)
-        sourceModule: { not: "finance_transfer" },
-        // Exclude transactions marked as excluded from budget
-        excludeFromBudget: { not: true },
+        AND: [
+          // Include sourceModule=NULL (manual) and anything that isn't "finance_transfer"
+          {
+            OR: [
+              { sourceModule: null },
+              { sourceModule: { not: "finance_transfer" } },
+            ],
+          },
+          // Include excludeFromBudget=false or NULL (exclude only explicitly-true)
+          {
+            OR: [
+              { excludeFromBudget: false },
+              { excludeFromBudget: null },
+            ],
+          },
+        ],
       };
 
       if (budget.subCategory) {
         // Match transactions that have the exact subCategory OR have no subCategory
         // (parent-level transactions belong to all sub-budgets of that category)
-        txWhereClause.OR = [
-          { category: budget.category, subCategory: budget.subCategory },
-          { category: budget.category, subCategory: null },
-        ];
+        (txWhereClause.AND as unknown[]).push({
+          OR: [
+            { category: budget.category, subCategory: budget.subCategory },
+            { category: budget.category, subCategory: null },
+          ],
+        });
       } else {
         // For parent budgets (no subCategory): sum ALL transactions in that category
         txWhereClause.category = budget.category;

@@ -46,19 +46,40 @@ export async function GET(req: NextRequest) {
 
     // ── Source 1: Direct transactions ──
     // Match both exact subCategory and null subCategory
+    //
+    // IMPORTANT: We use AND with OR sub-conditions instead of top-level
+    // `sourceModule: { not: "finance_transfer" }` because Prisma's `{ not: }`
+    // generates SQL `<>` which EXCLUDES NULL rows (NULL <> value → NULL → falsy).
+    // Manual transactions have sourceModule=NULL, so they would be silently dropped.
     const txWhere: Record<string, unknown> = {
       userId,
       date: { gte: periodStart, lt: periodEndPlus },
       type,
-      sourceModule: { not: "finance_transfer" },
-      excludeFromBudget: { not: true },
+      AND: [
+        // Include sourceModule=NULL (manual) and anything that isn't "finance_transfer"
+        {
+          OR: [
+            { sourceModule: null },
+            { sourceModule: { not: "finance_transfer" } },
+          ],
+        },
+        // Include excludeFromBudget=false or NULL (exclude only explicitly-true)
+        {
+          OR: [
+            { excludeFromBudget: false },
+            { excludeFromBudget: null },
+          ],
+        },
+      ],
     };
 
     if (subCategory) {
-      txWhere.OR = [
-        { category, subCategory },
-        { category, subCategory: null },
-      ];
+      (txWhere.AND as unknown[]).push({
+        OR: [
+          { category, subCategory },
+          { category, subCategory: null },
+        ],
+      });
     } else {
       txWhere.category = category;
     }

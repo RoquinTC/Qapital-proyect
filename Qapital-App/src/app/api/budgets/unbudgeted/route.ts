@@ -49,14 +49,33 @@ export async function GET() {
     }
 
     // Get all transactions in the current period (exclude transfers and excluded-from-budget)
+    //
+    // IMPORTANT: We use AND with OR sub-conditions instead of top-level
+    // `sourceModule: { not: "finance_transfer" }` because Prisma's `{ not: }`
+    // generates SQL `<>` which EXCLUDES NULL rows (NULL <> value → NULL → falsy).
+    // Manual transactions have sourceModule=NULL, so they would be silently dropped.
     const transactions = await db.transaction.findMany({
       where: {
         userId,
         date: { gte: periodStart, lt: new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000) },
         type: { in: ["income", "expense"] },
         category: { not: null },
-        sourceModule: { not: "finance_transfer" },
-        excludeFromBudget: { not: true },
+        AND: [
+          // Include sourceModule=NULL (manual) and anything that isn't "finance_transfer"
+          {
+            OR: [
+              { sourceModule: null },
+              { sourceModule: { not: "finance_transfer" } },
+            ],
+          },
+          // Include excludeFromBudget=false or NULL (exclude only explicitly-true)
+          {
+            OR: [
+              { excludeFromBudget: false },
+              { excludeFromBudget: null },
+            ],
+          },
+        ],
       },
       select: {
         category: true,

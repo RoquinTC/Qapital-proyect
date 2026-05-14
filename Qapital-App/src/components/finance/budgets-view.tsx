@@ -246,19 +246,24 @@ export function BudgetsView() {
   };
 
   // ── Toggle & fetch movements using the new API ──
-  const toggleCategory = (category: string, type?: "income" | "expense") => {
+  // Cache key includes type to differentiate expense vs income for same category
+  const movKey = (category: string, type?: string) => `${type || "expense"}:${category}`;
+
+  const toggleCategory = (category: string, type?: "income" | "expense", subCategory?: string | null) => {
+    const key = movKey(category, type);
     setExpandedCategories((prev) => {
-      const newState = { ...prev, [category]: !prev[category] };
+      const newState = { ...prev, [key]: !prev[key] };
       // Fetch movements when expanding
-      if (!prev[category] && !categoryMovements[category]) {
-        fetchCategoryMovements(category, undefined, type);
+      if (!prev[key] && !categoryMovements[key]) {
+        fetchCategoryMovements(category, subCategory, type);
       }
       return newState;
     });
   };
 
   const fetchCategoryMovements = async (category: string, subCategory?: string | null, type?: string) => {
-    setLoadingMovements((prev) => ({ ...prev, [category]: true }));
+    const key = movKey(category, type);
+    setLoadingMovements((prev) => ({ ...prev, [key]: true }));
     try {
       const params = new URLSearchParams({
         category,
@@ -269,12 +274,12 @@ export function BudgetsView() {
       const data = await apiFetch<{ movements: BudgetMovement[]; total: number; totalAmount: number }>(
         `/api/budgets/movements?${params.toString()}`
       );
-      setCategoryMovements((prev) => ({ ...prev, [category]: data.movements || [] }));
+      setCategoryMovements((prev) => ({ ...prev, [key]: data.movements || [] }));
     } catch (error) {
       console.error("Error fetching category movements:", error);
-      setCategoryMovements((prev) => ({ ...prev, [category]: [] }));
+      setCategoryMovements((prev) => ({ ...prev, [key]: [] }));
     } finally {
-      setLoadingMovements((prev) => ({ ...prev, [category]: false }));
+      setLoadingMovements((prev) => ({ ...prev, [key]: false }));
     }
   };
 
@@ -516,9 +521,10 @@ export function BudgetsView() {
 
     return Object.entries(groups).map(([category, group]) => {
       const hasChildren = group.children.length > 0;
-      const isExpanded = expandedCategories[category] ?? false;
-      const isLoading = loadingMovements[category] ?? false;
-      const movements = categoryMovements[category] || [];
+      const key = movKey(category, budgetType);
+      const isExpanded = expandedCategories[key] ?? false;
+      const isLoading = loadingMovements[key] ?? false;
+      const movements = categoryMovements[key] || [];
 
       // Calculate totals for the category
       const totalSpent = hasChildren
@@ -541,7 +547,7 @@ export function BudgetsView() {
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   {/* Expand/collapse toggle */}
                   <button
-                    onClick={() => toggleCategory(category, budgetType)}
+                    onClick={() => toggleCategory(category, budgetType, undefined)}
                     className="size-7 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors shrink-0"
                   >
                     {isExpanded ? (
@@ -681,9 +687,10 @@ export function BudgetsView() {
           {items.map((item) => {
             const CatIcon = categoryIcons[item.category] || DollarSign;
             const catKey = `unbudgeted-${item.type}-${item.category}`;
-            const isExpanded = expandedCategories[catKey] ?? false;
-            const isLoading = loadingMovements[catKey] ?? false;
-            const movements = categoryMovements[catKey] || [];
+            const mKey = movKey(item.category, item.type);
+            const isExpanded = expandedCategories[mKey] ?? false;
+            const isLoading = loadingMovements[mKey] ?? false;
+            const movements = categoryMovements[mKey] || [];
             const bgColor = item.type === "expense"
               ? "bg-amber-50 dark:bg-amber-900/20"
               : "bg-emerald-50 dark:bg-emerald-900/20";
@@ -699,7 +706,15 @@ export function BudgetsView() {
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <button
                           onClick={() => {
-                            toggleCategory(catKey, item.type as "income" | "expense");
+                            // Use the actual category name for the cache key (includes type prefix)
+                            const mKey = movKey(item.category, item.type);
+                            setExpandedCategories((prev) => {
+                              const newState = { ...prev, [mKey]: !prev[mKey] };
+                              if (!prev[mKey] && !categoryMovements[mKey]) {
+                                fetchCategoryMovements(item.category, undefined, item.type);
+                              }
+                              return newState;
+                            });
                           }}
                           className="size-7 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors shrink-0"
                         >
@@ -957,6 +972,21 @@ export function BudgetsView() {
             transition={{ duration: 0.2 }}
             className="space-y-3"
           >
+            {/* Recalculate button */}
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRecalculate}
+                disabled={recalculating}
+                className="rounded-xl text-xs gap-1.5 h-7 px-2.5 text-gray-500 hover:text-emerald-600"
+                title="Recalcular ingresos desde transacciones"
+              >
+                <RefreshCw className={`size-3 ${recalculating ? "animate-spin" : ""}`} />
+                {recalculating ? "Calculando..." : "Recalcular"}
+              </Button>
+            </div>
+
             {incomeBudgets.length === 0 && unbudgetedIncomes.length === 0 ? (
               <Card className="border-0 shadow-sm rounded-2xl bg-gray-50 dark:bg-gray-800/50">
                 <CardContent className="p-6 text-center">
