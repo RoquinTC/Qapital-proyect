@@ -36,6 +36,9 @@ services:
       - GITHUB_REPO=${GITHUB_REPO}
       - LOCAL_AI_BASE_URL=http://ollama:11434/v1
       - LOCAL_AI_MODEL=llama3.2:3b
+    volumes:
+      - ./Aura-IA/firebase-key.json:/app/firebase-key.json
+      - ./Aura-IA/credentials.json:/app/credentials.json
     depends_on:
       - ollama
     restart: unless-stopped
