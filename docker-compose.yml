@@ -41,6 +41,7 @@ services:
       - LOCAL_AI_MODEL_SENSES=${LOCAL_AI_MODEL_SENSES:-llava:7b}
       - LOCAL_AI_MODEL_FAST_ACTION=${LOCAL_AI_MODEL_FAST_ACTION:-llama3.2:1b}
       - DATABASE_URL=file:/data/db/custom.db
+    volumes:
       - ./Aura-IA/firebase-key.json:/app/firebase-key.json
       - ./Aura-IA/credentials.json:/app/credentials.json
       - qapital-db:/data/db:ro
