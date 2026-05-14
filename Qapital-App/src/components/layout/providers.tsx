@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { SyncProvider } from "@/lib/local/sync/provider";
 import { PWAProvider } from "@/components/pwa";
+import { AutoBackupHandler } from "@/components/settings/auto-backup-handler";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <SyncProvider>
         <PWAProvider>
+          <AutoBackupHandler />
           {children}
         </PWAProvider>
       </SyncProvider>

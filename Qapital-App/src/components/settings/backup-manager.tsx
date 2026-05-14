@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,10 @@ import {
   ShieldCheck,
   FileJson,
   Info,
-  Search,
+  Cloud,
+  CloudUpload,
+  Clock,
+  Server,
 } from "lucide-react";
 
 interface ValidationSection {
@@ -48,6 +51,14 @@ interface ValidationResult {
   warnings: string[];
 }
 
+interface ServerBackupInfo {
+  hasBackup: boolean;
+  id?: string;
+  version?: number;
+  recordCount?: number;
+  createdAt?: string;
+}
+
 export function BackupManager() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -62,6 +73,34 @@ export function BackupManager() {
   const [pendingBackupRaw, setPendingBackupRaw] = useState<string | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Server backup state
+  const [serverBackupInfo, setServerBackupInfo] = useState<ServerBackupInfo | null>(null);
+  const [savingToServer, setSavingToServer] = useState(false);
+  const [serverSaveResult, setServerSaveResult] = useState<string | null>(null);
+  const [restoringFromServer, setRestoringFromServer] = useState(false);
+  const [serverRestoreResult, setServerRestoreResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+  const [showServerRestoreDialog, setShowServerRestoreDialog] = useState(false);
+
+  // Fetch server backup info
+  const fetchServerBackupInfo = useCallback(async () => {
+    try {
+      const res = await fetch("/api/backup/server-latest");
+      if (res.ok) {
+        const data = await res.json();
+        setServerBackupInfo(data);
+      }
+    } catch {
+      // non-critical
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchServerBackupInfo();
+  }, [fetchServerBackupInfo]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -88,18 +127,6 @@ export function BackupManager() {
       a.click();
       URL.revokeObjectURL(url);
 
-      // Save backup metadata to localStorage for auto-restore detection
-      try {
-        const backupMeta = {
-          date: new Date().toISOString(),
-          filename,
-          userId: "current", // scoped per user in app-shell
-        };
-        localStorage.setItem("qapital-last-backup", JSON.stringify(backupMeta));
-      } catch {
-        // localStorage not available, non-critical
-      }
-
       setExportResult("Respaldo descargado exitosamente");
       setTimeout(() => setExportResult(null), 4000);
     } catch (error) {
@@ -110,6 +137,46 @@ export function BackupManager() {
       setTimeout(() => setExportResult(null), 5000);
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleSaveToServer = async () => {
+    setSavingToServer(true);
+    setServerSaveResult(null);
+    try {
+      const res = await fetch("/api/backup/server-save", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setServerSaveResult(`Respaldo guardado en servidor (${data.recordCount} registros)`);
+        fetchServerBackupInfo();
+      } else {
+        setServerSaveResult(data.error || "Error al guardar en servidor");
+      }
+    } catch (error) {
+      setServerSaveResult("Error de conexión al guardar en servidor");
+    } finally {
+      setSavingToServer(false);
+      setTimeout(() => setServerSaveResult(null), 5000);
+    }
+  };
+
+  const handleRestoreFromServer = async () => {
+    setShowServerRestoreDialog(false);
+    setRestoringFromServer(true);
+    setServerRestoreResult(null);
+    try {
+      const res = await fetch("/api/backup/server-restore", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setServerRestoreResult({ success: true, message: "Respaldo restaurado exitosamente" });
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        setServerRestoreResult({ success: false, message: data.error || "Error al restaurar" });
+      }
+    } catch (error) {
+      setServerRestoreResult({ success: false, message: "Error de conexión al restaurar" });
+    } finally {
+      setRestoringFromServer(false);
     }
   };
 
@@ -124,7 +191,6 @@ export function BackupManager() {
     try {
       const text = await file.text();
 
-      // Quick client-side check before hitting the server
       let data;
       try {
         data = JSON.parse(text);
@@ -146,7 +212,6 @@ export function BackupManager() {
         return;
       }
 
-      // Send to server for full validation
       const response = await fetch("/api/backup/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -157,11 +222,9 @@ export function BackupManager() {
       setValidation(validationResult);
       setPendingBackupRaw(text);
 
-      // Only show import dialog if validation passed
       if (validationResult.valid) {
         setShowImportDialog(true);
       }
-      // If not valid, the validation result with issues is shown inline
     } catch (error) {
       console.error("Validation error:", error);
       setImportResult({
@@ -222,11 +285,17 @@ export function BackupManager() {
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: "America/Bogota",
       });
     } catch {
       return isoDate;
     }
   };
+
+  const isTodayBackup = serverBackupInfo?.createdAt
+    ? new Date(serverBackupInfo.createdAt).toLocaleDateString("sv-SE", { timeZone: "America/Bogota" }) ===
+      new Date().toLocaleDateString("sv-SE", { timeZone: "America/Bogota" })
+    : false;
 
   return (
     <Card className="border border-amber-200 dark:border-amber-800/40 shadow-none rounded-xl">
@@ -241,7 +310,7 @@ export function BackupManager() {
               Respaldo y Recuperación
             </p>
             <p className="text-[10px] text-gray-400">
-              Exporta o restaura todos tus datos
+              Exporta, restaura o guarda en el servidor
             </p>
           </div>
           <Badge variant="secondary" className="text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 shrink-0">
@@ -249,36 +318,99 @@ export function BackupManager() {
           </Badge>
         </div>
 
+        {/* Server backup status indicator */}
+        {serverBackupInfo?.hasBackup && (
+          <div className={`rounded-xl p-2.5 flex items-center gap-2 ${isTodayBackup ? "bg-emerald-50 dark:bg-emerald-900/10" : "bg-blue-50 dark:bg-blue-900/10"}`}>
+            {isTodayBackup ? (
+              <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+            ) : (
+              <Clock className="size-3.5 text-blue-500 shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className={`text-[10px] font-medium ${isTodayBackup ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"}`}>
+                {isTodayBackup ? "Backup del día de hoy" : "Último backup del servidor"}
+              </p>
+              <p className="text-[9px] text-gray-500 dark:text-gray-400 truncate">
+                {formatBackupDate(serverBackupInfo.createdAt!)} · {serverBackupInfo.recordCount} registros
+              </p>
+            </div>
+            <Server className="size-3 text-gray-400 shrink-0" />
+          </div>
+        )}
+
+        {!serverBackupInfo?.hasBackup && (
+          <div className="bg-amber-50 dark:bg-amber-900/10 rounded-xl p-2.5 flex items-center gap-2">
+            <Cloud className="size-3.5 text-amber-500 shrink-0" />
+            <p className="text-[10px] text-amber-600 dark:text-amber-400">
+              No hay respaldo en el servidor. Guarda uno para proteger tus datos.
+            </p>
+          </div>
+        )}
+
         {/* Info box */}
         <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-2.5 space-y-1.5">
           <div className="flex items-start gap-1.5">
             <Info className="size-3 text-blue-500 shrink-0 mt-0.5" />
             <p className="text-[10px] text-blue-600 dark:text-blue-400">
-              El respaldo guarda <strong>todos</strong> tus datos: cuentas, transacciones, presupuestos, deudas, ahorros, vehículos y más.
-              Útil para recuperar tu información si cambias de dispositivo o la base de datos falla.
+              El respaldo en servidor se guarda dentro del volumen Docker, así persiste aunque cambies de dispositivo.
+              Se crea automáticamente al primer inicio del día.
             </p>
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1 rounded-xl text-xs gap-1.5 border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 h-8"
-            onClick={handleExport}
-            disabled={exporting || importing || validating}
-          >
-            {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
-            Exportar Respaldo
-          </Button>
-          <Button
-            className="flex-1 rounded-xl text-xs gap-1.5 bg-amber-600 hover:bg-amber-700 text-white h-8"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={exporting || importing || validating}
-          >
-            {validating ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-            {validating ? "Validando..." : "Importar Respaldo"}
-          </Button>
+        {/* Action buttons - Server backup */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Servidor
+          </p>
+          <div className="flex gap-2">
+            <Button
+              className="flex-1 rounded-xl text-xs gap-1.5 bg-amber-600 hover:bg-amber-700 text-white h-8"
+              onClick={handleSaveToServer}
+              disabled={savingToServer || exporting || importing || validating}
+            >
+              {savingToServer ? <Loader2 className="size-3.5 animate-spin" /> : <CloudUpload className="size-3.5" />}
+              Guardar en Servidor
+            </Button>
+            {serverBackupInfo?.hasBackup && (
+              <Button
+                variant="outline"
+                className="flex-1 rounded-xl text-xs gap-1.5 border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 h-8"
+                onClick={() => setShowServerRestoreDialog(true)}
+                disabled={restoringFromServer || exporting || importing || validating}
+              >
+                {restoringFromServer ? <Loader2 className="size-3.5 animate-spin" /> : <Cloud className="size-3.5" />}
+                Restaurar del Servidor
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Action buttons - File */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Archivo local
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl text-xs gap-1.5 border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 h-8"
+              onClick={handleExport}
+              disabled={exporting || importing || validating}
+            >
+              {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+              Descargar
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl text-xs gap-1.5 border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 h-8"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={exporting || importing || validating}
+            >
+              {validating ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+              {validating ? "Validando..." : "Importar Archivo"}
+            </Button>
+          </div>
         </div>
 
         {/* Hidden file input */}
@@ -290,6 +422,49 @@ export function BackupManager() {
           onChange={handleFileSelect}
         />
 
+        {/* Server save result */}
+        {serverSaveResult && (
+          <div className={`rounded-xl p-2.5 flex items-center gap-2 ${
+            serverSaveResult.includes("Error") ? "bg-red-50 dark:bg-red-900/10" : "bg-emerald-50 dark:bg-emerald-900/10"
+          }`}>
+            {serverSaveResult.includes("Error") ? (
+              <AlertTriangle className="size-3.5 text-red-500 shrink-0" />
+            ) : (
+              <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+            )}
+            <p className={`text-[10px] ${serverSaveResult.includes("Error") ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+              {serverSaveResult}
+            </p>
+          </div>
+        )}
+
+        {/* Server restore result */}
+        {serverRestoreResult && (
+          <div className={`rounded-xl p-2.5 flex items-center gap-2 ${
+            serverRestoreResult.success ? "bg-emerald-50 dark:bg-emerald-900/10" : "bg-red-50 dark:bg-red-900/10"
+          }`}>
+            {serverRestoreResult.success ? (
+              <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+            ) : (
+              <AlertTriangle className="size-3.5 text-red-500 shrink-0" />
+            )}
+            <p className={`text-[10px] ${serverRestoreResult.success ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+              {serverRestoreResult.message}
+              {serverRestoreResult.success && " · Recargando..."}
+            </p>
+          </div>
+        )}
+
+        {/* Restoring from server progress */}
+        {restoringFromServer && (
+          <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-2.5 flex items-center gap-2">
+            <Loader2 className="size-3.5 text-blue-500 animate-spin shrink-0" />
+            <p className="text-[10px] text-blue-600 dark:text-blue-400">
+              Restaurando desde el servidor... Esto puede tardar unos segundos.
+            </p>
+          </div>
+        )}
+
         {/* Export result */}
         {exportResult && (
           <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-2.5 flex items-center gap-2">
@@ -300,7 +475,7 @@ export function BackupManager() {
           </div>
         )}
 
-        {/* Validation result (shown when validation fails or before import) */}
+        {/* Validation result */}
         {validation && !showImportDialog && (
           <div
             className={`rounded-xl p-3 space-y-2 ${
@@ -320,7 +495,6 @@ export function BackupManager() {
               </p>
             </div>
 
-            {/* Metadata summary */}
             <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 text-[10px] space-y-1">
               <div className="flex justify-between">
                 <span className="text-gray-500">Usuario:</span>
@@ -340,7 +514,6 @@ export function BackupManager() {
               </div>
             </div>
 
-            {/* Section counts */}
             {validation.sections.length > 0 && (
               <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9px] text-gray-600 dark:text-gray-400 pl-1">
                 {validation.sections.map((s) => (
@@ -349,7 +522,6 @@ export function BackupManager() {
               </div>
             )}
 
-            {/* Issues */}
             {validation.issues.length > 0 && (
               <div className="space-y-1">
                 {validation.issues.map((issue, i) => (
@@ -361,7 +533,6 @@ export function BackupManager() {
               </div>
             )}
 
-            {/* Warnings */}
             {validation.warnings.length > 0 && (
               <div className="space-y-1">
                 {validation.warnings.map((warning, i) => (
@@ -432,7 +603,7 @@ export function BackupManager() {
         )}
       </CardContent>
 
-      {/* Confirmation Dialog */}
+      {/* File import Confirmation Dialog */}
       <AlertDialog open={showImportDialog} onOpenChange={(open) => !open && cancelImport()}>
         <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
@@ -446,7 +617,6 @@ export function BackupManager() {
                   Estás a punto de restaurar un respaldo. <strong>Esto eliminará todos los datos actuales</strong> y los reemplazará con los del archivo.
                 </p>
 
-                {/* Validation summary from server */}
                 {validation && (
                   <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-3 space-y-1.5">
                     <div className="flex items-center gap-1.5 mb-1">
@@ -473,7 +643,6 @@ export function BackupManager() {
                         <Badge variant="secondary" className="text-[9px]">v{validation.metadata.version}</Badge>
                       </div>
                     </div>
-                    {/* Quick section summary */}
                     <div className="flex flex-wrap gap-1 pt-1">
                       {validation.sections.slice(0, 6).map((s) => (
                         <span key={s.name} className="text-[8px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
@@ -486,7 +655,6 @@ export function BackupManager() {
                         </span>
                       )}
                     </div>
-                    {/* Warnings in dialog */}
                     {validation.warnings.length > 0 && (
                       <div className="space-y-0.5 pt-1">
                         {validation.warnings.map((w, i) => (
@@ -516,6 +684,60 @@ export function BackupManager() {
               className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white"
             >
               Restaurar Respaldo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Server restore Confirmation Dialog */}
+      <AlertDialog open={showServerRestoreDialog} onOpenChange={setShowServerRestoreDialog}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-base">
+              <Server className="size-5 text-blue-500" />
+              Restaurar del Servidor
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  Se restaurará el último respaldo guardado en el servidor. <strong>Esto eliminará todos los datos actuales</strong>.
+                </p>
+
+                {serverBackupInfo?.hasBackup && (
+                  <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-3 space-y-1.5">
+                    <div className="text-[10px] space-y-1 text-gray-700 dark:text-gray-300">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Fecha:</span>
+                        <span className="font-medium">{formatBackupDate(serverBackupInfo.createdAt!)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Registros:</span>
+                        <span className="font-medium">{serverBackupInfo.recordCount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Versión:</span>
+                        <Badge variant="secondary" className="text-[9px]">v{serverBackupInfo.version}</Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-2.5 flex items-start gap-2">
+                  <AlertTriangle className="size-3.5 text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-red-600 dark:text-red-400">
+                    Esta acción no se puede deshacer. Los datos actuales serán reemplazados.
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRestoreFromServer}
+              className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Restaurar del Servidor
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

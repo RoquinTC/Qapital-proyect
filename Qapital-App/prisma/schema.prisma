@@ -49,6 +49,7 @@ model User {
   receivedInvitations AccountInvitation[]  @relation("ReceivedInvitations")
   notifications       AppNotification[]
   pushSubscriptions   PushSubscription[]
+  storedBackups       StoredBackup[]
 }
 
 // ============================================
@@ -766,4 +767,21 @@ model UserSettings {
   user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
+}
+
+// ============================================
+// STORED BACKUPS (Server-side)
+// ============================================
+
+model StoredBackup {
+  id          String   @id @default(cuid())
+  userId      String
+  data        String   // JSON string with the full backup data
+  version     Int      // Backup schema version
+  recordCount Int      // Total number of records in the backup
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("stored_backups")
 }
