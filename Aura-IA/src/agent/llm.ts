@@ -30,154 +30,15 @@ function truncate(text: string, max: number = 2000): string {
 export type TaskType = 'executive' | 'analyst' | 'engineer' | 'senses' | 'fast_action';
 
 export async function createChatCompletion(messages: any[], tools?: any[], taskType?: TaskType) {
-  // 1. Intentar con Google Gemini (Vía API Directa v1beta con camelCase)
-  if (env.GOOGLE_AI_KEY) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODELS.google}:generateContent?key=${env.GOOGLE_AI_KEY}`;
-      
-      // Limitar historial a los últimos 10 mensajes
-      let recentMessages = messages.slice(-10);
-
-      // Asegurar que el primer mensaje sea 'user'
-      while (recentMessages.length > 0 && recentMessages[0].role !== 'user') {
-        recentMessages.shift();
-      }
-      
-      if (recentMessages.length === 0) return null;
-
-      // Gemini requiere roles específicos: user, model, function
-      const contents: any[] = [];
-      recentMessages.forEach(m => {
-        let role = 'user';
-        if (m.role === 'assistant') role = 'model';
-        if (m.role === 'tool') role = 'function';
-
-        const text = truncate(m.content || '');
-
-        const parts: any[] = [];
-        if (text) {
-          parts.push({ text });
-        } else if (m.tool_calls) {
-          m.tool_calls.forEach((tc: any) => {
-            parts.push({
-              functionCall: {
-                name: tc.function.name,
-                args: JSON.parse(tc.function.arguments)
-              }
-            });
-          });
-        } else if (m.role === 'tool') {
-          parts.push({
-            functionResponse: {
-              name: m.name,
-              response: { content: m.content }
-            }
-          });
-        }
-
-        if (parts.length === 0) parts.push({ text: '[Mensaje vacío]' });
-
-        if (contents.length > 0 && contents[contents.length - 1].role === role) {
-          contents[contents.length - 1].parts.push(...parts);
-        } else {
-          contents.push({ role, parts });
-        }
-      });
-
-      if (contents.length > 0 && contents[contents.length - 1].role === 'model') {
-        contents.pop();
-      }
-
-      const body: any = {
-        contents,
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }
-      };
-
-      if (tools) {
-        body.tools = [{
-          functionDeclarations: tools.map(t => ({
-            name: t.function.name,
-            description: t.function.description,
-            parameters: t.function.parameters
-          }))
-        }];
-      }
-
-      const res = await axios.post(url, body);
-
-      if (!res.data.candidates || res.data.candidates.length === 0) {
-        throw new Error('Gemini no devolvió candidatos.');
-      }
-
-      const candidate = res.data.candidates[0].content;
-      const functionCalls = candidate.parts.filter((p: any) => p.functionCall);
-
-      if (functionCalls.length > 0) {
-        return {
-          role: 'assistant',
-          content: null,
-          tool_calls: functionCalls.map((p: any, i: number) => ({
-            id: `call_${Date.now()}_${i}`,
-            type: 'function',
-            function: {
-              name: p.functionCall.name,
-              arguments: JSON.stringify(p.functionCall.args)
-            }
-          }))
-        };
-      }
-
-      return { role: 'assistant', content: candidate.parts[0].text };
-    } catch (error: any) {
-      const msg = error.response?.data?.error?.message || error.message;
-      console.warn('⚠️ Google Gemini falló:', msg);
-    }
-  }
-
-  // 2. Fallback a Groq (Respaldo robusto)
-  try {
-    // Limpiar el historial para Groq (OpenAI format)
-    const groqMessages = messages.slice(-10).map(m => {
-      const msg: any = { role: m.role };
-
-      if (m.role === 'assistant' && m.tool_calls) {
-        msg.content = m.content || null;
-        msg.tool_calls = m.tool_calls;
-      } else if (m.role === 'tool') {
-        msg.content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-        msg.tool_call_id = m.tool_call_id;
-        msg.name = m.name;
-      } else {
-        msg.content = truncate(m.content || '', 1000);
-      }
-
-      // Groq no acepta contenido null si no hay tool_calls
-      if (!msg.content && !msg.tool_calls) msg.content = '[Mensaje vacío]';
-      return msg;
-    });
-
-    const response = await groqClient.chat.completions.create({
-      model: MODELS.groq,
-      messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...groqMessages],
-      tools: tools && tools.length > 0 ? tools : undefined,
-    });
-    return response.choices[0].message;
-  } catch (error: any) {
-    console.warn('⚠️ Fallback a Groq falló:', error.message);
-  }
-
-  // 3. Fallback a IA Local (Ollama Docker)
+  // 1. Intentar con IA Local (Nuestra Orquesta de Especialistas)
   try {
     const localBaseUrl = env.LOCAL_AI_BASE_URL || 'http://ollama:11434/v1';
-    console.log(`🤖 Intentando fallback a IA Local en: ${localBaseUrl}...`);
-    
     const localClient = new OpenAI({
       apiKey: 'local-no-key-required',
       baseURL: localBaseUrl,
     });
 
-    // Determinar el modelo según el TaskType o detección automática
-    let selectedModel = env.LOCAL_AI_MODEL_EXECUTIVE; // Por defecto el "Yo" de Aura
+    let selectedModel = env.LOCAL_AI_MODEL_EXECUTIVE;
 
     if (taskType) {
       switch (taskType) {
@@ -188,27 +49,17 @@ export async function createChatCompletion(messages: any[], tools?: any[], taskT
         case 'fast_action': selectedModel = env.LOCAL_AI_MODEL_FAST_ACTION; break;
       }
     } else {
-      // Detección automática inteligente si no se especifica
       const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
-      
       const isLogicTask = tools?.some(t => 
-        t.function.name.includes('db') || 
-        t.function.name.includes('query') || 
-        t.function.name.includes('calculate') ||
-        t.function.name.includes('finance')
+        t.function.name.includes('db') || t.function.name.includes('query') || 
+        t.function.name.includes('calculate') || t.function.name.includes('finance')
       ) || lastMessage.includes('cuanto') || lastMessage.includes('gasto') || lastMessage.includes('total');
-
       const isEngineerTask = lastMessage.includes('error') || lastMessage.includes('bug') || lastMessage.includes('fix') || lastMessage.includes('código') || lastMessage.includes('logs');
-      
       const isVisionTask = messages.some(m => Array.isArray(m.content) && m.content.some((p: any) => p.type === 'image_url'));
 
-      if (isVisionTask) {
-        selectedModel = env.LOCAL_AI_MODEL_SENSES;
-      } else if (isEngineerTask) {
-        selectedModel = env.LOCAL_AI_MODEL_ENGINEER;
-      } else if (isLogicTask) {
-        selectedModel = env.LOCAL_AI_MODEL_ANALYST;
-      }
+      if (isVisionTask) selectedModel = env.LOCAL_AI_MODEL_SENSES;
+      else if (isEngineerTask) selectedModel = env.LOCAL_AI_MODEL_ENGINEER;
+      else if (isLogicTask) selectedModel = env.LOCAL_AI_MODEL_ANALYST;
     }
 
     const localMessages = messages.slice(-10).map(m => {
@@ -236,9 +87,93 @@ export async function createChatCompletion(messages: any[], tools?: any[], taskT
     });
     return response.choices[0].message;
   } catch (error: any) {
-    console.warn('⚠️ Fallback a IA Local falló:', error.message);
+    console.warn('⚠️ IA Local no disponible, usando respaldo en la nube...', error.message);
   }
 
-  throw new Error('Todos los proveedores de LLM (Gemini, Groq, y Local) fallaron.');
+  // 2. Fallback a Google Gemini
+  if (env.GOOGLE_AI_KEY) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODELS.google}:generateContent?key=${env.GOOGLE_AI_KEY}`;
+      let recentMessages = messages.slice(-10);
+      while (recentMessages.length > 0 && recentMessages[0].role !== 'user') recentMessages.shift();
+      if (recentMessages.length === 0) return null;
+
+      const contents: any[] = [];
+      recentMessages.forEach(m => {
+        let role = 'user';
+        if (m.role === 'assistant') role = 'model';
+        if (m.role === 'tool') role = 'function';
+        const text = truncate(m.content || '');
+        const parts: any[] = [];
+        if (text) parts.push({ text });
+        else if (m.tool_calls) {
+          m.tool_calls.forEach((tc: any) => {
+            parts.push({ functionCall: { name: tc.function.name, args: JSON.parse(tc.function.arguments) } });
+          });
+        } else if (m.role === 'tool') {
+          parts.push({ functionResponse: { name: m.name, response: { content: m.content } } });
+        }
+        if (parts.length === 0) parts.push({ text: '[Mensaje vacío]' });
+        if (contents.length > 0 && contents[contents.length - 1].role === role) contents[contents.length - 1].parts.push(...parts);
+        else contents.push({ role, parts });
+      });
+
+      if (contents.length > 0 && contents[contents.length - 1].role === 'model') contents.pop();
+
+      const body: any = { contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } };
+      if (tools) body.tools = [{ functionDeclarations: tools.map(t => ({ name: t.function.name, description: t.function.description, parameters: t.function.parameters })) }];
+
+      const res = await axios.post(url, body);
+      if (!res.data.candidates || res.data.candidates.length === 0) throw new Error('Gemini no devolvió candidatos.');
+
+      const candidate = res.data.candidates[0].content;
+      const functionCalls = candidate.parts.filter((p: any) => p.functionCall);
+
+      if (functionCalls.length > 0) {
+        return {
+          role: 'assistant',
+          content: null,
+          tool_calls: functionCalls.map((p: any, i: number) => ({
+            id: `call_${Date.now()}_${i}`,
+            type: 'function',
+            function: { name: p.functionCall.name, arguments: JSON.stringify(p.functionCall.args) }
+          }))
+        };
+      }
+      return { role: 'assistant', content: candidate.parts[0].text };
+    } catch (error: any) {
+      console.warn('⚠️ Google Gemini falló.');
+    }
+  }
+
+  // 3. Último recurso: Groq
+  try {
+    const groqMessages = messages.slice(-10).map(m => {
+      const msg: any = { role: m.role };
+      if (m.role === 'assistant' && m.tool_calls) {
+        msg.content = m.content || null;
+        msg.tool_calls = m.tool_calls;
+      } else if (m.role === 'tool') {
+        msg.content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+        msg.tool_call_id = m.tool_call_id;
+        msg.name = m.name;
+      } else {
+        msg.content = truncate(m.content || '', 1000);
+      }
+      if (!msg.content && !msg.tool_calls) msg.content = '[Mensaje vacío]';
+      return msg;
+    });
+
+    const response = await groqClient.chat.completions.create({
+      model: MODELS.groq,
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...groqMessages],
+      tools: tools && tools.length > 0 ? tools : undefined,
+    });
+    return response.choices[0].message;
+  } catch (error: any) {
+    console.warn('⚠️ Fallback a Groq falló:', error.message);
+  }
+
+  throw new Error('Todos los proveedores de LLM fallaron.');
 }
 
