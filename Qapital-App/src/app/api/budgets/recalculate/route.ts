@@ -88,7 +88,6 @@ export async function POST() {
         userId,
         date: { gte: periodStart, lt: new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000) },
         type: budget.type, // "expense" or "income"
-        category: budget.category,
         // Exclude transfer-type transactions (CC payments)
         sourceModule: { not: "finance_transfer" },
         // Exclude transactions marked as excluded from budget
@@ -96,9 +95,16 @@ export async function POST() {
       };
 
       if (budget.subCategory) {
-        txWhereClause.subCategory = budget.subCategory;
+        // Match transactions that have the exact subCategory OR have no subCategory
+        // (parent-level transactions belong to all sub-budgets of that category)
+        txWhereClause.OR = [
+          { category: budget.category, subCategory: budget.subCategory },
+          { category: budget.category, subCategory: null },
+        ];
+      } else {
+        // For parent budgets (no subCategory): sum ALL transactions in that category
+        txWhereClause.category = budget.category;
       }
-      // For parent budgets (no subCategory): sum ALL transactions in that category
 
       const transactions = await db.transaction.findMany({
         where: txWhereClause,
@@ -123,14 +129,19 @@ export async function POST() {
       if (budget.type === "expense") {
         const installmentWhereClause: Record<string, unknown> = {
           purchaseDate: { gte: periodStart, lte: periodEnd },
-          category: budget.category,
           // Include BOTH paid and unpaid CC installments
           // Exclude loan installments (their expense transactions are counted in Source A)
           debt: { type: { not: "loan" } },
         };
 
         if (budget.subCategory) {
-          installmentWhereClause.subCategory = budget.subCategory;
+          // Match installments that have the exact subCategory OR have no subCategory
+          installmentWhereClause.OR = [
+            { category: budget.category, subCategory: budget.subCategory },
+            { category: budget.category, subCategory: null },
+          ];
+        } else {
+          installmentWhereClause.category = budget.category;
         }
 
         const installments = await db.installment.findMany({
