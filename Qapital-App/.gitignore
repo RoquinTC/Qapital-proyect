@@ -15,3 +15,8 @@ db/
 .vercel/
 *.tsbuildinfo
 next-env.d.ts
+skills/
+upload/
+download/
+agent-ctx/
+worklog.md
