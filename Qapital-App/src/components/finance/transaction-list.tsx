@@ -62,6 +62,7 @@ import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import type { Transaction, SubAccount, Account, CategoryData, UserSettings } from "@/lib/types";
 import { CategoryBreakdown } from "./category-breakdown";
+import { TransactionNotes, parseCcPaymentDetails, isCcPaymentNotes } from "./transaction-notes";
 
 // Color config per transaction type
 const typeConfig = {
@@ -269,23 +270,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
 
   // Helper: check if a transaction is a CC payment (expandable with installment details)
   const isCcPayment = (tx: Transaction) =>
-    tx.type === "transfer" && tx.category === "Pago Tarjeta de Crédito";
-
-  // Helper: parse CC payment notes JSON into installment details
-  const parseCcPaymentDetails = (notes: string): {
-    description: string;
-    amount: number;
-    category: string | null;
-    subCategory: string | null;
-    currentInstallment: number;
-    totalInstallments: number;
-  }[] => {
-    try {
-      return JSON.parse(notes);
-    } catch {
-      return [];
-    }
-  };
+    tx.type === "transfer" && (tx.category === "Pago Tarjeta de Crédito" || isCcPaymentNotes(tx.notes));
 
   // Fetch user settings for budgetCutoffDay
   const fetchSettings = useCallback(async () => {
@@ -960,42 +945,14 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                           </div>
                                         )}
                                         {tx.notes && !isCcPayment(tx) && (
-                                          <div className="col-span-2">
-                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Notas</span>
-                                            <span className="block text-xs text-gray-700 dark:text-gray-300">
-                                              {tx.notes}
-                                            </span>
-                                          </div>
+                                          <TransactionNotes notes={tx.notes} size="md" />
                                         )}
                                       </div>
 
                                       {/* CC Payment Installment Details */}
                                       {isCcPayment(tx) && tx.notes && (
                                         <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                                            Cuotas pagadas
-                                          </span>
-                                          <div className="mt-1.5 space-y-1">
-                                            {parseCcPaymentDetails(tx.notes).map((detail, idx) => (
-                                              <div
-                                                key={idx}
-                                                className="flex items-center justify-between py-1 px-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                                              >
-                                                <div className="min-w-0 flex-1">
-                                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate block">
-                                                    {detail.description}
-                                                  </span>
-                                                  <span className="text-[10px] text-gray-400">
-                                                    Cuota {detail.currentInstallment}/{detail.totalInstallments}
-                                                    {detail.category && ` · ${detail.category}`}
-                                                  </span>
-                                                </div>
-                                                <span className="text-xs font-bold text-gray-600 dark:text-gray-400 ml-2 shrink-0">
-                                                  {formatCurrency(detail.amount)}
-                                                </span>
-                                              </div>
-                                            ))}
-                                          </div>
+                                          <TransactionNotes notes={tx.notes} isCcPayment size="md" />
                                         </div>
                                       )}
 

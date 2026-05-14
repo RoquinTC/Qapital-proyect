@@ -9,6 +9,7 @@ import { SubAccountForm } from "./sub-account-form";
 import { TransactionForm } from "./transaction-form";
 import { CategoryBreakdown } from "./category-breakdown";
 import { SharedAccountManager } from "./shared-account-manager";
+import { TransactionNotes } from "./transaction-notes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -835,12 +836,7 @@ export function AccountDetail() {
                                                       </span>
                                                     </div>
                                                     {tx.notes && (
-                                                      <div className="col-span-2">
-                                                        <span className="text-[9px] text-gray-400 uppercase tracking-wider">Notas</span>
-                                                        <span className="block text-[11px] text-gray-700 dark:text-gray-300">
-                                                          {tx.notes}
-                                                        </span>
-                                                      </div>
+                                                      <TransactionNotes notes={tx.notes} size="sm" />
                                                     )}
                                                     {tx.user && tx.user.name && tx.userId && tx.userId !== session?.user?.id && (
                                                       <div>
@@ -1488,12 +1484,7 @@ export function AccountDetail() {
                                       </div>
                                     )}
                                     {tx.notes && (
-                                      <div className="col-span-2">
-                                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Notas</span>
-                                        <span className="block text-xs text-gray-700 dark:text-gray-300">
-                                          {tx.notes}
-                                        </span>
-                                      </div>
+                                      <TransactionNotes notes={tx.notes} size="md" />
                                     )}
                                   </div>
 
