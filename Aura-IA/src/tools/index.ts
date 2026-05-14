@@ -5,6 +5,7 @@ import { proposeNewSkillDefinition, proposeNewSkill, applyNewSkillDefinition, ap
 import { createImageDefinition, createImageHandler } from './create_image.js';
 import { getCryptoPriceDefinition, getCryptoPrice } from './get_crypto_price.js';
 import { readPdfDefinition, readPdf } from './read_pdf.js';
+import { qapitalTools } from './qapital.js';
 
 export const toolDefinitions = [
   getCurrentTimeDefinition,
@@ -15,6 +16,8 @@ export const toolDefinitions = [
   createImageDefinition,
   getCryptoPriceDefinition,
   readPdfDefinition,
+  qapitalTools.get_my_finances.definition,
+  qapitalTools.get_my_health_profile.definition,
   ...googleToolDefinitions,
 ];
 
@@ -41,6 +44,10 @@ export async function executeTool(name: string, args: any, userId: number, ctx?:
       return await getCryptoPrice();
     case 'read_pdf':
       return await readPdf(args.url);
+    case 'get_my_finances':
+      return await qapitalTools.get_my_finances.handler();
+    case 'get_my_health_profile':
+      return await qapitalTools.get_my_health_profile.handler();
     default:
       throw new Error(`Herramienta no encontrada: ${name}`);
   }
