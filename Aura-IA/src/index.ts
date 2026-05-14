@@ -1,5 +1,6 @@
 import { memory } from './memory/db.js';
 import { startBot } from './bot/telegram.js';
+import { startObserver } from './agent/observer.js';
 
 async function main() {
   console.log('🤖 Iniciando Aura Agent...');
@@ -14,6 +15,7 @@ async function main() {
   }
 
   startBot();
+  startObserver();
 }
 
 main().catch((error) => {

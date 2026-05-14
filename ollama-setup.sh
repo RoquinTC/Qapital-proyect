@@ -15,7 +15,7 @@ done
 
 echo "✅ Ollama está activo. Iniciando el Escuadrón de Agentes..."
 
-MODELS="llama3.2:3b llava:7b qwen2.5-coder:7b"
+MODELS="gemma4:e2b deepseek-r1:1.5b qwen2.5-coder:7b llava:7b llama3.2:3b llama3.2:1b"
 
 for MODEL in $MODELS; do
   echo "📥 Verificando especialista: $MODEL..."

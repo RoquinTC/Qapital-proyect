@@ -35,10 +35,15 @@ services:
       - GITHUB_USER=${GITHUB_USER}
       - GITHUB_REPO=${GITHUB_REPO}
       - LOCAL_AI_BASE_URL=http://ollama:11434/v1
-      - LOCAL_AI_MODEL=llama3.2:3b
-    volumes:
+      - LOCAL_AI_MODEL_EXECUTIVE=${LOCAL_AI_MODEL_EXECUTIVE:-gemma4:e2b}
+      - LOCAL_AI_MODEL_ANALYST=${LOCAL_AI_MODEL_ANALYST:-deepseek-r1:1.5b}
+      - LOCAL_AI_MODEL_ENGINEER=${LOCAL_AI_MODEL_ENGINEER:-qwen2.5-coder:7b}
+      - LOCAL_AI_MODEL_SENSES=${LOCAL_AI_MODEL_SENSES:-llava:7b}
+      - LOCAL_AI_MODEL_FAST_ACTION=${LOCAL_AI_MODEL_FAST_ACTION:-llama3.2:1b}
+      - DATABASE_URL=file:/data/db/custom.db
       - ./Aura-IA/firebase-key.json:/app/firebase-key.json
       - ./Aura-IA/credentials.json:/app/credentials.json
+      - qapital-db:/data/db:ro
     depends_on:
       - ollama
     restart: unless-stopped

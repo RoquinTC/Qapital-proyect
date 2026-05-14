@@ -27,7 +27,9 @@ function truncate(text: string, max: number = 2000): string {
   return text.length > max ? text.substring(0, max) + '... [truncado]' : text;
 }
 
-export async function createChatCompletion(messages: any[], tools?: any[]) {
+export type TaskType = 'executive' | 'analyst' | 'engineer' | 'senses' | 'fast_action';
+
+export async function createChatCompletion(messages: any[], tools?: any[], taskType?: TaskType) {
   // 1. Intentar con Google Gemini (Vía API Directa v1beta con camelCase)
   if (env.GOOGLE_AI_KEY) {
     try {
@@ -174,22 +176,40 @@ export async function createChatCompletion(messages: any[], tools?: any[]) {
       baseURL: localBaseUrl,
     });
 
-    // Determinar qué modelo usar según el contenido o herramientas
-    let selectedModel = env.LOCAL_AI_MODEL_CHAT;
-    
-    // Si hay herramientas de base de datos o cálculos, usar Coder
-    const isLogicTask = tools?.some(t => 
-      t.function.name.includes('db') || 
-      t.function.name.includes('query') || 
-      t.function.name.includes('calculate')
-    );
+    // Determinar el modelo según el TaskType o detección automática
+    let selectedModel = env.LOCAL_AI_MODEL_EXECUTIVE; // Por defecto el "Yo" de Aura
 
-    if (isLogicTask) {
-      selectedModel = env.LOCAL_AI_MODEL_LOGIC;
+    if (taskType) {
+      switch (taskType) {
+        case 'executive': selectedModel = env.LOCAL_AI_MODEL_EXECUTIVE; break;
+        case 'analyst': selectedModel = env.LOCAL_AI_MODEL_ANALYST; break;
+        case 'engineer': selectedModel = env.LOCAL_AI_MODEL_ENGINEER; break;
+        case 'senses': selectedModel = env.LOCAL_AI_MODEL_SENSES; break;
+        case 'fast_action': selectedModel = env.LOCAL_AI_MODEL_FAST_ACTION; break;
+      }
+    } else {
+      // Detección automática inteligente si no se especifica
+      const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
+      
+      const isLogicTask = tools?.some(t => 
+        t.function.name.includes('db') || 
+        t.function.name.includes('query') || 
+        t.function.name.includes('calculate') ||
+        t.function.name.includes('finance')
+      ) || lastMessage.includes('cuanto') || lastMessage.includes('gasto') || lastMessage.includes('total');
+
+      const isEngineerTask = lastMessage.includes('error') || lastMessage.includes('bug') || lastMessage.includes('fix') || lastMessage.includes('código') || lastMessage.includes('logs');
+      
+      const isVisionTask = messages.some(m => Array.isArray(m.content) && m.content.some((p: any) => p.type === 'image_url'));
+
+      if (isVisionTask) {
+        selectedModel = env.LOCAL_AI_MODEL_SENSES;
+      } else if (isEngineerTask) {
+        selectedModel = env.LOCAL_AI_MODEL_ENGINEER;
+      } else if (isLogicTask) {
+        selectedModel = env.LOCAL_AI_MODEL_ANALYST;
+      }
     }
-
-    // Nota: Llava se activará si detectamos imágenes en el futuro (multimodal)
-    // Por ahora, el chat por defecto es Llama 3.2
 
     const localMessages = messages.slice(-10).map(m => {
       const msg: any = { role: m.role };
@@ -207,7 +227,7 @@ export async function createChatCompletion(messages: any[], tools?: any[]) {
       return msg;
     });
 
-    console.log(`🧠 Aura usando especialista local: ${selectedModel}`);
+    console.log(`🧠 Aura delegando a especialista local: [${selectedModel}]`);
 
     const response = await localClient.chat.completions.create({
       model: selectedModel,

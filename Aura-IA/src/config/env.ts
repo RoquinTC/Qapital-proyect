@@ -29,15 +29,18 @@ export const env = {
   GITHUB_REPO: getEnv('GITHUB_REPO', false),
 
   LOCAL_AI_BASE_URL: getEnv('LOCAL_AI_BASE_URL', false),
-  LOCAL_AI_MODEL_CHAT: getEnv('LOCAL_AI_MODEL_CHAT', false, 'llama3.2:3b'),
-  LOCAL_AI_MODEL_VISION: getEnv('LOCAL_AI_MODEL_VISION', false, 'llava:7b'),
-  LOCAL_AI_MODEL_LOGIC: getEnv('LOCAL_AI_MODEL_LOGIC', false, 'qwen2.5-coder:7b'),
+  LOCAL_AI_MODEL_EXECUTIVE: getEnv('LOCAL_AI_MODEL_EXECUTIVE', false, 'gemma4:e2b'),
+  LOCAL_AI_MODEL_ANALYST: getEnv('LOCAL_AI_MODEL_ANALYST', false, 'deepseek-r1:1.5b'),
+  LOCAL_AI_MODEL_ENGINEER: getEnv('LOCAL_AI_MODEL_ENGINEER', false, 'qwen2.5-coder:7b'),
+  LOCAL_AI_MODEL_SENSES: getEnv('LOCAL_AI_MODEL_SENSES', false, 'llava:7b'),
+  LOCAL_AI_MODEL_FAST_ACTION: getEnv('LOCAL_AI_MODEL_FAST_ACTION', false, 'llama3.2:1b'),
 
   ELEVENLABS_API_KEY: getEnv('ELEVENLABS_API_KEY', false),
   ELEVENLABS_VOICE_ID: getEnv('ELEVENLABS_VOICE_ID', false, '21m00Tcm4TlvDq8ikWAM'),
 
   FIREBASE_SERVICE_ACCOUNT_JSON: getEnv('FIREBASE_SERVICE_ACCOUNT_JSON', false),
   GOOGLE_CREDENTIALS_JSON: getEnv('GOOGLE_CREDENTIALS_JSON', false),
+  DATABASE_URL: getEnv('DATABASE_URL', false, 'file:/data/db/custom.db'),
 };
 
 console.log('--- Diagnóstico de Variables ---');
