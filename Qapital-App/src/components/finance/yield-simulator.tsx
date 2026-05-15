@@ -20,9 +20,11 @@ import {
   Loader2,
   Trophy,
   Landmark,
+  Info,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 // ─── Types ────────────────────────────────────────────
 interface HighYieldAccount {
@@ -341,14 +343,24 @@ export function YieldSimulator() {
                 </div>
 
                 {/* Yield results */}
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {amount > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Rendimiento con saldo conjunto ({daysRemaining}d)
-                      </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                          Con tu aporte en esta cuenta
+                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="size-3 text-gray-300 dark:text-gray-600 shrink-0 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[220px] text-[11px] leading-relaxed bg-gray-800 dark:bg-gray-700 text-white">
+                            Lo que rendiría el saldo actual de la cuenta + tu aporte durante los {daysRemaining} días restantes del mes.
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                       <span
-                        className="text-sm font-bold"
+                        className="text-sm font-bold shrink-0"
                         style={{ color: acc.color }}
                       >
                         +{formatCurrency(acc.totalWithContribution)}
@@ -356,20 +368,40 @@ export function YieldSimulator() {
                     </div>
                   )}
                   {amount > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Rendimiento solo con tu monto (mes completo)
-                      </span>
-                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                          Tu monto solo (cuenta nueva)
+                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="size-3 text-gray-300 dark:text-gray-600 shrink-0 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[220px] text-[11px] leading-relaxed bg-gray-800 dark:bg-gray-700 text-white">
+                            Lo que rendiría tu aporte solo, como cuenta independiente, durante un mes completo ({daysInMonth} días).
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300 shrink-0">
                         {formatCurrency(acc.standaloneYield)}
                       </span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                      Rendimiento actual ({daysRemaining}d restantes)
-                    </span>
-                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                        Sin tu aporte ({daysRemaining}d restantes)
+                      </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="size-3 text-gray-300 dark:text-gray-600 shrink-0 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[220px] text-[11px] leading-relaxed bg-gray-800 dark:bg-gray-700 text-white">
+                          Lo que la cuenta rinde sin agregar tu aporte, solo con su saldo actual, en los {daysRemaining} días que quedan del mes.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300 shrink-0">
                       {formatCurrency(acc.currentYield)}
                     </span>
                   </div>
@@ -511,40 +543,56 @@ export function YieldSimulator() {
               <h3 className="text-sm font-bold text-amber-700 dark:text-amber-400">
                 Te conviene
               </h3>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="size-3.5 text-amber-400/60 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px] text-[11px] leading-relaxed bg-gray-800 dark:bg-gray-700 text-white">
+                  Comparamos el rendimiento total (saldo + aporte) versus abrir una cuenta independiente solo con tu monto. La opción que te dé más dinero es la que te conviene.
+                </TooltipContent>
+              </Tooltip>
             </div>
             <div className="space-y-2">
               {bestCombined && bestCombined.yield > 0 && (
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
                     <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                      Con saldo conjunto
+                      En saldo conjunto
                     </span>
-                    <p className="text-[10px] text-amber-600/70 dark:text-amber-500/70">
-                      {bestCombined.name} ({bestCombined.ea}% EA) — saldo + tu
-                      aporte
+                    <p className="text-[10px] text-amber-600/70 dark:text-amber-500/70 truncate">
+                      {bestCombined.name} ({bestCombined.ea}% EA) — sumando a su saldo
                     </p>
                   </div>
-                  <span className="text-sm font-bold text-amber-700 dark:text-amber-400">
+                  <span className="text-sm font-bold text-amber-700 dark:text-amber-400 shrink-0">
                     +{formatCurrency(bestCombined.yield)}
                   </span>
                 </div>
               )}
               {bestStandalone && bestStandalone.yield > 0 && (
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
                     <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                      Solo con tu monto
+                      En cuenta independiente
                     </span>
-                    <p className="text-[10px] text-amber-600/70 dark:text-amber-500/70">
-                      {bestStandalone.name} ({bestStandalone.ea}% EA)
+                    <p className="text-[10px] text-amber-600/70 dark:text-amber-500/70 truncate">
+                      {bestStandalone.name} ({bestStandalone.ea}% EA) — solo tu monto
                     </p>
                   </div>
-                  <span className="text-sm font-bold text-amber-700 dark:text-amber-400">
+                  <span className="text-sm font-bold text-amber-700 dark:text-amber-400 shrink-0">
                     +{formatCurrency(bestStandalone.yield)}
                   </span>
                 </div>
               )}
             </div>
+            {bestCombined && bestStandalone && bestCombined.yield > 0 && bestStandalone.yield > 0 && (
+              <div className="mt-3 pt-2 border-t border-amber-200/50 dark:border-amber-700/30">
+                <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 font-medium">
+                  {bestCombined.yield >= bestStandalone.yield
+                    ? "Te conviene más sumar tu aporte a una cuenta existente (saldo conjunto)."
+                    : "Te conviene más abrir una cuenta independiente solo con tu monto."}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
