@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getColombiaNow, getColombiaTodayString, createColombiaDate } from "@/lib/api";
+import { getColombiaNow, getColombiaTodayString, createColombiaDate, calculateProportionalYield, getDaysInMonth } from "@/lib/api";
 import { toNumber } from "@/lib/decimal-serializer";
 import { validateBody, yieldCreateSchema } from "@/lib/validations";
 
@@ -13,9 +13,12 @@ export async function GET() {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    // Get current month
+    // Get current month and days remaining
     const now = getColombiaNow();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const daysInMonth = getDaysInMonth(now.getFullYear(), now.getMonth());
+    const currentDay = now.getDate();
+    const daysRemaining = daysInMonth - currentDay + 1; // Include today
 
     // Result array
     const yields: Array<{
@@ -52,7 +55,7 @@ export async function GET() {
 
     for (const account of highYieldAccounts) {
       const existingRecord = account.yieldHistory[0];
-      const projectedYield = toNumber(account.balance) * ((toNumber(account.yieldPercentage) || 0) / 100) / 12;
+      const projectedYield = calculateProportionalYield(toNumber(account.balance), toNumber(account.yieldPercentage) || 0, daysRemaining);
       const key = `acc-${account.id}`;
 
       yields.push({
@@ -87,7 +90,7 @@ export async function GET() {
 
     for (const subAccount of highYieldSubAccounts) {
       const existingRecord = subAccount.yieldHistory[0];
-      const projectedYield = toNumber(subAccount.balance) * ((toNumber(subAccount.yieldPercentage) || 0) / 100) / 12;
+      const projectedYield = calculateProportionalYield(toNumber(subAccount.balance), toNumber(subAccount.yieldPercentage) || 0, daysRemaining);
       const key = `sub-${subAccount.id}`;
 
       yields.push({

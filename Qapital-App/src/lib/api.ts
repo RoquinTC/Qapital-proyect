@@ -563,6 +563,41 @@ export function calculateCDTInterest(amount: number, effectiveRateEA: number, da
 }
 
 /**
+ * Get the number of days in a specific month (handles Feb 28/29).
+ */
+export function getDaysInMonth(year: number, month: number): number {
+  // month is 0-indexed (0 = January)
+  return new Date(year, month + 1, 0).getDate();
+}
+
+/**
+ * Calculate proportional yield for a savings account using compound interest (EA rate).
+ * Takes into account the actual number of days the money will be in the account.
+ *
+ * @param balance - Current account balance
+ * @param effectiveRateEA - Annual effective rate (%)
+ * @param daysRemaining - Days remaining in the month from today
+ * @returns The projected yield for the remaining days
+ */
+export function calculateProportionalYield(balance: number, effectiveRateEA: number, daysRemaining: number): number {
+  const a = Number(balance);
+  const r = Number(effectiveRateEA);
+  const d = Number(daysRemaining);
+  if (a <= 0 || r <= 0 || d <= 0) return 0;
+  return a * (Math.pow(1 + r / 100, d / 365) - 1);
+}
+
+/**
+ * Calculate projected yield for the full month (assuming balance stays the same).
+ * Uses compound interest with the actual number of days in the month.
+ */
+export function calculateMonthlyYield(balance: number, effectiveRateEA: number): number {
+  const now = getColombiaNow();
+  const daysInMonth = getDaysInMonth(now.getFullYear(), now.getMonth());
+  return calculateProportionalYield(balance, effectiveRateEA, daysInMonth);
+}
+
+/**
  * Calculate CDT ReteFuente (4% withholding tax on interest earnings in Colombia).
  */
 export function calculateCDTReteFuente(interestEarned: number, rate: number = 0.04): number {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { apiFetch, formatCurrency, formatDate, parseLocalDate, toColombiaDateString } from "@/lib/api";
+import { apiFetch, formatCurrency, formatDate, parseLocalDate, toColombiaDateString, calculateProportionalYield, getDaysInMonth } from "@/lib/api";
 import { AccountCard } from "./account-card";
 import { AccountForm } from "./account-form";
 import { SubAccountForm } from "./sub-account-form";
@@ -526,8 +526,11 @@ export function AccountDetail() {
     );
   }
 
+  const now = new Date();
+  const daysInMonth = getDaysInMonth(now.getFullYear(), now.getMonth());
+  const daysRemaining = daysInMonth - now.getDate() + 1;
   const projectedYield = account.isHighYield && account.yieldPercentage
-    ? (account.balance * (account.yieldPercentage / 100)) / 12
+    ? calculateProportionalYield(account.balance, account.yieldPercentage, daysRemaining)
     : 0;
 
   return (
@@ -636,7 +639,7 @@ export function AccountDetail() {
               const isExpanded = expandedSubAccount === sub.id;
               const subTxs = filteredSubTransactions[sub.id] || [];
               const subYield = sub.isHighYield && sub.yieldPercentage
-                ? (sub.balance * (sub.yieldPercentage / 100)) / 12
+                ? calculateProportionalYield(sub.balance, sub.yieldPercentage, daysRemaining)
                 : 0;
 
               return (

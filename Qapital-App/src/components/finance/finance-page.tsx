@@ -3,7 +3,7 @@
 import { useState, Component } from "react";
 import { useAppStore, type FinanceSubView } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutDashboard, Wallet, Receipt, CreditCard, PiggyBank, Landmark, Clock } from "lucide-react";
+import { LayoutDashboard, Wallet, Receipt, CreditCard, PiggyBank, Landmark, Clock, Calculator } from "lucide-react";
 import { FinanceOverview } from "./finance-overview";
 import { AccountsView } from "./accounts-view";
 import { BudgetsView } from "./budgets-view";
@@ -14,6 +14,7 @@ import { RecurringView } from "./recurring-view";
 import { AccountDetail } from "./account-detail";
 import { DebtDetail } from "./debt-detail";
 import { SavingsGoalDetail } from "./savings-goal-detail";
+import { YieldSimulator } from "./yield-simulator";
 
 // Error boundary component to prevent a single tab crash from breaking the entire app
 class TabErrorBoundary extends Component<{
@@ -63,6 +64,7 @@ const tabs: { id: FinanceSubView; label: string; icon: typeof Wallet }[] = [
   { id: "debts", label: "Deudas", icon: CreditCard },
   { id: "savings", label: "Ahorros", icon: PiggyBank },
   { id: "cdts", label: "CDT", icon: Landmark },
+  { id: "simulator", label: "Simulador", icon: Calculator },
   { id: "recurring", label: "Pagos", icon: Clock },
 ];
 
@@ -120,6 +122,8 @@ export function FinancePage() {
         return <SavingsView />;
       case "cdts":
         return <TabErrorBoundary><CDTView /></TabErrorBoundary>;
+      case "simulator":
+        return <YieldSimulator />;
       case "recurring":
         return <RecurringView />;
       default:
