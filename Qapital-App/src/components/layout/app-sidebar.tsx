@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useAppStore, type ModuleType } from "@/lib/store";
+import { LogOut, ChevronRight } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -31,7 +32,7 @@ const menuItems = [
 
 export function AppSidebar() {
   const { data: session } = useSession();
-  const { sidebarOpen, setSidebarOpen, setActiveModule } = useAppStore();
+  const { sidebarOpen, setSidebarOpen, setActiveModule, setAuthView } = useAppStore();
 
   const userInitials = session?.user?.name
     ? session.user.name
@@ -125,9 +126,12 @@ export function AppSidebar() {
           <Button
             variant="ghost"
             className="w-full justify-start text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-xl gap-3 text-sm"
-            onClick={() => {
+            onClick={async () => {
               setSidebarOpen(false);
-              signOut();
+              setAuthView("login");
+              await signOut({ redirect: false });
+              // Hard redirect to ensure session is fully cleared in iframe context
+              window.location.href = window.location.origin + "/";
             }}
           >
             <LogOut className="size-4" />

@@ -54,7 +54,7 @@ export function generateRegistrationOptions(
     authenticatorSelection: {
       authenticatorAttachment: 'platform',
       userVerification: 'required',
-      residentKey: 'preferred',
+      residentKey: 'required',
     },
     // Exclude existing credentials so the user doesn't register the same device twice
     excludeCredentials: existingCredentialIds.map((id) => ({
@@ -100,11 +100,18 @@ export function generateAuthenticationOptions(
 
   const opts: GenerateAuthenticationOptionsOpts = {
     rpID: rpId,
-    userVerification: 'preferred',
-    allowCredentials: existingCredentialIds.map((id) => ({
-      id: id,
-      type: 'public-key' as const,
-    })),
+    // For usernameless (discoverable) credentials, we MUST require user verification
+    // and NOT restrict to specific allowCredentials — the browser will present
+    // all discoverable credentials registered for this RP ID.
+    userVerification: allowUsernameless ? 'required' : 'preferred',
+    ...(existingCredentialIds.length > 0
+      ? {
+          allowCredentials: existingCredentialIds.map((id) => ({
+            id: id,
+            type: 'public-key' as const,
+          })),
+        }
+      : {}),
   };
 
   return _generateAuthenticationOptions(opts);

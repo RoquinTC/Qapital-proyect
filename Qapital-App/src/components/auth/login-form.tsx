@@ -47,6 +47,8 @@ export function LoginForm() {
         setLoading(false);
       } else if (result?.ok) {
         toast.success("¡Sesión iniciada!");
+        // Mark fresh login so AppShell skips the lock screen on reload
+        try { sessionStorage.setItem("quid-just-logged-in", "true"); } catch {}
         // Use a hard redirect instead of client-side navigation.
         // In iframe/embedded contexts, the session cookie (SameSite=None; Secure)
         // needs a full page load to be properly recognized by the browser.
@@ -65,55 +67,42 @@ export function LoginForm() {
   const handleBiometricLogin = useCallback(async () => {
     setBiometricLoading(true);
     try {
-      // We need the user's email to look up their WebAuthn credentials
-      // If they haven't typed their email yet, ask for it
-      let loginEmail = email;
-      if (!loginEmail) {
-        // Prompt user for email
-        loginEmail = window.prompt("Ingresa tu correo electrónico para buscar tu huella registrada:") || "";
-        if (!loginEmail) {
-          setBiometricLoading(false);
-          return;
-        }
-      }
+      // === USERNAMELESS FLOW (preferred) ===
+      // Try to authenticate without asking for email first.
+      // This works if the user registered a resident/discoverable credential
+      // (which we enforce with residentKey: "required" during registration).
 
-      // Step 0: Look up user by email to get their userId
-      const lookupRes = await fetch(`/api/auth/webauthn/lookup?email=${encodeURIComponent(loginEmail)}`);
-      if (!lookupRes.ok) {
-        toast.error("No se encontró huella registrada para este correo");
-        setBiometricLoading(false);
-        return;
-      }
-      const lookupData = await lookupRes.json();
-      const userId = lookupData.userId;
-
-      if (!userId) {
-        toast.error("No se encontró huella registrada para este correo");
-        setBiometricLoading(false);
-        return;
-      }
-
-      // Step 1: Get authentication options with the user's credentials
-      const optionsRes = await fetch(`/api/auth/webauthn/auth-options?userId=${userId}`);
+      // Step 1: Get authentication options WITHOUT userId (allows discoverable credentials)
+      const optionsRes = await fetch("/api/auth/webauthn/auth-options");
       if (!optionsRes.ok) {
         throw new Error("No se pudieron obtener las opciones de autenticación");
       }
       const options = await optionsRes.json();
 
-      // Step 2: Call browser WebAuthn API
-      const asseResp = await startAuthentication({ optionsJSON: options });
+      // Step 2: Call browser WebAuthn API — will show fingerprint prompt
+      let asseResp;
+      try {
+        asseResp = await startAuthentication({ optionsJSON: options });
+      } catch (err: any) {
+        if (err?.name === "NotAllowedError") {
+          // User cancelled the biometric prompt — don't show error
+          setBiometricLoading(false);
+          return;
+        }
+        throw err;
+      }
 
       // Step 3: Verify with server
       const verifyRes = await fetch("/api/auth/webauthn/auth-verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential: asseResp, userId }),
+        body: JSON.stringify({ credential: asseResp }),
       });
 
       const verifyData = await verifyRes.json();
 
       if (verifyData.verified && verifyData.email) {
-        // Sign in via next-auth credentials with a special biometric flow
+        // Success! Sign in via next-auth with the biometric bypass
         const result = await signIn("credentials", {
           email: verifyData.email,
           password: "__webauthn_bypass__",
@@ -121,7 +110,9 @@ export function LoginForm() {
         });
 
         if (result?.ok) {
-          toast.success("Sesión iniciada con huella!");
+          toast.success("¡Sesión iniciada con huella!");
+          // Mark fresh login so AppShell skips the lock screen on reload
+          try { sessionStorage.setItem("quid-just-logged-in", "true"); } catch {}
           setTimeout(() => {
             window.location.href = window.location.origin + "/";
           }, 600);
@@ -132,15 +123,12 @@ export function LoginForm() {
         toast.error("Huella no reconocida");
       }
     } catch (err: any) {
-      if (err?.name !== "NotAllowedError") {
-        console.error("Biometric login error:", err);
-        toast.error("No se pudo autenticar con huella");
-      }
-      // User cancelled — don't show error
+      console.error("Biometric login error:", err);
+      toast.error("No se pudo autenticar con huella. Intenta con correo y contraseña.");
     } finally {
       setBiometricLoading(false);
     }
-  }, [email]);
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">

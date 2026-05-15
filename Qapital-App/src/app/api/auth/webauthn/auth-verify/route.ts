@@ -24,8 +24,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get the stored challenge
-    const challengeKey = providedUserId || authCred.userId;
+    // Get the stored challenge — for usernameless flow, it's stored under 'anonymous'
+    const challengeKey = providedUserId || 'anonymous';
     const expectedChallenge = getChallenge(challengeKey);
     if (!expectedChallenge) {
       return NextResponse.json(

@@ -73,8 +73,20 @@ export function AppShell() {
       setJustLoggedIn(true);
       setManuallyUnlocked(true);
     } else if (prevStatusRef.current === "loading" && status === "authenticated") {
-      // Page loaded with existing session — need to unlock
-      setJustLoggedIn(false);
+      // Page loaded with existing session — check if this was a fresh login
+      // (login-form sets sessionStorage flag before hard redirect)
+      let wasFreshLogin = false;
+      try {
+        wasFreshLogin = sessionStorage.getItem("quid-just-logged-in") === "true";
+        if (wasFreshLogin) sessionStorage.removeItem("quid-just-logged-in");
+      } catch {}
+
+      if (wasFreshLogin) {
+        setJustLoggedIn(true);
+        setManuallyUnlocked(true);
+      } else {
+        setJustLoggedIn(false);
+      }
     }
     prevStatusRef.current = status;
   }, [status]);
