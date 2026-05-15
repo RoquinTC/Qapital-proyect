@@ -2,15 +2,6 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useAppStore, type ModuleType } from "@/lib/store";
-import { LogOut, ChevronRight } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Home,
   Wallet,
@@ -21,6 +12,14 @@ import {
   LogOut,
   ChevronRight,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { id: "dashboard" as const, label: "Inicio", icon: Home, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30" },
