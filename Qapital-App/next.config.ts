@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
     ".space-z.ai",
     ".space.chatglm.site",
     "192.168.1.10",
+    ".trycloudflare.com",
+    ".cloudflare.com",
   ],
   headers: async () => [
     {
