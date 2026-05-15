@@ -25,6 +25,10 @@ import {
   CheckCheck,
   Loader2,
   CalendarClock,
+  AlertTriangle,
+  Trophy,
+  TrendingUp,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -91,6 +95,16 @@ function getNotificationIcon(type: string, data: Record<string, any> | null) {
       return { Icon: Shield, color: "text-purple-500", bg: "bg-purple-50" };
     case "recurring_due":
       return { Icon: CalendarClock, color: "text-blue-500", bg: "bg-blue-50" };
+    case "recurring_upcoming":
+      return { Icon: Clock, color: "text-indigo-500", bg: "bg-indigo-50" };
+    case "budget_limit":
+      return { Icon: AlertTriangle, color: "text-amber-500", bg: "bg-amber-50" };
+    case "goal_completed":
+      return { Icon: Trophy, color: "text-amber-500", bg: "bg-amber-50" };
+    case "goal_near_completion":
+      return { Icon: Trophy, color: "text-purple-500", bg: "bg-purple-50" };
+    case "yield_ready":
+      return { Icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-50" };
     default:
       return { Icon: Bell, color: "text-muted-foreground", bg: "bg-muted" };
   }

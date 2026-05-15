@@ -149,6 +149,7 @@ export async function PUT(
     if (body.notes !== undefined) updateData.notes = body.notes;
     if (body.isRecurring !== undefined) updateData.isRecurring = body.isRecurring;
     if (body.excludeFromBudget !== undefined) updateData.excludeFromBudget = body.excludeFromBudget;
+    if (body.receiptUrl !== undefined) updateData.receiptUrl = body.receiptUrl;
 
     const transaction = await db.transaction.update({
       where: { id },

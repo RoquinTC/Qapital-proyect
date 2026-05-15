@@ -243,9 +243,34 @@ self.addEventListener('push', (event) => {
       ];
       break;
     case 'recurring_due':
+    case 'recurring_upcoming':
       actions = [
         { action: 'view', title: 'Ver pagos' },
         { action: 'dismiss', title: 'Recordar después' },
+      ];
+      break;
+    case 'budget_limit':
+      actions = [
+        { action: 'view', title: 'Ver presupuesto' },
+        { action: 'dismiss', title: 'Descartar' },
+      ];
+      break;
+    case 'goal_completed':
+      actions = [
+        { action: 'view', title: 'Ver meta' },
+        { action: 'dismiss', title: 'Descartar' },
+      ];
+      break;
+    case 'goal_near_completion':
+      actions = [
+        { action: 'view', title: 'Aportar' },
+        { action: 'dismiss', title: 'Después' },
+      ];
+      break;
+    case 'yield_ready':
+      actions = [
+        { action: 'view', title: 'Confirmar' },
+        { action: 'dismiss', title: 'Después' },
       ];
       break;
     default:

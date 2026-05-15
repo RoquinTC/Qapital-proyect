@@ -154,6 +154,7 @@ export const transactionCreateSchema = z.object({
   transferToAccountId: z.string().nullable().optional(),
   transferToSubAccountId: z.string().nullable().optional(),
   excludeFromBudget: z.boolean().nullable().optional().default(false),
+  receiptUrl: z.string().nullable().optional(),
 });
 
 export const transactionUpdateSchema = z.object({
@@ -168,6 +169,7 @@ export const transactionUpdateSchema = z.object({
   notes: z.string().nullable().optional(),
   isRecurring: z.boolean().optional(),
   excludeFromBudget: z.boolean().nullable().optional(),
+  receiptUrl: z.string().nullable().optional(),
 });
 
 // ============================================

@@ -6,6 +6,7 @@ import { getColombiaNow, getColombiaTodayString, createColombiaDate } from "@/li
 import { syncSavingsBudget } from "@/lib/savings-budget-sync";
 import { toNumber } from "@/lib/decimal-serializer";
 import { validateBody, savingsContributeSchema } from "@/lib/validations";
+import { createAndPushNotification } from "@/lib/push";
 
 /**
  * Recalculate the cuota for a savings goal and update its linked recurring payment
@@ -143,6 +144,25 @@ export async function POST(
 
     // Sync savings budget (current amount changed)
     await syncSavingsBudget(session.user.id);
+
+    // ── Push Notification: Goal completed ──
+    // Check if this contribution pushed the goal to 100%+
+    const updatedGoal = await db.savingsGoal.findUnique({ where: { id } });
+    if (updatedGoal && toNumber(updatedGoal.currentAmount) >= toNumber(updatedGoal.targetAmount)) {
+      // Goal just completed — send notification
+      try {
+        await createAndPushNotification({
+          userId: session.user.id,
+          type: "goal_completed",
+          title: "¡Meta cumplida!",
+          message: `Tu meta "${updatedGoal.name}" ha alcanzado el 100%`,
+          pushBody: `¡Meta cumplida! "${updatedGoal.name}" al 100%`,
+          url: "/?tab=finance&sub=savings-detail",
+        });
+      } catch (notifError) {
+        console.error("[Contribute] Failed to send goal notification:", notifError);
+      }
+    }
 
     return NextResponse.json(contribution, { status: 201 });
   } catch (error) {

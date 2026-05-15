@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await validateBody(req, transactionCreateSchema);
-    const { type, amount, description, accountId, subAccountId, category, subCategory, date, sourceModule, sourceId, isRecurring, notes, transferToAccountId, transferToSubAccountId, excludeFromBudget } = body;
+    const { type, amount, description, accountId, subAccountId, category, subCategory, date, sourceModule, sourceId, isRecurring, notes, transferToAccountId, transferToSubAccountId, excludeFromBudget, receiptUrl } = body;
 
     if (!type || !amount || !description) {
       return NextResponse.json({ error: "Tipo, monto y descripción son requeridos" }, { status: 400 });
@@ -233,6 +233,7 @@ export async function POST(req: NextRequest) {
         isRecurring: isRecurring || false,
         notes: notes || null,
         excludeFromBudget: excludeFromBudget || false,
+        receiptUrl: receiptUrl || null,
       },
       include: {
         account: { select: { id: true, name: true, type: true, color: true } },

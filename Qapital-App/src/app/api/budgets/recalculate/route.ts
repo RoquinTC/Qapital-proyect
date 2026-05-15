@@ -6,6 +6,7 @@ import { getColombiaNow } from "@/lib/api";
 import { getCurrentBudgetPeriod } from "@/lib/holidays";
 import { syncSavingsBudget } from "@/lib/savings-budget-sync";
 import { toNumber } from "@/lib/decimal-serializer";
+import { createAndPushNotification } from "@/lib/push";
 
 /**
  * Helper: find the best matching budget for a given category/subCategory/type.
@@ -202,6 +203,46 @@ export async function POST() {
       where: { userId },
       orderBy: [{ type: "asc" }, { category: "asc" }],
     });
+
+    // ── Push Notifications: Budget at 90%+ ──
+    // Check if any expense budget crossed the 90% threshold after recalculation
+    try {
+      const nearLimitBudgets = updatedBudgets.filter(
+        (b) =>
+          b.type === "expense" &&
+          toNumber(b.amount) > 0 &&
+          toNumber(b.spent) / toNumber(b.amount) >= 0.9
+      );
+
+      if (nearLimitBudgets.length > 0) {
+        // Only notify if there isn't already an unread notification for this
+        const existingNotifs = await db.appNotification.findMany({
+          where: {
+            userId,
+            type: "budget_limit",
+            read: false,
+            createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }, // Last 24h
+          },
+        });
+
+        if (existingNotifs.length === 0) {
+          const names = nearLimitBudgets
+            .slice(0, 2)
+            .map((b) => b.category)
+            .join(", ");
+          await createAndPushNotification({
+            userId,
+            type: "budget_limit",
+            title: "Presupuesto al límite",
+            message: `Presupuesto al 90%+: ${names}${nearLimitBudgets.length > 2 ? ` +${nearLimitBudgets.length - 2} más` : ""}`,
+            pushBody: `Presupuesto al límite: ${names}`,
+            url: "/?tab=finance&sub=budgets",
+          });
+        }
+      }
+    } catch (notifError) {
+      console.error("[Recalculate] Failed to send budget notification:", notifError);
+    }
 
     return NextResponse.json(updatedBudgets);
   } catch (error) {

@@ -202,6 +202,8 @@ model Transaction {
   notes                 String?
   relatedTransactionId  String?   // Links transfer pairs
   excludeFromBudget     Boolean?  @default(false) // If true, does not affect budget spent
+  receiptUrl            String?   // URL of attached receipt/photo
+  receiptThumbnail      String?   // Thumbnail URL for quick preview
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

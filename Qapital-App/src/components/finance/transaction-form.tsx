@@ -26,6 +26,7 @@ import {
 import { apiFetch, formatCurrency, parseLocalDate, getColombiaTodayString, toColombiaDateString } from "@/lib/api";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, ArrowUpRight, ArrowDownRight, Repeat, PiggyBank, Plus, X, Check } from "lucide-react";
+import { ReceiptUpload } from "./receipt-upload";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import type { CategoryData, SubAccount, Account } from "@/lib/types";
@@ -50,6 +51,7 @@ interface TransactionFormProps {
     date: string;
     notes?: string | null;
     excludeFromBudget?: boolean | null;
+    receiptUrl?: string | null;
   } | null;
   onSuccess?: () => void;
 }
@@ -79,6 +81,7 @@ export function TransactionForm({
   );
   const [notes, setNotes] = useState(editTransaction?.notes || "");
   const [excludeFromBudget, setExcludeFromBudget] = useState(editTransaction?.excludeFromBudget || false);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(editTransaction?.receiptUrl || null);
 
   // Categories from API
   const [categories, setCategories] = useState<CategoryData[]>([]);
@@ -113,6 +116,7 @@ export function TransactionForm({
       setDate(toColombiaDateString(editTransaction.date));
       setNotes(editTransaction.notes || "");
       setExcludeFromBudget(editTransaction.excludeFromBudget || false);
+      setReceiptUrl(editTransaction.receiptUrl || null);
     } else if (defaultDescription) {
       setDescription(defaultDescription);
     }
@@ -200,6 +204,7 @@ export function TransactionForm({
             date,
             notes: notes || null,
             excludeFromBudget,
+            receiptUrl,
           }),
         });
       } else {
@@ -219,6 +224,7 @@ export function TransactionForm({
             date,
             notes: notes || null,
             excludeFromBudget,
+            receiptUrl,
             transferToAccountId: type === 'transfer' ? toAccountId : undefined,
             transferToSubAccountId: type === 'transfer' ? (toSubAccountId || undefined) : undefined,
           }),
@@ -265,6 +271,7 @@ export function TransactionForm({
     setToSubAccountId("");
     setNotes("");
     setExcludeFromBudget(false);
+    setReceiptUrl(null);
     setUseCustomCategory(false);
     setCustomCategory("");
     setShowNewSubCategory(false);
@@ -587,6 +594,12 @@ export function TransactionForm({
           onChange={(e) => setNotes(e.target.value)}
           className="rounded-xl"
         />
+      </div>
+
+      {/* Receipt */}
+      <div className="space-y-2">
+        <Label>Recibo / Comprobante (opcional)</Label>
+        <ReceiptUpload value={receiptUrl} onChange={setReceiptUrl} />
       </div>
 
       {/* Exclude from Budget */}
