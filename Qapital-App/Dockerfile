@@ -31,7 +31,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Set timezone to Colombia (UTC-5) so new Date() returns Colombia time
 ENV TZ=America/Bogota
-RUN apk add --no-cache su-exec tzdata
+RUN apk add --no-cache su-exec tzdata dos2unix
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -45,7 +45,7 @@ COPY --from=builder /app/node_modules ./node_modules
 RUN mkdir -p /data/db && chown nextjs:nodejs /data/db
 
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod +x ./docker-entrypoint.sh
+RUN dos2unix ./docker-entrypoint.sh && chmod +x ./docker-entrypoint.sh
 
 # Do NOT set USER here — entrypoint must run as root to fix permissions
 EXPOSE 3000
