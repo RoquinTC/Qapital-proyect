@@ -15,6 +15,7 @@ import { AccountDetail } from "./account-detail";
 import { DebtDetail } from "./debt-detail";
 import { SavingsGoalDetail } from "./savings-goal-detail";
 import { YieldSimulator } from "./yield-simulator";
+import { CreditSimulator } from "./credit-simulator";
 
 // Error boundary component to prevent a single tab crash from breaking the entire app
 class TabErrorBoundary extends Component<{
@@ -123,6 +124,8 @@ export function FinancePage() {
         return <TabErrorBoundary><CDTView /></TabErrorBoundary>;
       case "simulator":
         return <YieldSimulator />;
+      case "credit-simulator":
+        return <CreditSimulator />;
       case "recurring":
         return <RecurringView />;
       default:

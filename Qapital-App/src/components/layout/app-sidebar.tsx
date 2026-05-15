@@ -37,9 +37,9 @@ const moduleItems = [
 ];
 
 const simulatorItems = [
-  { id: "simulator-yield" as const, label: "Cuentas de alto rendimiento", icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30", comingSoon: false },
-  { id: "simulator-cdt" as const, label: "CDT", icon: Landmark, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30", comingSoon: true },
-  { id: "simulator-credit" as const, label: "Créditos", icon: CreditCard, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30", comingSoon: true },
+  { id: "simulator-yield" as const, label: "Cuentas de alto rendimiento", icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30", comingSoon: false, subView: "simulator" as const },
+  { id: "simulator-cdt" as const, label: "CDT", icon: Landmark, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30", comingSoon: true, subView: null },
+  { id: "simulator-credit" as const, label: "Créditos", icon: CreditCard, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30", comingSoon: false, subView: "credit-simulator" as const },
 ];
 
 export function AppSidebar() {
@@ -156,9 +156,9 @@ export function AppSidebar() {
                         <button
                           key={item.id}
                           onClick={() => {
-                            if (!item.comingSoon) {
+                            if (!item.comingSoon && item.subView) {
                               setActiveModule("finance");
-                              setFinanceSubView("simulator");
+                              setFinanceSubView(item.subView);
                               setSidebarOpen(false);
                             }
                           }}
