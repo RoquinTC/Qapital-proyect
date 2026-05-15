@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useAppStore } from "@/lib/store";
@@ -19,6 +19,7 @@ import { PantryPage } from "@/components/pantry/pantry-page";
 import { SettingsPage } from "@/components/settings/settings-page";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { BackupRestorePrompt } from "@/components/settings/backup-restore-prompt";
+import { LockScreen } from "@/components/security/lock-screen";
 import { motion, AnimatePresence } from "framer-motion";
 
 function ModuleContent() {
@@ -58,6 +59,40 @@ export function AppShell() {
   const { authView } = useAppStore();
   const { setTheme: applyTheme } = useTheme();
   const [showBackupPrompt, setShowBackupPrompt] = useState(false);
+  const [manuallyUnlocked, setManuallyUnlocked] = useState(false);
+
+  // Check if security is enabled and lock the app accordingly
+  const pinEnabled = (session?.user as Record<string, unknown>)?.pinEnabled as boolean | undefined;
+  const biometricEnabled = (session?.user as Record<string, unknown>)?.biometricEnabled as boolean | undefined;
+  const securityEnabled = pinEnabled || biometricEnabled;
+
+  // Compute locked state: if security is enabled and user hasn't unlocked yet, lock
+  const shouldLock = securityEnabled && !manuallyUnlocked;
+
+  // Listen for visibility change events to lock on resume
+  useEffect(() => {
+    if (!securityEnabled) return;
+
+    const handleVisibilityChange = async () => {
+      if (document.hidden) return; // App going to background — do nothing
+
+      // App coming to foreground — check lockOnResume setting
+      try {
+        const settings = await apiFetch<{ lockOnResume?: boolean; pinEnabled?: boolean; biometricEnabled?: boolean }>("/api/settings");
+        if (settings.lockOnResume && (settings.pinEnabled || settings.biometricEnabled)) {
+          setManuallyUnlocked(false);
+        }
+      } catch {
+        // If we can't check settings, lock anyway for safety
+        setManuallyUnlocked(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [securityEnabled]);
 
   // Load user's saved theme from DB on login
   // StrictMode-safe: uses mountedRef to avoid state updates after unmount
@@ -113,15 +148,24 @@ export function AppShell() {
     };
   }, [status, session?.user?.id]);
 
+  const handleUnlock = useCallback(() => {
+    setManuallyUnlocked(true);
+  }, []);
+
   // Loading state
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30 mb-4 animate-pulse">
-            <span className="text-2xl font-bold text-white tracking-tight">Q</span>
-          </div>
-          <p className="text-sm text-gray-500">Cargando...</p>
+          <img
+            src="/icon-192.png"
+            alt="Quid"
+            className="size-20 mx-auto mb-4 rounded-2xl shadow-lg shadow-emerald-500/30 animate-pulse"
+          />
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+            Quid
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Todo converge aqui</p>
         </div>
       </div>
     );
@@ -139,6 +183,11 @@ export function AppShell() {
   // Use loose comparison to handle both boolean and number (SQLite stores as 0/1)
   if (onboardingCompleted === false || onboardingCompleted === 0) {
     return <OnboardingFlow />;
+  }
+
+  // If locked, show lock screen
+  if (shouldLock) {
+    return <LockScreen onUnlock={handleUnlock} />;
   }
 
   // Authenticated and onboarded - show main app

@@ -46,9 +46,7 @@ export function Header() {
             <Menu className="size-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="size-8 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-              <span className="text-sm font-bold">Q</span>
-            </div>
+            <img src="/icon-192.png" alt="Quid" className="size-8 rounded-xl" />
             <h1 className="text-lg font-bold tracking-tight">Quid</h1>
           </div>
         </div>

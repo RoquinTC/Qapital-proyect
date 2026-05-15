@@ -88,6 +88,9 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Contraseña incorrecta");
         }
 
+        // Load security settings for JWT
+        const userSettings = await db.userSettings.findUnique({ where: { userId: user.id } });
+
         return {
           id: user.id,
           email: user.email,
@@ -96,6 +99,8 @@ export const authOptions: NextAuthOptions = {
           currency: user.currency,
           onboardingCompleted: Boolean(user.onboardingCompleted),
           onboardingStep: user.onboardingStep,
+          pinEnabled: userSettings?.pinEnabled ?? false,
+          biometricEnabled: userSettings?.biometricEnabled ?? false,
         };
       },
     }),
@@ -107,14 +112,21 @@ export const authOptions: NextAuthOptions = {
         token.currency = (user as unknown as Record<string, unknown>).currency as string | undefined;
         token.onboardingCompleted = (user as unknown as Record<string, unknown>).onboardingCompleted as boolean | undefined;
         token.onboardingStep = (user as unknown as Record<string, unknown>).onboardingStep as number | undefined;
+        token.pinEnabled = (user as unknown as Record<string, unknown>).pinEnabled as boolean | undefined;
+        token.biometricEnabled = (user as unknown as Record<string, unknown>).biometricEnabled as boolean | undefined;
       }
       if (trigger === "update" && token.id) {
-        const dbUser = await db.user.findUnique({ where: { id: token.id as string } });
+        const dbUser = await db.user.findUnique({
+          where: { id: token.id as string },
+          include: { settings: true },
+        });
         if (dbUser) {
           token.onboardingCompleted = Boolean(dbUser.onboardingCompleted);
           token.onboardingStep = dbUser.onboardingStep;
           token.currency = dbUser.currency;
           token.name = dbUser.name;
+          token.pinEnabled = dbUser.settings?.pinEnabled ?? false;
+          token.biometricEnabled = dbUser.settings?.biometricEnabled ?? false;
         }
       }
       return token;
@@ -125,6 +137,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as Record<string, unknown>).currency = token.currency;
         (session.user as Record<string, unknown>).onboardingCompleted = token.onboardingCompleted;
         (session.user as Record<string, unknown>).onboardingStep = token.onboardingStep;
+        session.user.pinEnabled = token.pinEnabled as boolean | undefined;
+        session.user.biometricEnabled = token.biometricEnabled as boolean | undefined;
       }
       return session;
     },

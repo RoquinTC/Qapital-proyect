@@ -50,6 +50,7 @@ model User {
   notifications       AppNotification[]
   pushSubscriptions   PushSubscription[]
   storedBackups       StoredBackup[]
+  authCredentials     AuthCredential[]
 }
 
 // ============================================
@@ -763,6 +764,10 @@ model UserSettings {
   countryCode         String    @default("CO") // For holiday calculations
   lastBudgetReset     DateTime? // When budgets were last reset
   notificationsEnabled Boolean  @default(true) // Global notifications toggle
+  pinEnabled          Boolean   @default(false) // PIN lock enabled
+  pinHash             String?                    // bcrypt hash of the 4-digit PIN
+  biometricEnabled    Boolean   @default(false) // Biometric auth enabled
+  lockOnResume        Boolean   @default(true)  // Lock when app comes back to foreground
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -786,4 +791,26 @@ model StoredBackup {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("stored_backups")
+}
+
+// ============================================
+// WEBAUTHN CREDENTIALS
+// ============================================
+
+model AuthCredential {
+  id              String   @id @default(cuid())
+  userId          String
+  credentialId    String   @unique   // Base64url-encoded credential ID
+  publicKey       String             // Base64url-encoded public key
+  counter         Int      @default(0)
+  deviceType      String?            // "platform" (fingerprint/face) or "cross-platform" (security key)
+  backedUp        Boolean  @default(false)
+  transports      String?            // JSON array of transports
+  name            String?            // User-given name like "Dedo índice"
+  createdAt       DateTime @default(now())
+  lastUsedAt      DateTime?
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_credentials")
 }

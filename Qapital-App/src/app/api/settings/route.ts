@@ -73,6 +73,9 @@ export async function PUT(req: NextRequest) {
       respectHolidays,
       countryCode,
       notificationsEnabled,
+      lockOnResume,
+      pinEnabled,
+      biometricEnabled,
     } = body;
 
     // Validate cutoff day
@@ -97,6 +100,9 @@ export async function PUT(req: NextRequest) {
     if (respectHolidays !== undefined) data.respectHolidays = respectHolidays;
     if (countryCode !== undefined) data.countryCode = countryCode;
     if (notificationsEnabled !== undefined) data.notificationsEnabled = notificationsEnabled;
+    if (lockOnResume !== undefined) data.lockOnResume = lockOnResume;
+    if (pinEnabled !== undefined) data.pinEnabled = pinEnabled;
+    if (biometricEnabled !== undefined) data.biometricEnabled = biometricEnabled;
 
     const settings = await db.userSettings.upsert({
       where: { userId: session.user.id },

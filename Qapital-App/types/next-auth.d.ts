@@ -10,6 +10,8 @@ declare module "next-auth" {
       currency?: string;
       onboardingCompleted?: boolean;
       onboardingStep?: number;
+      pinEnabled?: boolean;
+      biometricEnabled?: boolean;
     };
   }
 
@@ -21,6 +23,8 @@ declare module "next-auth" {
     currency?: string;
     onboardingCompleted?: boolean;
     onboardingStep?: number;
+    pinEnabled?: boolean;
+    biometricEnabled?: boolean;
   }
 }
 
@@ -30,5 +34,7 @@ declare module "next-auth/jwt" {
     currency?: string;
     onboardingCompleted?: boolean;
     onboardingStep?: number;
+    pinEnabled?: boolean;
+    biometricEnabled?: boolean;
   }
 }

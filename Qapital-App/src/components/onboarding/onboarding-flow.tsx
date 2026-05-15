@@ -37,7 +37,7 @@ const steps = [
     id: 0,
     title: "¡Bienvenido a Quid!",
     description:
-      "Tu centro de vida personal. Gestiona tus finanzas, transporte, salud y despensa en un solo lugar. Diseñada para simplificar tu día a día.",
+      "Todo converge aqui. Gestiona tus finanzas, transporte, salud y despensa en un solo lugar. Diseñada para simplificar tu día a día.",
     icon: Sparkles,
     gradient: "from-emerald-500 to-teal-500",
   },

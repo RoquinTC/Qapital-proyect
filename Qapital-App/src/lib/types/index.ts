@@ -27,6 +27,8 @@ export type {
   MonthlyData,
   MonthlySummaryResponse,
   UserSettings,
+  AuthCredentialInfo,
+  SecurityStatus,
 } from './finance';
 
 // Transport

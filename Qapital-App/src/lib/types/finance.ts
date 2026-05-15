@@ -413,4 +413,26 @@ export interface UserSettings {
   countryCode: string;
   lastBudgetReset?: string | null;
   notificationsEnabled: boolean;
+  pinEnabled: boolean;
+  pinHash?: string | null;
+  biometricEnabled: boolean;
+  lockOnResume: boolean;
+}
+
+// ─── Security Types ───
+
+export interface AuthCredentialInfo {
+  id: string;
+  name?: string | null;
+  deviceType?: string | null;
+  createdAt: string;
+  lastUsedAt?: string | null;
+}
+
+export interface SecurityStatus {
+  pinEnabled: boolean;
+  biometricEnabled: boolean;
+  lockOnResume: boolean;
+  hasCredentials: boolean;
+  credentials: AuthCredentialInfo[];
 }

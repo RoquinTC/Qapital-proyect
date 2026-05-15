@@ -711,6 +711,9 @@ export const settingsUpdateSchema = z.object({
   respectHolidays: z.boolean().optional(),
   countryCode: z.string().optional(),
   notificationsEnabled: z.boolean().optional(),
+  lockOnResume: z.boolean().optional(),
+  pinEnabled: z.boolean().optional(),
+  biometricEnabled: z.boolean().optional(),
 });
 
 export const importSchema = z.object({

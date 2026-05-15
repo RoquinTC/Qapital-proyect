@@ -61,6 +61,7 @@ import {
 import { AccountManager } from "@/components/finance/account-manager";
 import { CategoriesManager } from "@/components/finance/categories-manager";
 import { BackupManager } from "@/components/settings/backup-manager";
+import { SecuritySettings } from "@/components/security/security-settings";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -591,6 +592,18 @@ export function SettingsPage() {
                   )}
                 </CardContent>
               </Card>
+            </AccordionContent>
+          </AccordionItem>
+        </Card>
+
+        {/* ── SEGURIDAD ── */}
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+          <AccordionItem value="seguridad" className="border-0">
+            <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-50 dark:hover:bg-gray-800/50">
+              <SectionHeader icon={Lock} iconColor="text-emerald-600" iconBg="bg-emerald-100 dark:bg-emerald-900/30" title="Seguridad" />
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <SecuritySettings />
             </AccordionContent>
           </AccordionItem>
         </Card>

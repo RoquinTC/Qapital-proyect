@@ -123,13 +123,15 @@ export function ForgotPasswordForm() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30 mb-4">
-            <span className="text-2xl font-bold text-white">Q</span>
-          </div>
+          <img
+            src="/icon-192.png"
+            alt="Quid"
+            className="size-20 mx-auto mb-4 rounded-2xl shadow-lg shadow-emerald-500/30"
+          />
           <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
             Quid
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Recuperar contraseña</p>
+          <p className="text-sm text-gray-500 mt-1">Todo converge aqui</p>
         </div>
 
         {/* ====== STEP 1: Enter Email ====== */}
