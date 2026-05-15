@@ -86,6 +86,7 @@ export function YieldSimulator() {
   // Calculate yields for each real account
   const accountResults = useMemo(() => {
     return accounts.map((account) => {
+      // Yield the current balance will generate in remaining days
       const currentYield = calculateProportionalYield(
         account.balance,
         account.yieldPercentage,
@@ -97,23 +98,28 @@ export function YieldSimulator() {
         account.yieldPercentage,
         daysRemaining
       );
-      const extraYield = combinedYield - currentYield;
+      // Extra yield from adding the simulated amount to this account (remaining days)
+      const contributionYield = combinedYield - currentYield;
+      // Total yield with combined balance = current yield + contribution yield
+      const totalWithContribution = currentYield + contributionYield;
+      // Standalone yield = what the simulated amount would earn on its own for a FULL month
       const standaloneYield = calculateProportionalYield(
         amount,
         account.yieldPercentage,
-        daysRemaining
+        daysInMonth
       );
 
       return {
         ...account,
         currentYield,
         combinedYield,
-        extraYield,
+        contributionYield,
+        totalWithContribution,
         standaloneYield,
         combinedBalance,
       };
     });
-  }, [accounts, amount, daysRemaining]);
+  }, [accounts, amount, daysRemaining, daysInMonth]);
 
   // Calculate yields for hypothetical accounts
   const hypotheticalResults = useMemo(() => {
@@ -150,7 +156,7 @@ export function YieldSimulator() {
       options.push({
         name: acc.name,
         ea: acc.yieldPercentage,
-        yield: acc.extraYield,
+        yield: acc.totalWithContribution,
         type: "combined",
         color: acc.color,
       });
@@ -339,20 +345,20 @@ export function YieldSimulator() {
                   {amount > 0 && (
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Rendimiento extra con tu aporte
+                        Rendimiento con saldo conjunto ({daysRemaining}d)
                       </span>
                       <span
                         className="text-sm font-bold"
                         style={{ color: acc.color }}
                       >
-                        +{formatCurrency(acc.extraYield)}
+                        +{formatCurrency(acc.totalWithContribution)}
                       </span>
                     </div>
                   )}
                   {amount > 0 && (
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Rendimiento solo con tu monto
+                        Rendimiento solo con tu monto (mes completo)
                       </span>
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                         {formatCurrency(acc.standaloneYield)}
