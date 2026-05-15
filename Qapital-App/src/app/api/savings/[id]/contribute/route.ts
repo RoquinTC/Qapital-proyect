@@ -110,7 +110,8 @@ export async function POST(
       },
     });
 
-    // Update goal current amount
+    // Update goal current amount (will be recalculated by syncSavingsBudget below)
+    // We still increment here so the value is correct immediately before sync runs
     await db.savingsGoal.update({
       where: { id },
       data: { currentAmount: { increment: amount } },

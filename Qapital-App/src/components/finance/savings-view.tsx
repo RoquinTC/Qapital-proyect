@@ -40,6 +40,7 @@ export function SavingsView() {
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   const [contributeGoalId, setContributeGoalId] = useState<string | null>(null);
   const [contributeGoalName, setContributeGoalName] = useState("");
+  const [contributeLinkedAccounts, setContributeLinkedAccounts] = useState<any[]>([]);
   const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -63,9 +64,10 @@ export function SavingsView() {
   const totalSaved = goals.reduce((sum, g) => sum + g.currentAmount, 0);
   const totalTarget = goals.reduce((sum, g) => sum + g.targetAmount, 0);
 
-  const handleContribute = (goalId: string, goalName: string) => {
+  const handleContribute = (goalId: string, goalName: string, linkedAccounts: any[] = []) => {
     setContributeGoalId(goalId);
     setContributeGoalName(goalName);
+    setContributeLinkedAccounts(linkedAccounts);
   };
 
   const handleGoalClick = (goalId: string) => {
@@ -196,7 +198,7 @@ export function SavingsView() {
             <motion.div key={goal.id} variants={itemVariants}>
               <SavingsGoalCard
                 goal={goal}
-                onContribute={() => handleContribute(goal.id, goal.name)}
+                onContribute={() => handleContribute(goal.id, goal.name, goal.linkedAccounts)}
                 onClick={() => handleGoalClick(goal.id)}
                 onEdit={() => handleEditGoal(goal)}
                 onDelete={() => setDeleteGoalId(goal.id)}
@@ -240,10 +242,12 @@ export function SavingsView() {
             if (!open) {
               setContributeGoalId(null);
               setContributeGoalName("");
+              setContributeLinkedAccounts([]);
             }
           }}
           goalId={contributeGoalId}
           goalName={contributeGoalName}
+          linkedAccounts={contributeLinkedAccounts}
           onSuccess={fetchGoals}
         />
       )}

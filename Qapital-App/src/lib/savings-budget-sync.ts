@@ -28,7 +28,7 @@ export async function syncSavingsBudget(userId: string): Promise<void> {
           },
         },
         cdts: { select: { amount: true, status: true } },
-        contributions: { select: { amount: true, description: true } },
+        contributions: { select: { amount: true, description: true, accountId: true } },
       },
     });
 
@@ -56,11 +56,28 @@ export async function syncSavingsBudget(userId: string): Promise<void> {
       // "Saldo cuenta vinculada" contributions are snapshot values from when accounts were linked.
       // We use live balances instead to always reflect the current state,
       // so we exclude these snapshot contributions to avoid double-counting.
+      //
+      // Also exclude contributions that have an accountId matching a linked account/subAccount,
+      // because those are already reflected in the live linkedBalance (the account was debited,
+      // so linkedBalance already decreased by that amount — counting them in manualContributions
+      // would cancel out the linkedBalance change and show no progress).
+      const linkedAccountIds = new Set(
+        goal.linkedAccounts.map(l => l.accountId)
+      );
+      const linkedSubAccountIds = new Set(
+        goal.linkedAccounts.filter(l => l.subAccountId).map(l => l.subAccountId!)
+      );
+
       let manualContributions = 0;
       for (const contrib of goal.contributions) {
-        if (contrib.description !== 'Saldo cuenta vinculada') {
-          manualContributions += toNumber(contrib.amount);
-        }
+        // Skip snapshot contributions from when accounts were linked
+        if (contrib.description === 'Saldo cuenta vinculada') continue;
+        // Skip contributions that were debited from a linked account
+        // (their effect is already in linkedBalance via the account's live balance)
+        if (contrib.accountId && (
+          linkedAccountIds.has(contrib.accountId) || linkedSubAccountIds.has(contrib.accountId)
+        )) continue;
+        manualContributions += toNumber(contrib.amount);
       }
 
       // Final calculation: manual contributions + live linked balances + CDT amounts

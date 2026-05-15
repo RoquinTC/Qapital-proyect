@@ -402,6 +402,32 @@ export async function POST(req: NextRequest) {
 
     // Notify other shared account users about new transaction
     if (accountId) {
+
+    // ── Sync savings goals if this account is linked to a savings goal ──
+    // When a transaction changes an account's balance, any savings goal linked
+    // to that account needs its currentAmount recalculated.
+    try {
+      const affectedAccountIds = [accountId];
+      if (transferToAccountId) affectedAccountIds.push(transferToAccountId);
+
+      const linkedGoals = await db.savingsGoalAccount.findFirst({
+        where: {
+          OR: [
+            { accountId: { in: affectedAccountIds } },
+            { subAccountId: subAccountId || undefined },
+            { subAccountId: transferToSubAccountId || undefined },
+          ].filter(Boolean),
+        },
+      });
+
+      if (linkedGoals) {
+        const { syncSavingsBudget } = await import("@/lib/savings-budget-sync");
+        await syncSavingsBudget(session.user.id);
+      }
+    } catch (syncError) {
+      console.error("Failed to sync savings budget after transaction:", syncError);
+    }
+
       try {
         const accountInfo = await db.account.findUnique({
           where: { id: accountId },
