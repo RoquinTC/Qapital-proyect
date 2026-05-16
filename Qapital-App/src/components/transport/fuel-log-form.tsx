@@ -23,6 +23,7 @@ import {
 import { apiFetch, formatCurrency, getColombiaTodayString } from "@/lib/api";
 import type { Vehicle } from "@/lib/types";
 import { Loader2, Calculator, Fuel } from "lucide-react";
+import { toast } from "sonner";
 
 interface FuelLogFormProps {
   open: boolean;
@@ -114,7 +115,7 @@ export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, onSucces
         method: "POST",
         body: JSON.stringify({
           date,
-          km: km || undefined,
+          km: km !== "" && km !== undefined ? parseFloat(km) : undefined,
           amount: parseFloat(amount),
           pricePerGallon: parseFloat(pricePerGallon),
           isFullTank,
@@ -122,11 +123,18 @@ export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, onSucces
         }),
       });
 
+      toast.success("Recarga registrada", {
+        description: "El registro de combustible se guardó correctamente",
+      });
+
       onSuccess?.();
       onOpenChange(false);
       resetForm();
     } catch (error) {
       console.error("Error creating fuel log:", error);
+      toast.error("Error al registrar", {
+        description: "No se pudo guardar el registro de combustible. Intenta de nuevo.",
+      });
     } finally {
       setLoading(false);
     }
