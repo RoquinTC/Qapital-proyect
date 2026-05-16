@@ -62,6 +62,7 @@ export async function GET() {
         date: { gte: periodStart, lt: periodEndPlus },
         type: { in: ["income", "expense"] },
         category: { not: null },
+        relatedTransactionId: null, // Exclude transfer counterpart incomes (not real income)
         AND: [
           // Include sourceModule=NULL (manual) and anything that isn't "finance_transfer"
           {

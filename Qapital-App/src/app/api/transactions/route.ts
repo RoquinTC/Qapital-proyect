@@ -320,6 +320,7 @@ export async function POST(req: NextRequest) {
           category: "Otros",
           date: date ? createColombiaDate(date.split("T")[0]) : createColombiaDate(getColombiaTodayString()),
           notes: `Transferencia desde ${sourceAccount?.name || "cuenta"}`,
+          excludeFromBudget: true, // Counterpart of a transfer — not real income
           relatedTransactionId: transaction.id,
         },
       });

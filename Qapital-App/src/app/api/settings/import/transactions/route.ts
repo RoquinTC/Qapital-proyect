@@ -397,6 +397,7 @@ export async function POST(request: Request) {
                   subCategory,
                   date,
                   sourceModule: "finance",
+                  excludeFromBudget: true, // Counterpart of a transfer — not real income
                   notes: notes
                     ? `${notes}${originName ? ` ← ${originName}` : ""}${subOriginName ? ` (${subOriginName})` : ""}`
                     : `Transferencia desde ${originName}${subOriginName ? ` (${subOriginName})` : ""}`,
