@@ -7,7 +7,7 @@ import { VehicleCard } from "./vehicle-card";
 import { VehicleForm } from "./vehicle-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Fuel, MapPin, Gauge, AlertTriangle, Wallet } from "lucide-react";
+import { Plus, Fuel, MapPin, Gauge, AlertTriangle, Wallet, CalendarClock } from "lucide-react";
 import { motion } from "framer-motion";
 import { VehicleIcon } from "./vehicle-icon";
 import type { Vehicle } from "@/lib/types";
@@ -20,6 +20,13 @@ type VehicleWithDetails = Vehicle & {
   estimatedRange?: number;
   avgKmPerGallon?: number;
   anomalyDetected?: boolean;
+  // Smart refuel prediction
+  avgKmPerDay?: number;
+  daysUntilRefuel?: number | null;
+  refuelByDate?: string | null;
+  gallonsToRefuel?: number;
+  isLowFuel?: boolean;
+  isLearning?: boolean;
 };
 
 interface FuelPriceInfo {
@@ -225,6 +232,18 @@ export function VehiclesView({ onSelectVehicle }: VehiclesViewProps) {
                   <div className="flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400">
                     <Wallet className="size-3.5" />
                     <span>Llenar: {formatCurrency(primaryCostToFill.costToFill)}</span>
+                  </div>
+                )}
+                {primaryVehicle.daysUntilRefuel != null && primaryVehicle.daysUntilRefuel > 0 && (
+                  <div className={`flex items-center gap-1.5 ${primaryVehicle.isLowFuel ? "text-red-500" : "text-cyan-600 dark:text-cyan-400"}`}>
+                    <CalendarClock className="size-3.5" />
+                    <span>Tanquea en ~{primaryVehicle.daysUntilRefuel}d</span>
+                  </div>
+                )}
+                {primaryVehicle.isLowFuel && (
+                  <div className="flex items-center gap-1.5 text-red-500 font-semibold">
+                    <Fuel className="size-3.5" />
+                    <span>¡Combustible bajo!</span>
                   </div>
                 )}
                 {hasAnomaly && (

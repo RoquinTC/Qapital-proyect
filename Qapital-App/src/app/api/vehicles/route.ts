@@ -78,6 +78,13 @@ export async function GET() {
         estimatedRange: fuelLevelData.estimatedRange,
         avgKmPerGallon: fuelLevelData.avgKmPerGallon,
         anomalyDetected: fuelLevelData.anomalyDetected,
+        // Smart refuel prediction fields
+        avgKmPerDay: fuelLevelData.avgKmPerDay,
+        daysUntilRefuel: fuelLevelData.daysUntilRefuel,
+        refuelByDate: fuelLevelData.refuelByDate,
+        gallonsToRefuel: fuelLevelData.gallonsToRefuel,
+        isLowFuel: fuelLevelData.isLowFuel,
+        isLearning: fuelLevelData.isLearning,
       };
     });
 

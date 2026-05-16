@@ -29,6 +29,13 @@ export interface FuelLevelResult {
   anomalyDetected: boolean;
   expectedConsumption: number;
   actualConsumption: number;
+  // ── Smart refuel prediction ──
+  avgKmPerDay: number;           // average km driven per day (learned from history)
+  daysUntilRefuel: number | null; // estimated days until tank is empty (null = not enough data)
+  refuelByDate: string | null;    // ISO date string of estimated refuel date (null = not enough data)
+  gallonsToRefuel: number;        // gallons needed to fill tank from current level
+  isLowFuel: boolean;             // true if fuel level <= 20%
+  isLearning: boolean;            // true if using default efficiency (not enough real data yet)
 }
 
 const DEFAULT_FUEL_LEVEL: FuelLevelResult = {
@@ -42,6 +49,12 @@ const DEFAULT_FUEL_LEVEL: FuelLevelResult = {
   anomalyDetected: false,
   expectedConsumption: 0,
   actualConsumption: 0,
+  avgKmPerDay: 0,
+  daysUntilRefuel: null,
+  refuelByDate: null,
+  gallonsToRefuel: 0,
+  isLowFuel: false,
+  isLearning: true,
 };
 
 /**
@@ -53,6 +66,7 @@ const DEFAULT_FUEL_LEVEL: FuelLevelResult = {
  * 3. From the full tank baseline, subtract estimated consumption based on km traveled
  * 4. Add any partial refuels since the full tank
  * 5. Detect anomalies (actual consumption > 130% of expected)
+ * 6. Calculate average km/day to predict when refuel is needed
  */
 export function calculateFuelLevel(
   vehicle: VehicleInput,
@@ -68,6 +82,7 @@ export function calculateFuelLevel(
     return {
       ...DEFAULT_FUEL_LEVEL,
       lastFullTankKm: vehicle.currentKm,
+      gallonsToRefuel: vehicle.tankCapacity,
     };
   }
 
@@ -75,6 +90,7 @@ export function calculateFuelLevel(
 
   // ── Step 1: Calculate average km/gallon ──
   let avgKmPerGallon = 0;
+  let isLearning = true; // Start as true, set to false only when we have real data
 
   // Prefer full-tank-to-full-tank calculations (most accurate)
   const fullTankLogs = fuelLogs
@@ -90,6 +106,7 @@ export function calculateFuelLevel(
 
     if (totalGallons > 0 && totalKm > 0) {
       avgKmPerGallon = totalKm / totalGallons;
+      isLearning = false;
     }
   }
 
@@ -101,12 +118,16 @@ export function calculateFuelLevel(
 
     if (totalGallons > 0 && totalKm > 0) {
       avgKmPerGallon = totalKm / totalGallons;
+      // This is still learning because it's not full-tank-to-full-tank
+      // but it's better than default, so we mark it as semi-learning
+      isLearning = true;
     }
   }
 
   // Default efficiency if no data (conservative estimates by vehicle type)
   if (avgKmPerGallon === 0) {
     avgKmPerGallon = vehicle.type === 'motorcycle' ? 35 : vehicle.type === 'car' ? 25 : 15;
+    isLearning = true;
   }
 
   // ── Step 2: Find the last full tank as baseline ──
@@ -179,8 +200,40 @@ export function calculateFuelLevel(
   // ── Step 3: Calculate derived values ──
   const fuelLevel = (currentFuel / tankCapacity) * 100;
   const estimatedRange = avgKmPerGallon > 0 ? currentFuel * avgKmPerGallon : 0;
+  const gallonsToRefuel = Math.max(0, Math.round((tankCapacity - currentFuel) * 100) / 100);
+  const isLowFuel = fuelLevel <= 20;
 
-  // ── Step 4: Anomaly detection ──
+  // ── Step 4: Calculate average km per day (learned from fuel log history) ──
+  let avgKmPerDay = 0;
+  let daysUntilRefuel: number | null = null;
+  let refuelByDate: string | null = null;
+
+  // We need at least 2 fuel logs on different dates to estimate daily usage
+  const sortedByDate = [...fuelLogs].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  if (sortedByDate.length >= 2) {
+    const oldestLog = sortedByDate[0];
+    const newestLog = sortedByDate[sortedByDate.length - 1];
+    const totalDaysDiff = (newestLog.date.getTime() - oldestLog.date.getTime()) / (1000 * 60 * 60 * 24);
+    const totalKmDiff = newestLog.km - oldestLog.km;
+
+    // Only use if we have at least 3 days of history for a meaningful average
+    if (totalDaysDiff >= 3 && totalKmDiff > 0) {
+      avgKmPerDay = totalKmDiff / totalDaysDiff;
+
+      // Predict days until refuel
+      if (estimatedRange > 0 && avgKmPerDay > 0) {
+        daysUntilRefuel = Math.floor(estimatedRange / avgKmPerDay);
+
+        // Calculate the date
+        const refuelDate = new Date();
+        refuelDate.setDate(refuelDate.getDate() + daysUntilRefuel);
+        refuelByDate = refuelDate.toISOString();
+      }
+    }
+  }
+
+  // ── Step 5: Anomaly detection ──
   let anomalyDetected = false;
   let expectedConsumption = 0;
   let actualConsumption = 0;
@@ -215,5 +268,11 @@ export function calculateFuelLevel(
     anomalyDetected,
     expectedConsumption: Math.round(expectedConsumption * 100) / 100,
     actualConsumption: Math.round(actualConsumption * 100) / 100,
+    avgKmPerDay: Math.round(avgKmPerDay * 100) / 100,
+    daysUntilRefuel,
+    refuelByDate,
+    gallonsToRefuel,
+    isLowFuel,
+    isLearning,
   };
 }

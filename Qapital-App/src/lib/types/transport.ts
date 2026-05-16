@@ -55,6 +55,13 @@ export interface FuelLevelData {
   anomalyDetected: boolean;
   expectedConsumption: number;
   actualConsumption: number;
+  // ── Smart refuel prediction ──
+  avgKmPerDay: number;
+  daysUntilRefuel: number | null;
+  refuelByDate: string | null;
+  gallonsToRefuel: number;
+  isLowFuel: boolean;
+  isLearning: boolean;
 }
 
 export interface FuelPrice {

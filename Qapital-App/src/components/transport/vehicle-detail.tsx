@@ -26,6 +26,8 @@ import {
   Trash2,
   AlertTriangle,
   Wallet,
+  CalendarClock,
+  MapPin,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -228,10 +230,10 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
     }
   }
 
-  // Cost to fill calculation
+  // Cost to fill calculation — use gallonsToRefuel from fuel-level calculation
   const costToFillData = (() => {
     if (!fuelLevelData || fuelLevelData.fuelLevel >= 100 || !vehicle.tankCapacity || !vehicle.fuelType || vehicle.fuelType === "electric") return null;
-    const gallonsNeeded = vehicle.tankCapacity - fuelLevelData.currentFuel;
+    const gallonsNeeded = fuelLevelData.gallonsToRefuel > 0 ? fuelLevelData.gallonsToRefuel : vehicle.tankCapacity - fuelLevelData.currentFuel;
     if (gallonsNeeded <= 0) return null;
     if (currentFuelPrice != null && currentFuelPrice > 0) {
       const costToFill = gallonsNeeded * currentFuelPrice;
@@ -239,6 +241,33 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
     }
     return { gallonsNeeded, costToFill: 0, pricePerGallon: 0, hasPrice: false };
   })();
+
+  // Smart refuel prediction from fuelLevelData
+  const isLowFuel = fuelLevelData?.isLowFuel ?? false;
+  const daysUntilRefuel = fuelLevelData?.daysUntilRefuel ?? null;
+  const refuelByDate = fuelLevelData?.refuelByDate ?? null;
+  const avgKmPerDay = fuelLevelData?.avgKmPerDay ?? 0;
+  const isLearning = fuelLevelData?.isLearning ?? true;
+
+  // Format the refuel date nicely
+  const formatRefuelDate = (isoDate: string | null) => {
+    if (!isoDate) return null;
+    try {
+      const date = new Date(isoDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const refuel = new Date(date);
+      refuel.setHours(0, 0, 0, 0);
+      const diffDays = Math.round((refuel.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return "Hoy";
+      if (diffDays === 1) return "Mañana";
+      if (diffDays <= 7) return `En ${diffDays} días (${date.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" })})`;
+      return date.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" });
+    } catch {
+      return null;
+    }
+  };
+  const refuelDateText = formatRefuelDate(refuelByDate);
 
   return (
     <div className="p-4 space-y-4 pb-24">
@@ -339,15 +368,16 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
               </div>
 
               {/* Fuel Stats Grid */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
                   <div className="flex items-center gap-1 text-gray-500 mb-1">
                     <TrendingDown className="size-3" />
                     <span>Rendimiento</span>
                   </div>
                   <p className="text-sm font-bold text-gray-900 dark:text-white">
-                    {fuelLevelData.avgKmPerGallon > 0 ? `${fuelLevelData.avgKmPerGallon} km/gal` : "—"}
+                    {fuelLevelData.avgKmPerGallon > 0 ? `${fuelLevelData.avgKmPerGallon}` : "—"}
                   </p>
+                  <p className="text-[9px] text-gray-400">km/gal</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
                   <div className="flex items-center gap-1 text-gray-500 mb-1">
@@ -355,37 +385,83 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                     <span>Autonomía</span>
                   </div>
                   <p className="text-sm font-bold text-gray-900 dark:text-white">
-                    {fuelLevelData.estimatedRange > 0 ? `${fuelLevelData.estimatedRange} km` : "—"}
+                    {fuelLevelData.estimatedRange > 0 ? `${fuelLevelData.estimatedRange}` : "—"}
                   </p>
+                  <p className="text-[9px] text-gray-400">km</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
+                  <div className="flex items-center gap-1 text-gray-500 mb-1">
+                    <MapPin className="size-3" />
+                    <span>Uso diario</span>
+                  </div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                    {avgKmPerDay > 0 ? `~${avgKmPerDay.toFixed(0)}` : "—"}
+                  </p>
+                  <p className="text-[9px] text-gray-400">km/día</p>
                 </div>
               </div>
 
-              {/* Cost to Fill Tank */}
+              {/* Smart Refuel Prediction Card */}
               {costToFillData && (
                 <motion.div
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-3 p-3 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-xl"
+                  className={`mt-3 p-3 rounded-xl border ${
+                    isLowFuel
+                      ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                      : "bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800"
+                  }`}
                 >
+                  {/* Gallons + Cost row */}
                   <div className="flex items-start gap-2">
-                    <Wallet className="size-4 text-cyan-600 dark:text-cyan-400 flex-shrink-0 mt-0.5" />
-                    <div>
+                    <Droplets className={`size-4 flex-shrink-0 mt-0.5 ${isLowFuel ? "text-red-500" : "text-cyan-600 dark:text-cyan-400"}`} />
+                    <div className="flex-1">
                       {costToFillData.hasPrice ? (
                         <>
-                          <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
-                            Para llenar el tanque: {formatCurrency(costToFillData.costToFill)}
+                          <p className={`text-xs font-semibold ${isLowFuel ? "text-red-700 dark:text-red-300" : "text-cyan-700 dark:text-cyan-300"}`}>
+                            Para llenar: {formatCurrency(costToFillData.costToFill)}
                           </p>
-                          <p className="text-[10px] text-cyan-600 dark:text-cyan-400 mt-0.5">
-                            {costToFillData.gallonsNeeded.toFixed(1)} gal a {formatCurrency(costToFillData.pricePerGallon)}/gal
+                          <p className={`text-[10px] mt-0.5 ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-600 dark:text-cyan-400"}`}>
+                            {costToFillData.gallonsNeeded.toFixed(1)} gal × {formatCurrency(costToFillData.pricePerGallon)}/gal
                           </p>
                         </>
                       ) : (
-                        <p className="text-[11px] text-cyan-600 dark:text-cyan-400">
-                          Actualiza el precio de la gasolina para ver cuánto necesitas para llenar el tanque
+                        <>
+                          <p className={`text-xs font-semibold ${isLowFuel ? "text-red-700 dark:text-red-300" : "text-cyan-700 dark:text-cyan-300"}`}>
+                            {costToFillData.gallonsNeeded.toFixed(1)} gal para llenar el tanque
+                          </p>
+                          <p className={`text-[9px] mt-0.5 ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
+                            Configura el precio de la gasolina para ver el costo estimado
+                          </p>
+                        </>
+                      )}
+                      {isLearning && (
+                        <p className="text-[8px] text-amber-600 dark:text-amber-400 mt-1">
+                          Rendimiento estimado — se ajustará con más registros
                         </p>
                       )}
                     </div>
                   </div>
+
+                  {/* Days until refuel prediction */}
+                  {daysUntilRefuel != null && refuelDateText && (
+                    <div className={`flex items-center gap-2 mt-2 pt-2 border-t ${
+                      isLowFuel ? "border-red-200 dark:border-red-800" : "border-cyan-200 dark:border-cyan-800"
+                    }`}>
+                      <CalendarClock className={`size-3.5 flex-shrink-0 ${isLowFuel ? "text-red-500" : "text-cyan-600 dark:text-cyan-400"}`} />
+                      <span className={`text-[11px] font-semibold ${isLowFuel ? "text-red-700 dark:text-red-300" : "text-cyan-700 dark:text-cyan-300"}`}>
+                        {daysUntilRefuel <= 0 ? "¡Tanquea hoy!" : daysUntilRefuel === 1 ? "¡Tanquea mañana!" : `Tanquea en ~${daysUntilRefuel} días`}
+                      </span>
+                      <span className={`text-[9px] ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
+                        {refuelDateText}
+                      </span>
+                      {avgKmPerDay > 0 && (
+                        <span className={`text-[8px] ml-auto ${isLowFuel ? "text-red-400 dark:text-red-500" : "text-cyan-400 dark:text-cyan-500"}`}>
+                          ~{avgKmPerDay.toFixed(0)} km/día
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               )}
 

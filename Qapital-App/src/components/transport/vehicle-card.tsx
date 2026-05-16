@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency, formatDate, apiFetch } from "@/lib/api";
-import { Fuel, Wrench, AlertTriangle, Gauge, MapPin, Pencil, ChevronDown, ChevronUp, Wallet } from "lucide-react";
+import { Fuel, Wrench, AlertTriangle, Gauge, MapPin, Pencil, ChevronDown, ChevronUp, Wallet, CalendarClock, Droplets } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FuelGauge } from "./Fuel-gauge";
 import { QuickKmUpdate } from "./quick-km-update";
@@ -43,6 +43,13 @@ interface VehicleCardProps {
     estimatedRange?: number;
     avgKmPerGallon?: number;
     anomalyDetected?: boolean;
+    // Smart refuel prediction
+    avgKmPerDay?: number;
+    daysUntilRefuel?: number | null;
+    refuelByDate?: string | null;
+    gallonsToRefuel?: number;
+    isLowFuel?: boolean;
+    isLearning?: boolean;
   };
   onClick?: () => void;
   onKmUpdated?: () => void;
@@ -81,6 +88,12 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
   const currentFuel = vehicle.currentFuel ?? 0;
   const estimatedRange = vehicle.estimatedRange ?? 0;
   const avgKmPerGallon = vehicle.avgKmPerGallon ?? 0;
+  const avgKmPerDay = vehicle.avgKmPerDay ?? 0;
+  const daysUntilRefuel = vehicle.daysUntilRefuel ?? null;
+  const refuelByDate = vehicle.refuelByDate ?? null;
+  const gallonsToRefuel = vehicle.gallonsToRefuel ?? 0;
+  const isLowFuel = vehicle.isLowFuel ?? false;
+  const isLearning = vehicle.isLearning ?? true;
 
   // Determine maintenance status
   let maintenanceStatus: "ok" | "warning" | "overdue" = "ok";
@@ -103,10 +116,10 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
     return "text-red-500";
   };
 
-  // Cost to fill calculation
+  // Cost to fill calculation — always compute if tank exists and not electric
   const costToFillData = (() => {
     if (fuelLevel >= 100 || !vehicle.tankCapacity || !vehicle.fuelType || vehicle.fuelType === "electric") return null;
-    const gallonsNeeded = vehicle.tankCapacity - currentFuel;
+    const gallonsNeeded = gallonsToRefuel > 0 ? gallonsToRefuel : vehicle.tankCapacity - currentFuel;
     if (gallonsNeeded <= 0) return null;
     if (currentFuelPrice != null && currentFuelPrice > 0) {
       const costToFill = gallonsNeeded * currentFuelPrice;
@@ -114,6 +127,28 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
     }
     return { gallonsNeeded, costToFill: 0, pricePerGallon: 0, hasPrice: false };
   })();
+
+  // Format the refuel date nicely
+  const formatRefuelDate = (isoDate: string | null) => {
+    if (!isoDate) return null;
+    try {
+      const date = new Date(isoDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const refuel = new Date(date);
+      refuel.setHours(0, 0, 0, 0);
+      const diffDays = Math.round((refuel.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) return "Hoy";
+      if (diffDays === 1) return "Mañana";
+      if (diffDays <= 7) return `En ${diffDays} días (${date.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" })})`;
+      return date.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" });
+    } catch {
+      return null;
+    }
+  };
+
+  const refuelDateText = formatRefuelDate(refuelByDate);
 
   return (
     <>
@@ -125,7 +160,7 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden">
           {/* Header with gradient */}
           <div
-            className={`bg-gradient-to-r ${gradient} p-4 relative overflow-hidden cursor-pointer`}
+            className={`bg-gradient-to-r ${isLowFuel ? "from-red-500 to-orange-500" : gradient} p-4 relative overflow-hidden cursor-pointer`}
             onClick={onClick}
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.15),transparent)] pointer-events-none" />
@@ -188,6 +223,11 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
                     <div className="flex items-center gap-1.5">
                       <Fuel className={`size-3.5 ${getFuelColorClass(fuelLevel)}`} />
                       <span className="text-xs text-gray-500">Combustible</span>
+                      {isLearning && (
+                        <span className="text-[8px] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded px-1 py-0" title="Rendimiento estimado, se ajustará con más registros">
+                          Aprendiendo
+                        </span>
+                      )}
                     </div>
                     <p className={`text-lg font-bold ${getFuelColorClass(fuelLevel)}`}>
                       {currentFuel.toFixed(1)} <span className="text-xs font-normal text-gray-400">/ {vehicle.tankCapacity} gal</span>
@@ -223,26 +263,54 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
               </div>
             )}
 
-            {/* Cost to Fill Tank */}
+            {/* ── Smart Refuel Prediction Card ── */}
             {costToFillData && (
-              <div className="p-2.5 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-xl">
+              <div className={`p-2.5 rounded-xl border ${
+                isLowFuel
+                  ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                  : "bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800"
+              }`}>
+                {/* Top row: Gallons needed + Cost */}
                 <div className="flex items-center gap-2">
-                  <Wallet className="size-4 text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
-                  {costToFillData.hasPrice ? (
-                    <div className="text-[11px]">
-                      <span className="font-semibold text-cyan-700 dark:text-cyan-300">
-                        Para llenar el tanque: {formatCurrency(costToFillData.costToFill)}
+                  <Droplets className={`size-4 flex-shrink-0 ${isLowFuel ? "text-red-500" : "text-cyan-600 dark:text-cyan-400"}`} />
+                  <div className="text-[11px] flex-1">
+                    {costToFillData.hasPrice ? (
+                      <span className={`font-semibold ${isLowFuel ? "text-red-700 dark:text-red-300" : "text-cyan-700 dark:text-cyan-300"}`}>
+                        Para llenar: {formatCurrency(costToFillData.costToFill)}
+                        <span className={`font-normal ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-600 dark:text-cyan-400"}`}>
+                          {" "}({costToFillData.gallonsNeeded.toFixed(1)} gal × {formatCurrency(costToFillData.pricePerGallon)}/gal)
+                        </span>
                       </span>
-                      <span className="text-cyan-600 dark:text-cyan-400">
-                        {" "}({costToFillData.gallonsNeeded.toFixed(1)} gal a {formatCurrency(costToFillData.pricePerGallon)}/gal)
+                    ) : (
+                      <span className={isLowFuel ? "text-red-600 dark:text-red-400" : "text-cyan-600 dark:text-cyan-400"}>
+                        {costToFillData.gallonsNeeded.toFixed(1)} gal para llenar
+                        <span className="text-[9px] block opacity-70">Configura el precio de la gasolina para ver el costo</span>
                       </span>
-                    </div>
-                  ) : (
-                    <span className="text-[11px] text-cyan-600 dark:text-cyan-400">
-                      Actualiza el precio de la gasolina para ver cuánto necesitas para llenar el tanque
-                    </span>
-                  )}
+                    )}
+                  </div>
                 </div>
+
+                {/* Bottom row: Days until refuel prediction */}
+                {daysUntilRefuel != null && refuelDateText && (
+                  <div className={`flex items-center gap-2 mt-1.5 pt-1.5 border-t ${
+                    isLowFuel ? "border-red-200 dark:border-red-800" : "border-cyan-200 dark:border-cyan-800"
+                  }`}>
+                    <CalendarClock className={`size-3.5 flex-shrink-0 ${isLowFuel ? "text-red-500" : "text-cyan-600 dark:text-cyan-400"}`} />
+                    <span className={`text-[11px] font-medium ${isLowFuel ? "text-red-700 dark:text-red-300" : "text-cyan-700 dark:text-cyan-300"}`}>
+                      {daysUntilRefuel <= 1
+                        ? "¡Tanquea pronto!"
+                        : `Tanquea en ~${daysUntilRefuel} días`}
+                    </span>
+                    <span className={`text-[9px] ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
+                      {refuelDateText}
+                    </span>
+                    {avgKmPerDay > 0 && (
+                      <span className={`text-[8px] ml-auto ${isLowFuel ? "text-red-400 dark:text-red-500" : "text-cyan-400 dark:text-cyan-500"}`}>
+                        ~{avgKmPerDay.toFixed(0)} km/día
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
