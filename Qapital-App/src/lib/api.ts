@@ -123,7 +123,7 @@ async function readFromLocalDB<T>(url: string): Promise<T | null> {
       // Collection endpoint — return all records for this user
       // Note: we return all records; the server would filter by userId,
       // but IndexedDB already has only the current user's data
-      const allRecords = await table.toArray();
+      const allRecords = await table.where("_syncStatus").notEqual("pending_delete").toArray();
       // Strip sync metadata from response
       return allRecords.map(({ _syncStatus, _version, _lastModified, ...rest }: any) => rest) as T;
     } else {

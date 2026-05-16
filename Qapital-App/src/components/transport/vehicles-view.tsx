@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { apiFetch, formatCurrency } from "@/lib/api";
+import { useState } from "react";
+import { useLocalQuery } from "@/lib/local/hooks/queries";
+import { formatCurrency } from "@/lib/api";
 import { VehicleCard } from "./vehicle-card";
 import { VehicleForm } from "./vehicle-form";
 import { Button } from "@/components/ui/button";
@@ -38,25 +39,10 @@ const itemVariants = {
 };
 
 export function VehiclesView({ onSelectVehicle }: VehiclesViewProps) {
-  const [vehicles, setVehicles] = useState<VehicleWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: vehiclesData, loading, refetch: fetchVehicles } = useLocalQuery<VehicleWithDetails>("/api/vehicles");
+  const vehicles = vehiclesData as VehicleWithDetails[];
   const [showVehicleForm, setShowVehicleForm] = useState(false);
   const [editVehicle, setEditVehicle] = useState<VehicleWithDetails | null>(null);
-
-  const fetchVehicles = useCallback(async () => {
-    try {
-      const data = await apiFetch<VehicleWithDetails[]>("/api/vehicles");
-      setVehicles(data);
-    } catch (error) {
-      console.error("Error fetching vehicles:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchVehicles();
-  }, [fetchVehicles]);
 
   // Compute summary stats
   const vehiclesWithTank = vehicles.filter((v) => v.tankCapacity && v.tankCapacity > 0);

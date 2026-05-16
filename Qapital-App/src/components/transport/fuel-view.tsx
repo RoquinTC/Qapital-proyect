@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch, formatCurrency, formatDate, formatShortDate } from "@/lib/api";
+import { apiFetch, formatCurrency, formatShortDate } from "@/lib/api";
+import { useLocalQuery } from "@/lib/local/hooks/queries";
 import { FuelPriceWidget } from "./fuel-price-widget";
 import { FuelLogForm } from "./fuel-log-form";
 import { Button } from "@/components/ui/button";
@@ -38,20 +39,25 @@ const itemVariants = {
 };
 
 export function FuelView({ onSelectVehicle }: FuelViewProps) {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  // Vehicles via useLocalQuery for reactivity
+  const { data: vehiclesData, loading: vehiclesLoading } = useLocalQuery<Vehicle>("/api/vehicles");
+  const vehicles = vehiclesData as Vehicle[] || [];
+
   const [fuelLogs, setFuelLogs] = useState<FuelLogWithVehicle[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingLogs, setLoadingLogs] = useState(true);
   const [filterVehicle, setFilterVehicle] = useState<string>("all");
   const [showFuelLogForm, setShowFuelLogForm] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchFuelLogs = useCallback(async () => {
+    if (vehicles.length === 0) {
+      setFuelLogs([]);
+      setLoadingLogs(false);
+      return;
+    }
+    setLoadingLogs(true);
     try {
-      const vehiclesData = await apiFetch<Vehicle[]>("/api/vehicles");
-      setVehicles(vehiclesData);
-
-      // Fetch fuel logs for all vehicles
       const allLogs: FuelLogWithVehicle[] = [];
-      for (const v of vehiclesData) {
+      for (const v of vehicles) {
         try {
           const logs = await apiFetch<FuelLog[]>(`/api/vehicles/${v.id}/fuel-logs`);
           allLogs.push(...logs.map((l) => ({ ...l, vehicleId: v.id })));
@@ -64,13 +70,15 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
     } catch (error) {
       console.error("Error fetching fuel data:", error);
     } finally {
-      setLoading(false);
+      setLoadingLogs(false);
     }
-  }, []);
+  }, [vehicles]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchFuelLogs();
+  }, [fetchFuelLogs]);
+
+  const loading = vehiclesLoading || loadingLogs;
 
   const filteredLogs = filterVehicle === "all"
     ? fuelLogs
@@ -254,7 +262,7 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
       <FuelLogForm
         open={showFuelLogForm}
         onOpenChange={setShowFuelLogForm}
-        onSuccess={fetchData}
+        onSuccess={fetchFuelLogs}
       />
     </motion.div>
   );

@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 const vehicleTypes = [
   { value: "motorcycle", label: "Motocicleta" },
@@ -53,6 +53,7 @@ interface VehicleFormProps {
 
 export function VehicleForm({ open, onOpenChange, vehicle, onSuccess }: VehicleFormProps) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(vehicle?.name || "");
   const [type, setType] = useState(vehicle?.type || "motorcycle");
   const [brand, setBrand] = useState(vehicle?.brand || "");
@@ -67,6 +68,7 @@ export function VehicleForm({ open, onOpenChange, vehicle, onSuccess }: VehicleF
 
   const handleSubmit = async () => {
     if (!name) return;
+    setError(null);
     setLoading(true);
     try {
       const data = {
@@ -74,11 +76,11 @@ export function VehicleForm({ open, onOpenChange, vehicle, onSuccess }: VehicleF
         type,
         brand: brand || null,
         model: model || null,
-        year: year || null,
+        year: year ? Number(year) : null,
         color: color || null,
-        tankCapacity: tankCapacity || null,
+        tankCapacity: tankCapacity ? Number(tankCapacity) : null,
         fuelType,
-        currentKm: currentKm || "0",
+        currentKm: currentKm ? Number(currentKm) : 0,
       };
 
       if (isEditing) {
@@ -96,8 +98,9 @@ export function VehicleForm({ open, onOpenChange, vehicle, onSuccess }: VehicleF
       onSuccess?.();
       onOpenChange(false);
       resetForm();
-    } catch (error) {
-      console.error("Error saving vehicle:", error);
+    } catch (err) {
+      console.error("Error saving vehicle:", err);
+      setError(err instanceof Error ? err.message : "Error al guardar vehículo");
     } finally {
       setLoading(false);
     }
@@ -248,6 +251,14 @@ export function VehicleForm({ open, onOpenChange, vehicle, onSuccess }: VehicleF
               className="rounded-xl"
             />
           </div>
+
+          {/* Error display */}
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+              <AlertCircle className="size-4 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           {/* Submit */}
           <Button

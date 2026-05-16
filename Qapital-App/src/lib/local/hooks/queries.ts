@@ -79,7 +79,7 @@ export function useLocalQuery<T extends { id: string }>(
     if (!userId || !tableName) return;
     try {
       const localData = await getAllFromTable<T>(tableName, userId);
-      if (mountedRef.current && localData.length > 0) {
+      if (mountedRef.current) {
         setData(localData);
         setLoading(false); // We have local data, no need to show loading
       }
@@ -177,7 +177,7 @@ export function useLocalQuery<T extends { id: string }>(
 
         const sub = observable.subscribe({
           next: (result: T[]) => {
-            if (mountedRef.current && result.length > 0) {
+            if (mountedRef.current) {
               setData(result);
               setLoading(false);
             }
@@ -396,7 +396,7 @@ export function useMultiQuery(
       }
     }
 
-    if (mountedRef.current && hasAnyLocalData) {
+    if (mountedRef.current) {
       setData(localData);
       setLoading(false);
     }

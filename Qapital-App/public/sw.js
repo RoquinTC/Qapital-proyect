@@ -73,8 +73,6 @@ self.addEventListener('install', (event) => {
       return cache.addAll(APP_SHELL);
     })
   );
-  // Activate immediately without waiting
-  self.skipWaiting();
 });
 
 // Activate event — clean up old caches
