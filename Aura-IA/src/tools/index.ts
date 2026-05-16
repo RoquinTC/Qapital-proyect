@@ -9,7 +9,7 @@ import { qapitalTools } from './qapital.js';
 
 export const toolDefinitions = [
   getCurrentTimeDefinition,
-  webSearchDefinition,
+  // webSearchDefinition, // <-- Desactivado para evitar alucinaciones
   proposeNewSkillDefinition,
   applyNewSkillDefinition,
   selfDeployDefinition,
@@ -17,6 +17,7 @@ export const toolDefinitions = [
   getCryptoPriceDefinition,
   readPdfDefinition,
   qapitalTools.get_my_finances.definition,
+  qapitalTools.analyze_financial_performance.definition, // <-- NUEVA HERRAMIENTA
   qapitalTools.get_my_health_profile.definition,
   ...googleToolDefinitions,
 ];
@@ -48,6 +49,8 @@ export async function executeTool(name: string, args: any, userId: number, ctx?:
       return await qapitalTools.get_my_finances.handler();
     case 'get_my_health_profile':
       return await qapitalTools.get_my_health_profile.handler();
+    case 'analyze_financial_performance':
+      return await qapitalTools.analyze_financial_performance.handler(args);
     default:
       throw new Error(`Herramienta no encontrada: ${name}`);
   }

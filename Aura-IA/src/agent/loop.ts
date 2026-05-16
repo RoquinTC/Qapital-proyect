@@ -71,6 +71,7 @@ export async function runAgentLoop(userId: number, userMessage: string, ctx?: an
 
         try {
           const result = await executeTool(functionName, functionArgs, userId, ctx);
+          console.log(`[Tool Result] ${functionName}:`, JSON.stringify(result, null, 2).substring(0, 500) + '...');
 
           await memory.addMessage(userId, 'tool', JSON.stringify({
             tool_call_id: toolCall.id,

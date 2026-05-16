@@ -11,7 +11,8 @@ class QapitalService {
   // Obtener el ID del primer usuario registrado (para desarrollo local)
   async getDefaultUser() {
     if (!this.db) return null;
-    const user = this.db.prepare('SELECT id FROM User LIMIT 1').get();
+    // Buscamos específicamente al usuario principal para evitar datos de prueba
+    const user = this.db.prepare("SELECT id FROM User WHERE email = 'rqcquintero@gmail.com' OR name = 'Robin' LIMIT 1").get();
     return user ? (user as any).id : null;
   }
 
@@ -32,16 +33,21 @@ class QapitalService {
     const accounts = this.db.prepare('SELECT * FROM accounts WHERE userId = ?').all(userId);
     const totalBalance = accounts.reduce((acc: any, curr: any) => acc + Number(curr.balance), 0);
     
+    const savingsGoals = this.db.prepare('SELECT * FROM savings_goals WHERE userId = ? AND isActive = 1').all(userId);
+    const budgets = this.db.prepare('SELECT * FROM budgets WHERE userId = ?').all(userId);
+
     const recentTransactions = this.db.prepare(`
       SELECT * FROM transactions 
       WHERE userId = ? 
       ORDER BY date DESC 
-      LIMIT 10
+      LIMIT 100
     `).all(userId);
 
     return {
       accounts,
       totalBalance,
+      savingsGoals,
+      budgets,
       recentTransactions
     };
   }
@@ -83,6 +89,41 @@ class QapitalService {
     }
 
     return anomalies;
+  }
+
+  // Resumen estadístico exacto para que el LLM no tenga que sumar
+  async getFinancialSummary(userId: string, days: number = 7) {
+    if (!this.db) return null;
+
+    const summary = this.db.prepare(`
+      SELECT 
+        type,
+        category,
+        SUM(CAST(amount AS DECIMAL)) as total,
+        COUNT(*) as count
+      FROM transactions 
+      WHERE userId = ? 
+      AND date > datetime('now', '-' || ? || ' days')
+      GROUP BY type, category
+    `).all(userId, days);
+
+    const dailySpend = this.db.prepare(`
+      SELECT 
+        date(date) as day,
+        SUM(CAST(amount AS DECIMAL)) as total
+      FROM transactions 
+      WHERE userId = ? 
+      AND type = 'expense'
+      AND date > datetime('now', '-' || ? || ' days')
+      GROUP BY day
+      ORDER BY day DESC
+    `).all(userId, days);
+
+    return {
+      periodDays: days,
+      byCategory: summary,
+      dailySpend
+    };
   }
 }
 

@@ -6,7 +6,7 @@ export const qapitalTools = {
       type: 'function',
       function: {
         name: 'get_my_finances',
-        description: 'CONSULTA OBLIGATORIA para preguntas sobre dinero, saldos, gastos, compras, transacciones o cuánto se ha gastado en un periodo. Devuelve el estado actual de todas las cuentas y las 10 transacciones más recientes.',
+        description: 'Obtiene el balance total, saldos de cuentas y metas de ahorro. Úsala para una visión general rápida.',
         parameters: {
           type: 'object',
           properties: {},
@@ -14,14 +14,38 @@ export const qapitalTools = {
       }
     },
     handler: async () => {
-      // Intentar obtener el usuario automáticamente
       const userId = await qapital.getDefaultUser();
-      if (!userId) return "No se encontró ningún usuario registrado en la base de datos de Quid.";
-      
+      if (!userId) return "No se encontró usuario.";
       const data = await qapital.getUserFinances(userId);
-      if (!data) return "No se pudo conectar a la base de datos de Quid.";
+      return JSON.stringify(data, null, 2);
+    },
+  },
+  analyze_financial_performance: {
+    definition: {
+      type: 'function',
+      function: {
+        name: 'analyze_financial_performance',
+        description: 'HERRAMIENTA DE ANÁLISIS PROFUNDO. Úsala para responder "¿Cómo me fue?", "¿Cuánto gasté?" o para detectar fugas de dinero. SIEMPRE debes pasar days=30 (para el mes) o days=7 (para la semana). Nunca pases menos de 7 días porque perderás contexto.',
+        parameters: {
+          type: 'object',
+          properties: {
+            days: {
+              type: 'number',
+              description: 'Número de días hacia atrás (SIEMPRE usa 30 para el mes actual o 7 para la semana).',
+              default: 30
+            }
+          },
+        },
+      }
+    },
+    handler: async (args: any) => {
+      let days = args?.days ? parseInt(args.days) : 30;
+      if (days < 7) days = 7; // Forzar un mínimo de contexto para evitar respuestas vacías
       
-      return `Datos financieros de usuario ${userId}:\n${JSON.stringify(data, null, 2)}`;
+      const userId = await qapital.getDefaultUser();
+      if (!userId) return "No se encontró usuario.";
+      const data = await qapital.getFinancialSummary(userId, days);
+      return `Análisis de los últimos ${days} días (Usa esta info real, NO INVENTES NÚMEROS):\n${JSON.stringify(data, null, 2)}`;
     },
   },
   get_my_health_profile: {
@@ -29,7 +53,7 @@ export const qapitalTools = {
       type: 'function',
       function: {
         name: 'get_my_health_profile',
-        description: 'Obtiene el perfil de salud, enfermedades, restricciones alimenticias y medicamentos. Úsala cuando el usuario pregunte qué puede comer o sobre su estado de salud.',
+        description: 'Obtiene salud, restricciones y medicamentos.',
         parameters: {
           type: 'object',
           properties: {},
@@ -38,10 +62,8 @@ export const qapitalTools = {
     },
     handler: async () => {
       const userId = await qapital.getDefaultUser();
-      if (!userId) return "No se encontró ningún usuario registrado.";
-      
+      if (!userId) return "No se encontró usuario.";
       const data = await qapital.getUserHealth(userId);
-      if (!data) return "No se encontró perfil de salud.";
       return JSON.stringify(data, null, 2);
     },
   },
