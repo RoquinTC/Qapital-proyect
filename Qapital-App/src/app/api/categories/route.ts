@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
       distinct: ["category", "subCategory"],
     });
 
-    // Get custom categories
+    // Get custom categories (including hidden flags for defaults)
     const customCategories = await db.category.findMany({
       where: {
         userId: session.user.id,
@@ -60,22 +60,30 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Build a set of hidden default category names for this user
+    const hiddenDefaults = new Set(
+      customCategories
+        .filter((c) => c.hidden)
+        .map((c) => c.name)
+    );
+
     // Build a map of category -> Set of subcategories
     const categoryMap: Record<string, Record<string, Set<string>>> = {
       income: {},
       expense: {},
     };
 
-    // Add defaults
+    // Add defaults (excluding hidden ones)
     for (const cat of defaultIncomeCategories) {
-      categoryMap.income[cat] = new Set();
+      if (!hiddenDefaults.has(cat)) categoryMap.income[cat] = new Set();
     }
     for (const cat of defaultExpenseCategories) {
-      categoryMap.expense[cat] = new Set();
+      if (!hiddenDefaults.has(cat)) categoryMap.expense[cat] = new Set();
     }
 
-    // Merge custom categories
+    // Merge custom categories (excluding hidden ones — those are defaults the user removed)
     for (const cc of customCategories) {
+      if (cc.hidden) continue;
       const t = cc.type as "income" | "expense";
       if (!categoryMap[t]) categoryMap[t] = {};
       if (!categoryMap[t][cc.name]) categoryMap[t][cc.name] = new Set();
@@ -357,14 +365,38 @@ export async function DELETE(req: NextRequest) {
       }).then((r) => r.count);
     }
 
-    // Also delete custom category if it exists
-    await db.category.deleteMany({
-      where: {
-        userId: session.user.id,
-        type,
-        name: category,
-      },
-    });
+    // Also handle default category deletion: mark as hidden instead of deleting
+    const defaultNames = new Set([...defaultIncomeCategories, ...defaultExpenseCategories]);
+    if (defaultNames.has(category) && !subCategory) {
+      // This is a default category the user wants to remove — mark it as hidden
+      await db.category.upsert({
+        where: {
+          userId_type_name: {
+            userId: session.user.id,
+            type,
+            name: category,
+          },
+        },
+        create: {
+          userId: session.user.id,
+          type,
+          name: category,
+          hidden: true,
+        },
+        update: {
+          hidden: true,
+        },
+      });
+    } else {
+      // Custom category — actually delete the record
+      await db.category.deleteMany({
+        where: {
+          userId: session.user.id,
+          type,
+          name: category,
+        },
+      });
+    }
 
     return NextResponse.json({
       updatedTransactions,

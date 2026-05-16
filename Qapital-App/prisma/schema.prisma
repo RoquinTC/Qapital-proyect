@@ -723,6 +723,7 @@ model Category {
   name        String
   icon        String?  // lucide icon name
   color       String?  // hex color
+  hidden      Boolean  @default(false) // hide default categories the user removed
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
