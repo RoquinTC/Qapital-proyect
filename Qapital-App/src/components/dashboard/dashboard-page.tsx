@@ -14,11 +14,13 @@ import {
   LayoutDashboard,
   WifiOff,
   CloudOff,
+  Fuel,
+  MapPin,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatCurrency } from "@/lib/api";
-import { useMultiQuery } from "@/lib/local/hooks/queries";
-import type { Account, Budget, Debt } from "@/lib/types";
+import { useMultiQuery, useLocalQuery } from "@/lib/local/hooks/queries";
+import type { Account, Budget, Debt, Vehicle } from "@/lib/types";
 import { motion } from "framer-motion";
 
 // ============================================================
@@ -43,7 +45,7 @@ const itemVariants = {
 // ============================================================
 
 export function DashboardPage() {
-  const { setActiveModule, setFinanceSubView, isOnline, pendingCount } = useAppStore();
+  const { setActiveModule, setFinanceSubView, setTransportSubView, isOnline, pendingCount } = useAppStore();
 
   // Local-first data: reads from IndexedDB instantly, syncs with server in background
   const { data, loading, syncing } = useMultiQuery({
@@ -51,6 +53,13 @@ export function DashboardPage() {
     budgets: "/api/budgets",
     debts: "/api/debts",
   });
+
+  // Transport data for fuel widget
+  const { data: vehiclesData } = useLocalQuery<Vehicle>("/api/vehicles");
+  const vehicles = (vehiclesData || []) as (Vehicle & { fuelLevel?: number; currentFuel?: number; estimatedRange?: number; avgKmPerGallon?: number; anomalyDetected?: boolean })[];
+  const vehiclesWithTank = vehicles.filter((v) => v.tankCapacity && v.tankCapacity > 0);
+  const primaryVehicle = vehiclesWithTank[0];
+  const hasLowFuel = vehiclesWithTank.some((v) => (v.fuelLevel ?? 0) <= 25);
 
   const accounts = (data.accounts || []) as Account[];
   const budgets = (data.budgets || []) as Budget[];
@@ -271,6 +280,68 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* ============================================================ */}
+      {/* TRANSPORT / FUEL WIDGET */}
+      {/* ============================================================ */}
+      {primaryVehicle && (
+        <motion.div variants={itemVariants}>
+          <Card
+            className={`border-0 shadow-md rounded-2xl cursor-pointer hover:shadow-lg transition-all overflow-hidden ${
+              hasLowFuel ? "ring-2 ring-red-400 dark:ring-red-600" : ""
+            }`}
+            onClick={() => {
+              setActiveModule("transport");
+              setTransportSubView("vehicles");
+            }}
+          >
+            <div className={`bg-gradient-to-r ${
+              hasLowFuel ? "from-red-500 to-orange-500" : "from-cyan-600 to-blue-600"
+            } p-4 relative overflow-hidden`}>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_90%_10%,rgba(255,255,255,0.12),transparent)] pointer-events-none" />
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="size-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                  <Fuel className="size-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-white">Combustible</span>
+                    {hasLowFuel && (
+                      <span className="text-[9px] bg-white/30 text-white rounded-full px-1.5 py-0.5 animate-pulse">
+                        Bajo
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className="text-xl font-bold text-white">
+                      {primaryVehicle.currentFuel?.toFixed(1) ?? "0"}
+                      <span className="text-xs font-normal text-white/60 ml-0.5">gal</span>
+                    </p>
+                    {primaryVehicle.estimatedRange && primaryVehicle.estimatedRange > 0 && (
+                      <div className="flex items-center gap-1 text-white/70">
+                        <MapPin className="size-3" />
+                        <span className="text-xs">~{primaryVehicle.estimatedRange.toLocaleString("es-CO")} km</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <p className="text-2xl font-bold text-white">
+                    {Math.round(primaryVehicle.fuelLevel ?? 0)}%
+                  </p>
+                  {/* Mini fuel bar */}
+                  <div className="w-16 h-1.5 bg-white/20 rounded-full mt-1.5 overflow-hidden">
+                    <div
+                      className="h-full bg-white/80 rounded-full transition-all"
+                      style={{ width: `${Math.min(primaryVehicle.fuelLevel ?? 0, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      )}
 
       {/* ============================================================ */}
       {/* RESUMEN FINANCIERO CTA CARD */}

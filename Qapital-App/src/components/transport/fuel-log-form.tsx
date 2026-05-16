@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { apiFetch, formatCurrency, getColombiaTodayString } from "@/lib/api";
 import type { Vehicle } from "@/lib/types";
-import { Loader2, Calculator } from "lucide-react";
+import { Loader2, Calculator, Fuel } from "lucide-react";
 
 interface FuelLogFormProps {
   open: boolean;
@@ -69,6 +69,14 @@ export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, onSucces
       fetchFuelPrice();
     }
   }, [open, fetchVehicles, fetchFuelPrice]);
+
+  // Auto-select vehicle if only one exists and no preselection
+  useEffect(() => {
+    if (!preselectedVehicleId && vehicles.length === 1 && !vehicleId) {
+      setVehicleId(vehicles[0].id);
+      setKm(vehicles[0].currentKm.toString());
+    }
+  }, [vehicles, preselectedVehicleId, vehicleId]);
 
   useEffect(() => {
     if (preselectedVehicleId) {
@@ -145,18 +153,28 @@ export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, onSucces
           {/* Vehicle */}
           <div className="space-y-2">
             <Label>Vehículo</Label>
-            <Select value={vehicleId} onValueChange={setVehicleId}>
-              <SelectTrigger className="rounded-xl">
-                <SelectValue placeholder="Seleccionar vehículo" />
-              </SelectTrigger>
-              <SelectContent>
-                {vehicles.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {vehicles.length === 1 ? (
+              <div className="h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center gap-2">
+                <Fuel className="size-4 text-cyan-500" />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{vehicles[0].name}</span>
+                {vehicles[0].tankCapacity && (
+                  <span className="text-[10px] text-gray-400 ml-auto">Tanque: {vehicles[0].tankCapacity} gal</span>
+                )}
+              </div>
+            ) : (
+              <Select value={vehicleId} onValueChange={setVehicleId}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder="Seleccionar vehículo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicles.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Date */}

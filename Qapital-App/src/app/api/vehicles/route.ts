@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { validateBody, vehicleCreateSchema } from "@/lib/validations";
+import { calculateFuelLevel } from "@/lib/fuel-level";
+import { toNumber } from "@/lib/decimal-serializer";
 
 export async function GET() {
   try {
@@ -14,7 +16,7 @@ export async function GET() {
     const vehicles = await db.vehicle.findMany({
       where: { userId: session.user.id },
       include: {
-        fuelLogs: { orderBy: { date: "desc" }, take: 1 },
+        fuelLogs: { orderBy: { date: "desc" } },
         maintenanceRecords: {
           orderBy: { date: "desc" },
           where: { nextDueKm: { not: null } },
@@ -24,7 +26,62 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(vehicles);
+    // Compute fuel level for each vehicle and attach it to the response
+    const vehiclesWithFuelLevel = vehicles.map((vehicle) => {
+      const { fuelLogs, maintenanceRecords, ...vehicleData } = vehicle;
+
+      // Serialize Decimal fields
+      const serializedLogs = fuelLogs.map((log) => ({
+        ...log,
+        amount: toNumber(log.amount),
+        pricePerGallon: toNumber(log.pricePerGallon),
+        date: log.date.toISOString(),
+        createdAt: log.createdAt?.toISOString(),
+      }));
+
+      const serializedMaintenance = maintenanceRecords.map((rec) => ({
+        ...rec,
+        cost: toNumber(rec.cost),
+        date: rec.date.toISOString(),
+        nextDueDate: rec.nextDueDate?.toISOString() ?? null,
+        createdAt: rec.createdAt?.toISOString(),
+        updatedAt: rec.updatedAt?.toISOString(),
+      }));
+
+      // Calculate fuel level using shared utility
+      const fuelLevelData = calculateFuelLevel(
+        {
+          tankCapacity: vehicle.tankCapacity,
+          currentKm: vehicle.currentKm,
+          type: vehicle.type,
+        },
+        fuelLogs.map((log) => ({
+          id: log.id,
+          date: log.date,
+          km: log.km,
+          amount: toNumber(log.amount),
+          pricePerGallon: toNumber(log.pricePerGallon),
+          gallons: log.gallons,
+          isFullTank: log.isFullTank,
+        }))
+      );
+
+      return {
+        ...vehicleData,
+        currentKm: vehicle.currentKm,
+        tankCapacity: vehicle.tankCapacity,
+        year: vehicle.year,
+        fuelLogs: serializedLogs.slice(0, 1), // Only latest for the card
+        maintenanceRecords: serializedMaintenance,
+        fuelLevel: fuelLevelData.fuelLevel,
+        currentFuel: fuelLevelData.currentFuel,
+        estimatedRange: fuelLevelData.estimatedRange,
+        avgKmPerGallon: fuelLevelData.avgKmPerGallon,
+        anomalyDetected: fuelLevelData.anomalyDetected,
+      };
+    });
+
+    return NextResponse.json(vehiclesWithFuelLevel);
   } catch (error) {
     console.error("Get vehicles error:", error);
     return NextResponse.json({ error: "Error al obtener vehículos" }, { status: 500 });

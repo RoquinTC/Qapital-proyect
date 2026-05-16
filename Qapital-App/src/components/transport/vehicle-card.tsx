@@ -1,7 +1,7 @@
 "use client";
 
 import { formatCurrency, formatDate } from "@/lib/api";
-import { Bike, Car, Truck, HelpCircle, Fuel, Wrench, AlertTriangle, Gauge } from "lucide-react";
+import { Bike, Car, Truck, HelpCircle, Fuel, Wrench, AlertTriangle, Gauge, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 import { FuelGauge } from "./Fuel-gauge";
 
@@ -35,6 +35,9 @@ interface VehicleCardProps {
     }>;
     fuelLevel?: number;
     currentFuel?: number;
+    estimatedRange?: number;
+    avgKmPerGallon?: number;
+    anomalyDetected?: boolean;
   };
   onClick?: () => void;
 }
@@ -72,6 +75,11 @@ export function VehicleCard({ vehicle, onClick }: VehicleCardProps) {
   const lastFuelLog = vehicle.fuelLogs?.[0];
   const nextMaintenance = vehicle.maintenanceRecords?.[0];
 
+  const fuelLevel = vehicle.fuelLevel ?? 0;
+  const currentFuel = vehicle.currentFuel ?? 0;
+  const estimatedRange = vehicle.estimatedRange ?? 0;
+  const avgKmPerGallon = vehicle.avgKmPerGallon ?? 0;
+
   // Determine maintenance status
   let maintenanceStatus: "ok" | "warning" | "overdue" = "ok";
   if (nextMaintenance?.nextDueKm && vehicle.currentKm) {
@@ -84,6 +92,13 @@ export function VehicleCard({ vehicle, onClick }: VehicleCardProps) {
     ok: "bg-emerald-500",
     warning: "bg-amber-500",
     overdue: "bg-red-500",
+  };
+
+  // Fuel level color
+  const getFuelColorClass = (level: number) => {
+    if (level > 50) return "text-emerald-500";
+    if (level > 25) return "text-amber-500";
+    return "text-red-500";
   };
 
   return (
@@ -128,16 +143,69 @@ export function VehicleCard({ vehicle, onClick }: VehicleCardProps) {
 
         {/* Body */}
         <div className="p-4 space-y-3">
-          {/* Fuel Gauge */}
+          {/* Fuel Gauge + Stats Row */}
           {vehicle.tankCapacity && (
-            <div className="flex justify-center py-2">
-              <FuelGauge
-                fuelLevel={vehicle.fuelLevel ?? 0}
-                vehicleType={vehicle.type}
-                tankCapacity={vehicle.tankCapacity}
-                currentFuel={vehicle.currentFuel}
-                showDetails={false}
-              />
+            <div className="flex items-center gap-4">
+              {/* Compact Fuel Gauge */}
+              <div className="flex-shrink-0" style={{ width: '100px' }}>
+                <FuelGauge
+                  fuelLevel={fuelLevel}
+                  vehicleType={vehicle.type}
+                  tankCapacity={vehicle.tankCapacity}
+                  currentFuel={currentFuel}
+                  showDetails={false}
+                />
+              </div>
+
+              {/* Fuel Stats */}
+              <div className="flex-1 space-y-2 min-w-0">
+                {/* Current Fuel */}
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Fuel className={`size-3.5 ${getFuelColorClass(fuelLevel)}`} />
+                    <span className="text-xs text-gray-500">Combustible</span>
+                  </div>
+                  <p className={`text-lg font-bold ${getFuelColorClass(fuelLevel)}`}>
+                    {currentFuel.toFixed(1)} <span className="text-xs font-normal text-gray-400">/ {vehicle.tankCapacity} gal</span>
+                  </p>
+                </div>
+
+                {/* Estimated Range */}
+                {estimatedRange > 0 && (
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="size-3.5 text-blue-500" />
+                      <span className="text-xs text-gray-500">Autonomía</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                      ~{estimatedRange.toLocaleString("es-CO")} km
+                    </p>
+                  </div>
+                )}
+
+                {/* Avg Performance */}
+                {avgKmPerGallon > 0 && (
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <Gauge className="size-3.5 text-cyan-500" />
+                      <span className="text-xs text-gray-500">Rendimiento</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                      {avgKmPerGallon} km/gal
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Anomaly Warning */}
+          {vehicle.anomalyDetected && (
+            <div className="flex items-center gap-2 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+              <AlertTriangle className="size-4 text-red-500 flex-shrink-0" />
+              <p className="text-[10px] text-red-600 dark:text-red-400">
+                Consumo anormal detectado — posible fuga o problema mecánico
+              </p>
             </div>
           )}
 

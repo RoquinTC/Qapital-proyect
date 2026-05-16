@@ -1,18 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, formatCurrency } from "@/lib/api";
 import { VehicleCard } from "./vehicle-card";
 import { VehicleForm } from "./vehicle-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Bike } from "lucide-react";
+import { Plus, Bike, Fuel, MapPin, Gauge, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Vehicle } from "@/lib/types";
 
 type VehicleWithDetails = Vehicle & {
   fuelLogs: Array<{ id: string; date: string; km: number; amount: number; pricePerGallon: number; gallons: number }>;
   maintenanceRecords: Array<{ id: string; type: string; description: string; km: number; nextDueKm?: number | null; nextDueDate?: string | null }>;
+  fuelLevel?: number;
+  currentFuel?: number;
+  estimatedRange?: number;
+  avgKmPerGallon?: number;
+  anomalyDetected?: boolean;
 };
 
 interface VehiclesViewProps {
@@ -53,6 +58,15 @@ export function VehiclesView({ onSelectVehicle }: VehiclesViewProps) {
     fetchVehicles();
   }, [fetchVehicles]);
 
+  // Compute summary stats
+  const vehiclesWithTank = vehicles.filter((v) => v.tankCapacity && v.tankCapacity > 0);
+  const primaryVehicle = vehiclesWithTank[0]; // Most recently created
+  const hasAnomaly = vehicles.some((v) => v.anomalyDetected);
+  const lowestFuel = vehiclesWithTank.reduce(
+    (min, v) => (v.fuelLevel ?? 0) < min ? (v.fuelLevel ?? 0) : min,
+    100
+  );
+
   if (loading) {
     return (
       <div className="p-4 space-y-3 pb-24">
@@ -82,6 +96,117 @@ export function VehiclesView({ onSelectVehicle }: VehiclesViewProps) {
           {vehicles.length} vehículo{vehicles.length !== 1 ? "s" : ""} registrado{vehicles.length !== 1 ? "s" : ""}
         </p>
       </motion.div>
+
+      {/* ── FUEL SUMMARY CARD ── */}
+      {primaryVehicle && (
+        <motion.div variants={itemVariants}>
+          <Card
+            className="border-0 shadow-lg rounded-2xl overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+            onClick={() => onSelectVehicle(primaryVehicle.id)}
+          >
+            {/* Gradient header with fuel info */}
+            <div className={`bg-gradient-to-r ${
+              lowestFuel <= 15 ? "from-red-500 to-red-600" :
+              lowestFuel <= 25 ? "from-amber-500 to-orange-500" :
+              "from-cyan-600 to-blue-600"
+            } p-4 relative overflow-hidden`}>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_90%_10%,rgba(255,255,255,0.12),transparent)] pointer-events-none" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Fuel className="size-5 text-white/80" />
+                  <span className="text-sm font-semibold text-white">
+                    Nivel de Combustible
+                  </span>
+                  {vehiclesWithTank.length > 1 && (
+                    <span className="text-[10px] bg-white/20 text-white rounded-full px-2 py-0.5 ml-auto">
+                      {vehiclesWithTank.length} vehículos
+                    </span>
+                  )}
+                </div>
+
+                {vehiclesWithTank.length === 1 ? (
+                  /* Single vehicle - show detailed info */
+                  <div className="space-y-2">
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-3xl font-bold text-white">
+                          {primaryVehicle.currentFuel?.toFixed(1) ?? "0"}
+                          <span className="text-base font-normal text-white/60 ml-1">gal</span>
+                        </p>
+                        <p className="text-xs text-white/60 mt-0.5">
+                          de {primaryVehicle.tankCapacity} gal • {Math.round(primaryVehicle.fuelLevel ?? 0)}% del tanque
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        {primaryVehicle.estimatedRange && primaryVehicle.estimatedRange > 0 ? (
+                          <>
+                            <div className="flex items-center gap-1 justify-end">
+                              <MapPin className="size-3.5 text-white/70" />
+                              <span className="text-lg font-bold text-white">
+                                ~{primaryVehicle.estimatedRange.toLocaleString("es-CO")}
+                              </span>
+                            </div>
+                            <p className="text-xs text-white/60">km autonomía</p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-white/50">Sin datos de autonomía</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Fuel bar */}
+                    <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full bg-white/80 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(primaryVehicle.fuelLevel ?? 0, 100)}%` }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* Multiple vehicles - compact summary */
+                  <div className="space-y-2">
+                    {vehiclesWithTank.map((v) => (
+                      <div key={v.id} className="flex items-center gap-3">
+                        <span className="text-xs text-white/80 w-20 truncate">{v.name}</span>
+                        <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-white/80 rounded-full transition-all"
+                            style={{ width: `${Math.min(v.fuelLevel ?? 0, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-white w-12 text-right">
+                          {Math.round(v.fuelLevel ?? 0)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick stats footer */}
+            <CardContent className="p-3">
+              <div className="flex items-center gap-4 text-xs">
+                {primaryVehicle.avgKmPerGallon && primaryVehicle.avgKmPerGallon > 0 && (
+                  <div className="flex items-center gap-1.5 text-gray-500">
+                    <Gauge className="size-3.5 text-cyan-500" />
+                    <span>{primaryVehicle.avgKmPerGallon} km/gal</span>
+                  </div>
+                )}
+                {hasAnomaly && (
+                  <div className="flex items-center gap-1.5 text-red-500">
+                    <AlertTriangle className="size-3.5" />
+                    <span>Consumo anormal</span>
+                  </div>
+                )}
+                <span className="text-gray-400 ml-auto">Toca para ver detalle</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Empty State */}
       {vehicles.length === 0 ? (
