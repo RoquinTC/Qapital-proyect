@@ -15,9 +15,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Fuel, TrendingDown, BarChart3 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Fuel, TrendingDown, BarChart3, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Vehicle, FuelLog } from "@/lib/types";
+import { toast } from "sonner";
 
 type FuelLogWithVehicle = FuelLog & { vehicleId: string };
 
@@ -47,6 +64,8 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [filterVehicle, setFilterVehicle] = useState<string>("all");
   const [showFuelLogForm, setShowFuelLogForm] = useState(false);
+  const [editFuelLog, setEditFuelLog] = useState<FuelLog | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; vehicleId: string } | null>(null);
 
   const fetchFuelLogs = useCallback(async () => {
     if (vehicles.length === 0) {
@@ -96,8 +115,6 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
   const logsWithKm = fuelLogs.filter((l) => l.gallons > 0);
   let avgKmPerGallon = 0;
   if (logsWithKm.length >= 2) {
-    // Simple average based on consecutive logs
-    // fuelLogs sorted by date DESC: index 0 = newest, last = oldest
     const oldest = logsWithKm[logsWithKm.length - 1];
     const newest = logsWithKm[0];
     const totalKm = newest.km - oldest.km;
@@ -110,6 +127,20 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
   const getVehicleName = (vehicleId: string) => {
     const v = vehicles.find((v) => v.id === vehicleId);
     return v?.name || "Vehículo";
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await apiFetch(`/api/vehicles/${deleteTarget.vehicleId}/fuel-logs/${deleteTarget.id}`, { method: "DELETE" });
+      toast.success("Registro eliminado");
+      fetchFuelLogs();
+    } catch (error) {
+      console.error("Error deleting fuel log:", error);
+      toast.error("Error al eliminar");
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   if (loading) {
@@ -230,9 +261,28 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
                         <span>{(log.gallons ?? 0).toFixed(2)} gal</span>
                       </div>
                     </div>
-                    <span className="text-sm font-bold text-gray-900 dark:text-white">
-                      {formatCurrency(log.amount)}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-bold text-gray-900 dark:text-white mr-1">
+                        {formatCurrency(log.amount)}
+                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="size-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <MoreHorizontal className="size-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => { setEditFuelLog(log); setShowFuelLogForm(true); }}>
+                            <Pencil className="size-4 mr-2 text-blue-500" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setDeleteTarget({ id: log.id, vehicleId: log.vehicleId })} className="text-red-600">
+                            <Trash2 className="size-4 mr-2" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -250,7 +300,7 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
           transition={{ delay: 0.3, type: "spring" }}
         >
           <Button
-            onClick={() => setShowFuelLogForm(true)}
+            onClick={() => { setEditFuelLog(null); setShowFuelLogForm(true); }}
             className="size-14 rounded-full bg-gradient-to-br from-cyan-600 to-blue-600 shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/40"
             size="icon"
           >
@@ -263,8 +313,31 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
       <FuelLogForm
         open={showFuelLogForm}
         onOpenChange={setShowFuelLogForm}
+        preselectedVehicleId={editFuelLog ? fuelLogs.find(l => l.id === editFuelLog.id)?.vehicleId : undefined}
+        fuelLog={editFuelLog}
         onSuccess={fetchFuelLogs}
       />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este registro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará este registro de combustible y su transacción asociada. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="rounded-xl bg-red-500 hover:bg-red-600"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

@@ -497,6 +497,15 @@ export const fuelLogCreateSchema = z.object({
   notes: z.string().nullable().optional(),
 });
 
+export const fuelLogUpdateSchema = z.object({
+  date: isoDateString.optional(),
+  km: z.number().optional(),
+  amount: z.number().optional(),
+  pricePerGallon: z.number().optional(),
+  isFullTank: z.boolean().optional(),
+  notes: z.string().nullable().optional(),
+});
+
 export const maintenanceCreateSchema = z.object({
   type: z.string().optional().default("general"),
   description: z.string().min(1, "La descripción es obligatoria"),

@@ -7,7 +7,7 @@ import {
   Car, Fuel, Wrench, Plus, Bike, Truck, HelpCircle,
   Droplets, CircleDot, ShieldAlert, Settings, Package,
   ChevronDown, Gauge, MapPin, AlertTriangle, Bell, Clock,
-  Trash2, Pencil, MoreVertical, ArrowLeft,
+  Trash2, Pencil, MoreVertical, ArrowLeft, MoreHorizontal,
 } from "lucide-react";
 import { VehicleForm } from "./vehicle-form";
 import { FuelLogForm } from "./fuel-log-form";
@@ -33,6 +33,7 @@ import {
 import { apiFetch, formatCurrency, formatShortDate } from "@/lib/api";
 import { useLocalQuery } from "@/lib/local/hooks/queries";
 import type { Vehicle, FuelLog, MaintenanceRecord } from "@/lib/types";
+import { toast } from "sonner";
 
 // ─── Constants ────────────────────────────────────────────────────
 const vehicleIcons: Record<string, typeof Car> = {
@@ -69,7 +70,7 @@ const maintTypeColors: Record<string, string> = {
 };
 
 type VehicleWithDetails = Vehicle & {
-  fuelLogs: Array<{ id: string; date: string; km: number; amount: number; pricePerGallon: number; gallons: number; isFullTank?: boolean }>;
+  fuelLogs: Array<{ id: string; date: string; km: number; amount: number; pricePerGallon: number; gallons: number; isFullTank?: boolean; notes?: string | null }>;
   maintenanceRecords: Array<{ id: string; type: string; description: string; km: number; cost: number; date: string; nextDueKm?: number | null; nextDueDate?: string | null; reminderEnabled?: boolean }>;
   fuelLevel?: number;
   currentFuel?: number;
@@ -90,10 +91,13 @@ type TimelineEntry = {
   gallons?: number;
   isFullTank?: boolean;
   pricePerGallon?: number;
+  notes?: string | null;
   // Maintenance-specific
   maintType?: string;
   maintDescription?: string;
   nextDueKm?: number | null;
+  nextDueDate?: string | null;
+  reminderEnabled?: boolean;
 };
 
 // ─── Component ────────────────────────────────────────────────────
@@ -114,11 +118,16 @@ export function TransportPage() {
 
   // Forms
   const [showVehicleForm, setShowVehicleForm] = useState(false);
+  const [editVehicle, setEditVehicle] = useState<VehicleWithDetails | null>(null);
   const [showFuelLogForm, setShowFuelLogForm] = useState(false);
+  const [editFuelLog, setEditFuelLog] = useState<FuelLog | null>(null);
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [editMaintenance, setEditMaintenance] = useState<MaintenanceRecord | null>(null);
   const [showFuelPriceDialog, setShowFuelPriceDialog] = useState(false);
   const [showKmUpdate, setShowKmUpdate] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Delete
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "fuel" | "maintenance" | "vehicle"; id: string; vehicleId?: string } | null>(null);
 
   // Auto-select first vehicle
   useEffect(() => {
@@ -135,7 +144,6 @@ export function TransportPage() {
       : vehicles;
 
     for (const v of targetVehicles) {
-      // Fetch from the pre-loaded data
       if (v.fuelLogs) {
         for (const log of v.fuelLogs) {
           entries.push({
@@ -149,6 +157,7 @@ export function TransportPage() {
             gallons: log.gallons,
             isFullTank: log.isFullTank,
             pricePerGallon: log.pricePerGallon,
+            notes: log.notes,
           });
         }
       }
@@ -165,6 +174,8 @@ export function TransportPage() {
             maintType: rec.type,
             maintDescription: rec.description,
             nextDueKm: rec.nextDueKm,
+            nextDueDate: rec.nextDueDate,
+            reminderEnabled: rec.reminderEnabled,
           });
         }
       }
@@ -197,9 +208,9 @@ export function TransportPage() {
   useEffect(() => {
     if (!sidebarAction) return;
     const actionMap: Partial<Record<SidebarAction, () => void>> = {
-      "create-vehicle": () => setShowVehicleForm(true),
-      "log-fuel": () => setShowFuelLogForm(true),
-      "log-maintenance": () => setShowMaintenanceForm(true),
+      "create-vehicle": () => { setEditVehicle(null); setShowVehicleForm(true); },
+      "log-fuel": () => { setEditFuelLog(null); setShowFuelLogForm(true); },
+      "log-maintenance": () => { setEditMaintenance(null); setShowMaintenanceForm(true); },
       "update-fuel-price": () => setShowFuelPriceDialog(true),
     };
     const handler = actionMap[sidebarAction];
@@ -225,6 +236,32 @@ export function TransportPage() {
     return "text-red-500";
   };
 
+  // ─── Delete handler ────────────────────────────────────────────
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      if (deleteTarget.type === "vehicle") {
+        await apiFetch(`/api/vehicles/${deleteTarget.id}`, { method: "DELETE" });
+        toast.success("Vehículo eliminado");
+        if (selectedVehicleId === deleteTarget.id) {
+          setSelectedVehicleId(vehicles.find(v => v.id !== deleteTarget.id)?.id || null);
+        }
+      } else if (deleteTarget.type === "fuel" && deleteTarget.vehicleId) {
+        await apiFetch(`/api/vehicles/${deleteTarget.vehicleId}/fuel-logs/${deleteTarget.id}`, { method: "DELETE" });
+        toast.success("Registro de combustible eliminado");
+      } else if (deleteTarget.type === "maintenance" && deleteTarget.vehicleId) {
+        await apiFetch(`/api/vehicles/${deleteTarget.vehicleId}/maintenance/${deleteTarget.id}`, { method: "DELETE" });
+        toast.success("Registro de mantenimiento eliminado");
+      }
+      refetchVehicles();
+    } catch (error) {
+      console.error("Error deleting:", error);
+      toast.error("Error al eliminar");
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
   // ─── If viewing detail ──────────────────────────────────────────
   if (detailVehicleId && detailVehicle) {
     return (
@@ -232,6 +269,10 @@ export function TransportPage() {
         vehicle={detailVehicle}
         onBack={() => setDetailVehicleId(null)}
         onRefresh={refetchVehicles}
+        onEditVehicle={(v) => { setEditVehicle(v); setShowVehicleForm(true); }}
+        onEditFuelLog={(log) => { setEditFuelLog(log); setShowFuelLogForm(true); }}
+        onEditMaintenance={(rec) => { setEditMaintenance(rec); setShowMaintenanceForm(true); }}
+        onDelete={(target) => setDeleteTarget(target)}
       />
     );
   }
@@ -250,7 +291,7 @@ export function TransportPage() {
           Agrega tu primer vehículo para empezar a controlar combustible y mantenimiento
         </p>
         <Button
-          onClick={() => setShowVehicleForm(true)}
+          onClick={() => { setEditVehicle(null); setShowVehicleForm(true); }}
           className="rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600"
         >
           <Plus className="size-4 mr-1" />
@@ -260,6 +301,7 @@ export function TransportPage() {
         <VehicleForm
           open={showVehicleForm}
           onOpenChange={setShowVehicleForm}
+          vehicle={editVehicle}
           onSuccess={refetchVehicles}
         />
       </div>
@@ -302,14 +344,30 @@ export function TransportPage() {
             </SelectContent>
           </Select>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-10 rounded-xl"
-            onClick={() => setDetailVehicleId(selectedVehicleId)}
-          >
-            <MoreVertical className="size-4 text-gray-400" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-10 rounded-xl">
+                <MoreVertical className="size-4 text-gray-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setDetailVehicleId(selectedVehicleId)}>
+                <Car className="size-4 mr-2 text-cyan-500" />
+                Ver detalle
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setEditVehicle(selectedVehicle); setShowVehicleForm(true); }}>
+                <Pencil className="size-4 mr-2 text-blue-500" />
+                Editar vehículo
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setDeleteTarget({ type: "vehicle", id: selectedVehicleId || "" })}
+                className="text-red-600"
+              >
+                <Trash2 className="size-4 mr-2" />
+                Eliminar vehículo
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* ─── Compact Indicators Row ─────────────────────────── */}
@@ -397,6 +455,39 @@ export function TransportPage() {
                         key={entry.id}
                         entry={entry}
                         showVehicleName={!selectedVehicleId}
+                        onEdit={() => {
+                          if (entry.type === "fuel") {
+                            setEditFuelLog({
+                              id: entry.id,
+                              date: entry.date,
+                              km: entry.km,
+                              amount: entry.cost,
+                              pricePerGallon: entry.pricePerGallon || 0,
+                              gallons: entry.gallons || 0,
+                              isFullTank: entry.isFullTank ?? true,
+                              notes: entry.notes,
+                            } as FuelLog);
+                            setShowFuelLogForm(true);
+                          } else {
+                            setEditMaintenance({
+                              id: entry.id,
+                              type: entry.maintType || "general",
+                              description: entry.maintDescription || "",
+                              km: entry.km,
+                              cost: entry.cost,
+                              date: entry.date,
+                              nextDueKm: entry.nextDueKm,
+                              nextDueDate: entry.nextDueDate,
+                              reminderEnabled: entry.reminderEnabled ?? true,
+                            } as MaintenanceRecord);
+                            setShowMaintenanceForm(true);
+                          }
+                        }}
+                        onDelete={() => setDeleteTarget({
+                          type: entry.type,
+                          id: entry.id,
+                          vehicleId: entry.vehicleId,
+                        })}
                       />
                     ))}
                   </div>
@@ -424,11 +515,11 @@ export function TransportPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="rounded-xl">
-            <DropdownMenuItem onClick={() => setShowFuelLogForm(true)}>
+            <DropdownMenuItem onClick={() => { setEditFuelLog(null); setShowFuelLogForm(true); }}>
               <Fuel className="size-4 mr-2 text-cyan-500" />
               Registrar Recarga
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowMaintenanceForm(true)}>
+            <DropdownMenuItem onClick={() => { setEditMaintenance(null); setShowMaintenanceForm(true); }}>
               <Wrench className="size-4 mr-2 text-amber-500" />
               Registrar Mantenimiento
             </DropdownMenuItem>
@@ -436,7 +527,7 @@ export function TransportPage() {
               <Settings className="size-4 mr-2 text-blue-500" />
               Precio Combustible
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowVehicleForm(true)}>
+            <DropdownMenuItem onClick={() => { setEditVehicle(null); setShowVehicleForm(true); }}>
               <Car className="size-4 mr-2 text-emerald-500" />
               Nuevo Vehículo
             </DropdownMenuItem>
@@ -448,6 +539,7 @@ export function TransportPage() {
       <VehicleForm
         open={showVehicleForm}
         onOpenChange={setShowVehicleForm}
+        vehicle={editVehicle}
         onSuccess={refetchVehicles}
       />
 
@@ -455,6 +547,7 @@ export function TransportPage() {
         open={showFuelLogForm}
         onOpenChange={setShowFuelLogForm}
         preselectedVehicleId={selectedVehicleId}
+        fuelLog={editFuelLog}
         onSuccess={refetchVehicles}
       />
 
@@ -462,6 +555,7 @@ export function TransportPage() {
         open={showMaintenanceForm}
         onOpenChange={setShowMaintenanceForm}
         preselectedVehicleId={selectedVehicleId}
+        record={editMaintenance}
         onSuccess={refetchVehicles}
       />
 
@@ -487,12 +581,48 @@ export function TransportPage() {
           onSuccess={refetchVehicles}
         />
       )}
+
+      {/* ─── Delete Confirmation ───────────────────────────────── */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este registro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.type === "vehicle"
+                ? "Se eliminará el vehículo y todos sus registros asociados. "
+                : deleteTarget?.type === "fuel"
+                ? "Se eliminará este registro de combustible y su transacción asociada. "
+                : "Se eliminará este registro de mantenimiento y su transacción asociada. "}
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="rounded-xl bg-red-500 hover:bg-red-600"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
 // ─── Timeline Card (compact, Drivvo-style) ────────────────────────
-function TimelineCard({ entry, showVehicleName }: { entry: TimelineEntry; showVehicleName: boolean }) {
+function TimelineCard({
+  entry,
+  showVehicleName,
+  onEdit,
+  onDelete,
+}: {
+  entry: TimelineEntry;
+  showVehicleName: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const isFuel = entry.type === "fuel";
 
   return (
@@ -510,7 +640,7 @@ function TimelineCard({ entry, showVehicleName }: { entry: TimelineEntry; showVe
       </div>
 
       {/* Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-3">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-3 group">
         <div className="flex items-center justify-between mb-0.5">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
@@ -522,9 +652,29 @@ function TimelineCard({ entry, showVehicleName }: { entry: TimelineEntry; showVe
               </Badge>
             )}
           </div>
-          <span className="text-sm font-bold text-gray-900 dark:text-white flex-shrink-0 ml-2">
-            {formatCurrency(entry.cost)}
-          </span>
+          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+            <span className="text-sm font-bold text-gray-900 dark:text-white">
+              {formatCurrency(entry.cost)}
+            </span>
+            {/* Action buttons - always visible on mobile */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="size-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  <MoreHorizontal className="size-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-xl">
+                <DropdownMenuItem onClick={onEdit}>
+                  <Pencil className="size-4 mr-2 text-blue-500" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onDelete} className="text-red-600">
+                  <Trash2 className="size-4 mr-2" />
+                  Eliminar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 text-[11px] text-gray-500">
@@ -561,14 +711,21 @@ function VehicleDetailView({
   vehicle,
   onBack,
   onRefresh,
+  onEditVehicle,
+  onEditFuelLog,
+  onEditMaintenance,
+  onDelete,
 }: {
   vehicle: VehicleWithDetails;
   onBack: () => void;
   onRefresh: () => void;
+  onEditVehicle: (v: VehicleWithDetails) => void;
+  onEditFuelLog: (log: FuelLog) => void;
+  onEditMaintenance: (rec: MaintenanceRecord) => void;
+  onDelete: (target: { type: "fuel" | "maintenance"; id: string; vehicleId?: string }) => void;
 }) {
   const [showFuelLogForm, setShowFuelLogForm] = useState(false);
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
   const [showKmUpdate, setShowKmUpdate] = useState(false);
 
   const Icon = vehicleIcons[vehicle.type] || Car;
@@ -586,11 +743,6 @@ function VehicleDetailView({
     if (level > 25) return "bg-amber-500";
     return "bg-red-500";
   };
-  const getFuelTextColor = (level: number) => {
-    if (level > 50) return "text-emerald-500";
-    if (level > 25) return "text-amber-500";
-    return "text-red-500";
-  };
 
   // Build combined timeline for this vehicle
   const timeline: TimelineEntry[] = [
@@ -598,12 +750,14 @@ function VehicleDetailView({
       id: log.id, type: "fuel" as const, date: log.date, km: log.km,
       cost: log.amount, vehicleId: vehicle.id, vehicleName: vehicle.name,
       gallons: log.gallons, isFullTank: log.isFullTank, pricePerGallon: log.pricePerGallon,
+      notes: log.notes,
     })),
     ...(vehicle.maintenanceRecords || []).map((rec) => ({
       id: rec.id, type: "maintenance" as const,
       date: String(rec.date),
       km: rec.km, cost: rec.cost, vehicleId: vehicle.id, vehicleName: vehicle.name,
       maintType: rec.type, maintDescription: rec.description, nextDueKm: rec.nextDueKm,
+      nextDueDate: rec.nextDueDate, reminderEnabled: rec.reminderEnabled,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -632,7 +786,7 @@ function VehicleDetailView({
               {vehicle.year ? ` ${vehicle.year}` : ""}
             </p>
           </div>
-          <Button variant="ghost" size="icon" className="size-8 rounded-xl text-white/80 hover:bg-white/10" onClick={() => setShowEditForm(true)}>
+          <Button variant="ghost" size="icon" className="size-8 rounded-xl text-white/80 hover:bg-white/10" onClick={() => onEditVehicle(vehicle)}>
             <Pencil className="size-4" />
           </Button>
         </div>
@@ -761,7 +915,42 @@ function VehicleDetailView({
               <div className="absolute left-3 top-2 bottom-2 w-px bg-gray-200 dark:bg-gray-700" />
               <div className="space-y-2">
                 {timeline.map((entry) => (
-                  <TimelineCard key={entry.id} entry={entry} showVehicleName={false} />
+                  <TimelineCard
+                    key={entry.id}
+                    entry={entry}
+                    showVehicleName={false}
+                    onEdit={() => {
+                      if (entry.type === "fuel") {
+                        onEditFuelLog({
+                          id: entry.id,
+                          date: entry.date,
+                          km: entry.km,
+                          amount: entry.cost,
+                          pricePerGallon: entry.pricePerGallon || 0,
+                          gallons: entry.gallons || 0,
+                          isFullTank: entry.isFullTank ?? true,
+                          notes: entry.notes,
+                        } as FuelLog);
+                      } else {
+                        onEditMaintenance({
+                          id: entry.id,
+                          type: entry.maintType || "general",
+                          description: entry.maintDescription || "",
+                          km: entry.km,
+                          cost: entry.cost,
+                          date: entry.date,
+                          nextDueKm: entry.nextDueKm,
+                          nextDueDate: entry.nextDueDate,
+                          reminderEnabled: entry.reminderEnabled ?? true,
+                        } as MaintenanceRecord);
+                      }
+                    }}
+                    onDelete={() => onDelete({
+                      type: entry.type,
+                      id: entry.id,
+                      vehicleId: entry.vehicleId,
+                    })}
+                  />
                 ))}
               </div>
             </div>
@@ -780,12 +969,6 @@ function VehicleDetailView({
         open={showMaintenanceForm}
         onOpenChange={setShowMaintenanceForm}
         preselectedVehicleId={vehicle.id}
-        onSuccess={onRefresh}
-      />
-      <VehicleForm
-        open={showEditForm}
-        onOpenChange={setShowEditForm}
-        vehicle={vehicle}
         onSuccess={onRefresh}
       />
       <QuickKmUpdate

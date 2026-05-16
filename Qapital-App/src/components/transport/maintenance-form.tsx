@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch, getColombiaTodayString } from "@/lib/api";
-import type { Vehicle } from "@/lib/types";
+import type { Vehicle, MaintenanceRecord } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,6 +29,7 @@ interface MaintenanceFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preselectedVehicleId?: string | null;
+  record?: MaintenanceRecord | null;
   onSuccess?: () => void;
 }
 
@@ -41,7 +42,7 @@ const maintenanceTypes = [
   { value: "other", label: "Otro" },
 ];
 
-export function MaintenanceForm({ open, onOpenChange, preselectedVehicleId, onSuccess }: MaintenanceFormProps) {
+export function MaintenanceForm({ open, onOpenChange, preselectedVehicleId, record, onSuccess }: MaintenanceFormProps) {
   const [loading, setLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [vehicleId, setVehicleId] = useState(preselectedVehicleId || "");
@@ -53,6 +54,8 @@ export function MaintenanceForm({ open, onOpenChange, preselectedVehicleId, onSu
   const [nextDueKm, setNextDueKm] = useState("");
   const [nextDueDate, setNextDueDate] = useState("");
   const [reminderEnabled, setReminderEnabled] = useState(true);
+
+  const isEditing = !!record;
 
   const fetchVehicles = useCallback(async () => {
     try {
@@ -69,28 +72,43 @@ export function MaintenanceForm({ open, onOpenChange, preselectedVehicleId, onSu
     }
   }, [open, fetchVehicles]);
 
+  // Pre-fill form when editing
   useEffect(() => {
-    if (preselectedVehicleId) {
+    if (open && record) {
+      setVehicleId(preselectedVehicleId || "");
+      setType(record.type || "oil_change");
+      setDescription(record.description || "");
+      setCost(record.cost?.toString() || "");
+      setKm(record.km?.toString() || "");
+      setDate(record.date ? record.date.split("T")[0] : getColombiaTodayString());
+      setNextDueKm(record.nextDueKm?.toString() || "");
+      setNextDueDate(record.nextDueDate ? record.nextDueDate.split("T")[0] : "");
+      setReminderEnabled(record.reminderEnabled ?? true);
+    }
+  }, [open, record, preselectedVehicleId]);
+
+  useEffect(() => {
+    if (preselectedVehicleId && !isEditing) {
       setVehicleId(preselectedVehicleId);
       const vehicle = vehicles.find((v) => v.id === preselectedVehicleId);
       if (vehicle) {
         setKm(vehicle.currentKm.toString());
       }
     }
-  }, [preselectedVehicleId, vehicles]);
+  }, [preselectedVehicleId, vehicles, isEditing]);
 
   useEffect(() => {
-    if (vehicleId && !preselectedVehicleId) {
+    if (vehicleId && !preselectedVehicleId && !isEditing) {
       const vehicle = vehicles.find((v) => v.id === vehicleId);
       if (vehicle) {
         setKm(vehicle.currentKm.toString());
       }
     }
-  }, [vehicleId, vehicles, preselectedVehicleId]);
+  }, [vehicleId, vehicles, preselectedVehicleId, isEditing]);
 
-  // Auto-suggest next due km based on maintenance type
+  // Auto-suggest next due km based on maintenance type (create mode only)
   useEffect(() => {
-    if (type && km) {
+    if (!isEditing && type && km) {
       const currentKm = parseFloat(km) || 0;
       switch (type) {
         case "oil_change":
@@ -109,36 +127,56 @@ export function MaintenanceForm({ open, onOpenChange, preselectedVehicleId, onSu
           setNextDueKm("");
       }
     }
-  }, [type, km]);
+  }, [type, km, isEditing]);
 
   const handleSubmit = async () => {
     if (!vehicleId || !description || !cost) return;
     setLoading(true);
     try {
-      await apiFetch(`/api/vehicles/${vehicleId}/maintenance`, {
-        method: "POST",
-        body: JSON.stringify({
-          type,
-          description,
-          cost: parseFloat(cost),
-          km: km ? parseFloat(km) : undefined,
-          date,
-          nextDueKm: nextDueKm ? parseFloat(nextDueKm) : undefined,
-          nextDueDate: nextDueDate || undefined,
-          reminderEnabled,
-        }),
-      });
+      if (isEditing && record) {
+        await apiFetch(`/api/vehicles/${vehicleId}/maintenance/${record.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            type,
+            description,
+            cost: parseFloat(cost),
+            km: km ? parseFloat(km) : undefined,
+            date,
+            nextDueKm: nextDueKm ? parseFloat(nextDueKm) : undefined,
+            nextDueDate: nextDueDate || undefined,
+            reminderEnabled,
+          }),
+        });
 
-      toast.success("Mantenimiento registrado", {
-        description: "El registro de mantenimiento se guardó correctamente",
-      });
+        toast.success("Mantenimiento actualizado", {
+          description: "Los cambios se guardaron correctamente",
+        });
+      } else {
+        await apiFetch(`/api/vehicles/${vehicleId}/maintenance`, {
+          method: "POST",
+          body: JSON.stringify({
+            type,
+            description,
+            cost: parseFloat(cost),
+            km: km ? parseFloat(km) : undefined,
+            date,
+            nextDueKm: nextDueKm ? parseFloat(nextDueKm) : undefined,
+            nextDueDate: nextDueDate || undefined,
+            reminderEnabled,
+          }),
+        });
+
+        toast.success("Mantenimiento registrado", {
+          description: "El registro de mantenimiento se guardó correctamente",
+        });
+      }
 
       onSuccess?.();
       onOpenChange(false);
       resetForm();
     } catch (error) {
-      console.error("Error creating maintenance record:", error);
-      toast.error("Error al registrar", {
+      console.error("Error saving maintenance record:", error);
+      toast.error(isEditing ? "Error al actualizar" : "Error al registrar", {
         description: "No se pudo guardar el registro de mantenimiento. Intenta de nuevo.",
       });
     } finally {
@@ -147,29 +185,31 @@ export function MaintenanceForm({ open, onOpenChange, preselectedVehicleId, onSu
   };
 
   const resetForm = () => {
-    setVehicleId(preselectedVehicleId || "");
-    setType("oil_change");
-    setDescription("");
-    setCost("");
-    setKm("");
-    setDate(getColombiaTodayString());
-    setNextDueKm("");
-    setNextDueDate("");
-    setReminderEnabled(true);
+    if (!isEditing) {
+      setVehicleId(preselectedVehicleId || "");
+      setType("oil_change");
+      setDescription("");
+      setCost("");
+      setKm("");
+      setDate(getColombiaTodayString());
+      setNextDueKm("");
+      setNextDueDate("");
+      setReminderEnabled(true);
+    }
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Registrar Mantenimiento</SheetTitle>
+          <SheetTitle>{isEditing ? "Editar Mantenimiento" : "Registrar Mantenimiento"}</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-4 mt-4 pb-6">
           {/* Vehicle */}
           <div className="space-y-2">
             <Label>Vehículo</Label>
-            <Select value={vehicleId} onValueChange={setVehicleId}>
+            <Select value={vehicleId} onValueChange={setVehicleId} disabled={isEditing}>
               <SelectTrigger className="rounded-xl">
                 <SelectValue placeholder="Seleccionar vehículo" />
               </SelectTrigger>
@@ -300,7 +340,7 @@ export function MaintenanceForm({ open, onOpenChange, preselectedVehicleId, onSu
             {loading ? (
               <Loader2 className="size-4 animate-spin mr-2" />
             ) : null}
-            Registrar Mantenimiento
+            {isEditing ? "Guardar Cambios" : "Registrar Mantenimiento"}
           </Button>
         </div>
       </SheetContent>

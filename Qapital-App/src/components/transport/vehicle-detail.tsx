@@ -25,6 +25,7 @@ import {
   Settings,
   Package,
   MoreVertical,
+  MoreHorizontal,
   Pencil,
   Trash2,
   AlertTriangle,
@@ -49,6 +50,7 @@ import { motion } from "framer-motion";
 import { FuelGauge } from "./Fuel-gauge";
 import type { Vehicle, FuelLog, MaintenanceRecord, FuelLevelData } from "@/lib/types";
 import { QuickKmUpdate } from "./quick-km-update";
+import { toast } from "sonner";
 
 interface VehicleDetailProps {
   vehicleId: string;
@@ -115,7 +117,9 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
   const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFuelLogForm, setShowFuelLogForm] = useState(false);
+  const [editFuelLog, setEditFuelLog] = useState<FuelLog | null>(null);
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [editMaintenance, setEditMaintenance] = useState<MaintenanceRecord | null>(null);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showKmUpdate, setShowKmUpdate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: "fuel" | "maintenance"; id: string } | null>(null);
@@ -165,9 +169,11 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
     if (!vehicle) return;
     try {
       await apiFetch(`/api/vehicles/${vehicle.id}`, { method: "DELETE" });
+      toast.success("Vehículo eliminado");
       onBack();
     } catch (error) {
       console.error("Error deleting vehicle:", error);
+      toast.error("Error al eliminar vehículo");
     }
   };
 
@@ -176,13 +182,16 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
     try {
       if (deleteTarget.type === "fuel") {
         await apiFetch(`/api/vehicles/${vehicle.id}/fuel-logs/${deleteTarget.id}`, { method: "DELETE" });
+        toast.success("Registro de combustible eliminado");
       } else {
         await apiFetch(`/api/vehicles/${vehicle.id}/maintenance/${deleteTarget.id}`, { method: "DELETE" });
+        toast.success("Registro de mantenimiento eliminado");
       }
       await fetchData();
       await fetchFuelLevel();
     } catch (error) {
       console.error("Error deleting record:", error);
+      toast.error("Error al eliminar registro");
     } finally {
       setDeleteTarget(null);
     }
@@ -390,9 +399,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
       <div className="flex gap-2">
         <Button
           className="flex-1 h-11 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600"
-          onClick={() => {
-            setShowFuelLogForm(true);
-          }}
+          onClick={() => { setEditFuelLog(null); setShowFuelLogForm(true); }}
         >
           <Fuel className="size-4 mr-1.5" />
           Registrar Recarga
@@ -400,7 +407,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         <Button
           variant="outline"
           className="flex-1 h-11 rounded-xl border-cyan-300 text-cyan-600 hover:bg-cyan-50"
-          onClick={() => setShowMaintenanceForm(true)}
+          onClick={() => { setEditMaintenance(null); setShowMaintenanceForm(true); }}
         >
           <Wrench className="size-4 mr-1.5" />
           Registrar Mantenimiento
@@ -445,15 +452,23 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                       <span className="text-sm font-bold text-gray-900 dark:text-white mr-1">
                         {formatCurrency(log.amount)}
                       </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteTarget({ type: "fuel", id: log.id });
-                        }}
-                        className="size-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      >
-                        <Trash2 className="size-3" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="size-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <MoreHorizontal className="size-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => { setEditFuelLog(log); setShowFuelLogForm(true); }}>
+                            <Pencil className="size-4 mr-2 text-blue-500" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setDeleteTarget({ type: "fuel", id: log.id })} className="text-red-600">
+                            <Trash2 className="size-4 mr-2" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 </CardContent>
@@ -497,15 +512,23 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                             <span className="text-xs font-bold text-gray-900 dark:text-white">
                               {formatCurrency(record.cost)}
                             </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteTarget({ type: "maintenance", id: record.id });
-                              }}
-                              className="size-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                            >
-                              <Trash2 className="size-3" />
-                            </button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="size-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                  <MoreHorizontal className="size-3.5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setEditMaintenance(record); setShowMaintenanceForm(true); }}>
+                                  <Pencil className="size-4 mr-2 text-blue-500" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setDeleteTarget({ type: "maintenance", id: record.id })} className="text-red-600">
+                                  <Trash2 className="size-4 mr-2" />
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                         <p className="text-[10px] text-gray-500 truncate">
@@ -566,6 +589,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         open={showFuelLogForm}
         onOpenChange={setShowFuelLogForm}
         preselectedVehicleId={vehicleId}
+        fuelLog={editFuelLog}
         onSuccess={() => {
           fetchData();
           fetchFuelLevel();
@@ -576,6 +600,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         open={showMaintenanceForm}
         onOpenChange={setShowMaintenanceForm}
         preselectedVehicleId={vehicleId}
+        record={editMaintenance}
         onSuccess={fetchData}
       />
 

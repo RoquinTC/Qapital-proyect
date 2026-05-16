@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch, formatCurrency, getColombiaTodayString } from "@/lib/api";
-import type { Vehicle } from "@/lib/types";
+import type { Vehicle, FuelLog } from "@/lib/types";
 import { Loader2, Calculator, Fuel } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,10 +29,11 @@ interface FuelLogFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preselectedVehicleId?: string | null;
+  fuelLog?: FuelLog | null;
   onSuccess?: () => void;
 }
 
-export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, onSuccess }: FuelLogFormProps) {
+export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, fuelLog, onSuccess }: FuelLogFormProps) {
   const [loading, setLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [vehicleId, setVehicleId] = useState(preselectedVehicleId || "");
@@ -42,6 +43,8 @@ export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, onSucces
   const [pricePerGallon, setPricePerGallon] = useState("");
   const [isFullTank, setIsFullTank] = useState(true);
   const [notes, setNotes] = useState("");
+
+  const isEditing = !!fuelLog;
 
   const fetchVehicles = useCallback(async () => {
     try {
@@ -67,37 +70,52 @@ export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, onSucces
   useEffect(() => {
     if (open) {
       fetchVehicles();
-      fetchFuelPrice();
+      if (!isEditing) {
+        fetchFuelPrice();
+      }
     }
-  }, [open, fetchVehicles, fetchFuelPrice]);
+  }, [open, fetchVehicles, fetchFuelPrice, isEditing]);
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (open && fuelLog) {
+      setVehicleId(preselectedVehicleId || "");
+      setDate(fuelLog.date ? fuelLog.date.split("T")[0] : getColombiaTodayString());
+      setKm(fuelLog.km?.toString() || "");
+      setAmount(fuelLog.amount?.toString() || "");
+      setPricePerGallon(fuelLog.pricePerGallon?.toString() || "");
+      setIsFullTank(fuelLog.isFullTank ?? true);
+      setNotes(fuelLog.notes || "");
+    }
+  }, [open, fuelLog, preselectedVehicleId]);
 
   // Auto-select vehicle if only one exists and no preselection
   useEffect(() => {
-    if (!preselectedVehicleId && vehicles.length === 1 && !vehicleId) {
+    if (!preselectedVehicleId && !isEditing && vehicles.length === 1 && !vehicleId) {
       setVehicleId(vehicles[0].id);
       setKm(vehicles[0].currentKm.toString());
     }
-  }, [vehicles, preselectedVehicleId, vehicleId]);
+  }, [vehicles, preselectedVehicleId, vehicleId, isEditing]);
 
   useEffect(() => {
-    if (preselectedVehicleId) {
+    if (preselectedVehicleId && !isEditing) {
       setVehicleId(preselectedVehicleId);
       const vehicle = vehicles.find((v) => v.id === preselectedVehicleId);
       if (vehicle) {
         setKm(vehicle.currentKm.toString());
       }
     }
-  }, [preselectedVehicleId, vehicles]);
+  }, [preselectedVehicleId, vehicles, isEditing]);
 
-  // Auto-fill km when vehicle changes
+  // Auto-fill km when vehicle changes (create mode only)
   useEffect(() => {
-    if (vehicleId && !preselectedVehicleId) {
+    if (vehicleId && !preselectedVehicleId && !isEditing) {
       const vehicle = vehicles.find((v) => v.id === vehicleId);
       if (vehicle) {
         setKm(vehicle.currentKm.toString());
       }
     }
-  }, [vehicleId, vehicles, preselectedVehicleId]);
+  }, [vehicleId, vehicles, preselectedVehicleId, isEditing]);
 
   const gallons = amount && pricePerGallon && parseFloat(pricePerGallon) > 0
     ? Math.round((parseFloat(amount) / parseFloat(pricePerGallon)) * 100) / 100
@@ -111,28 +129,46 @@ export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, onSucces
     if (!vehicleId || !amount || !pricePerGallon) return;
     setLoading(true);
     try {
-      await apiFetch(`/api/vehicles/${vehicleId}/fuel-logs`, {
-        method: "POST",
-        body: JSON.stringify({
-          date,
-          km: km !== "" && km !== undefined ? parseFloat(km) : undefined,
-          amount: parseFloat(amount),
-          pricePerGallon: parseFloat(pricePerGallon),
-          isFullTank,
-          notes: notes || undefined,
-        }),
-      });
+      if (isEditing && fuelLog) {
+        await apiFetch(`/api/vehicles/${vehicleId}/fuel-logs/${fuelLog.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            date,
+            km: km !== "" && km !== undefined ? parseFloat(km) : undefined,
+            amount: parseFloat(amount),
+            pricePerGallon: parseFloat(pricePerGallon),
+            isFullTank,
+            notes: notes || undefined,
+          }),
+        });
 
-      toast.success("Recarga registrada", {
-        description: "El registro de combustible se guardó correctamente",
-      });
+        toast.success("Recarga actualizada", {
+          description: "Los cambios se guardaron correctamente",
+        });
+      } else {
+        await apiFetch(`/api/vehicles/${vehicleId}/fuel-logs`, {
+          method: "POST",
+          body: JSON.stringify({
+            date,
+            km: km !== "" && km !== undefined ? parseFloat(km) : undefined,
+            amount: parseFloat(amount),
+            pricePerGallon: parseFloat(pricePerGallon),
+            isFullTank,
+            notes: notes || undefined,
+          }),
+        });
+
+        toast.success("Recarga registrada", {
+          description: "El registro de combustible se guardó correctamente",
+        });
+      }
 
       onSuccess?.();
       onOpenChange(false);
       resetForm();
     } catch (error) {
-      console.error("Error creating fuel log:", error);
-      toast.error("Error al registrar", {
+      console.error("Error saving fuel log:", error);
+      toast.error(isEditing ? "Error al actualizar" : "Error al registrar", {
         description: "No se pudo guardar el registro de combustible. Intenta de nuevo.",
       });
     } finally {
@@ -141,32 +177,36 @@ export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, onSucces
   };
 
   const resetForm = () => {
-    setVehicleId(preselectedVehicleId || "");
-    setDate(getColombiaTodayString());
-    setKm("");
-    setAmount("");
-    setPricePerGallon("");
-    setIsFullTank(true);
-    setNotes("");
+    if (!isEditing) {
+      setVehicleId(preselectedVehicleId || "");
+      setDate(getColombiaTodayString());
+      setKm("");
+      setAmount("");
+      setPricePerGallon("");
+      setIsFullTank(true);
+      setNotes("");
+    }
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Registrar Recarga</SheetTitle>
+          <SheetTitle>{isEditing ? "Editar Recarga" : "Registrar Recarga"}</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-4 mt-4 pb-6">
           {/* Vehicle */}
           <div className="space-y-2">
             <Label>Vehículo</Label>
-            {vehicles.length === 1 ? (
+            {vehicles.length === 1 || isEditing ? (
               <div className="h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-800 flex items-center gap-2">
                 <Fuel className="size-4 text-cyan-500" />
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{vehicles[0].name}</span>
-                {vehicles[0].tankCapacity && (
-                  <span className="text-[10px] text-gray-400 ml-auto">Tanque: {vehicles[0].tankCapacity} gal</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {selectedVehicle?.name || vehicles[0]?.name || "Vehículo"}
+                </span>
+                {tankCapacity && (
+                  <span className="text-[10px] text-gray-400 ml-auto">Tanque: {tankCapacity} gal</span>
                 )}
               </div>
             ) : (
@@ -294,7 +334,7 @@ export function FuelLogForm({ open, onOpenChange, preselectedVehicleId, onSucces
             {loading ? (
               <Loader2 className="size-4 animate-spin mr-2" />
             ) : null}
-            Registrar Recarga
+            {isEditing ? "Guardar Cambios" : "Registrar Recarga"}
           </Button>
         </div>
       </SheetContent>

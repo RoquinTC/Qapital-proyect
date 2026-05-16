@@ -14,6 +14,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Plus,
   Wrench,
   Droplets,
@@ -25,9 +41,13 @@ import {
   AlertTriangle,
   Bell,
   Clock,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Vehicle, MaintenanceRecord } from "@/lib/types";
+import { toast } from "sonner";
 
 type MaintenanceRecordWithVehicle = MaintenanceRecord & { vehicleId: string };
 
@@ -82,6 +102,8 @@ export function MaintenanceView({ onSelectVehicle }: MaintenanceViewProps) {
   const [filterVehicle, setFilterVehicle] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [showForm, setShowForm] = useState(false);
+  const [editRecord, setEditRecord] = useState<MaintenanceRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; vehicleId: string } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -135,6 +157,20 @@ export function MaintenanceView({ onSelectVehicle }: MaintenanceViewProps) {
   const getVehicleName = (vehicleId: string) => {
     const v = vehicles.find((v) => v.id === vehicleId);
     return v?.name || "Vehículo";
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await apiFetch(`/api/vehicles/${deleteTarget.vehicleId}/maintenance/${deleteTarget.id}`, { method: "DELETE" });
+      toast.success("Registro eliminado");
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting maintenance record:", error);
+      toast.error("Error al eliminar");
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   if (loading) {
@@ -283,9 +319,28 @@ export function MaintenanceView({ onSelectVehicle }: MaintenanceViewProps) {
                           <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                             {getVehicleName(record.vehicleId)}
                           </span>
-                          <span className="text-sm font-bold text-gray-900 dark:text-white flex-shrink-0 ml-2">
-                            {formatCurrency(record.cost)}
-                          </span>
+                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">
+                              {formatCurrency(record.cost)}
+                            </span>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="size-6 rounded-lg flex items-center justify-center text-gray-300 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                  <MoreHorizontal className="size-3.5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setEditRecord(record); setShowForm(true); }}>
+                                  <Pencil className="size-4 mr-2 text-blue-500" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setDeleteTarget({ id: record.id, vehicleId: record.vehicleId })} className="text-red-600">
+                                  <Trash2 className="size-4 mr-2" />
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                         <p className="text-xs text-gray-500 truncate">
                           {record.description}
@@ -322,7 +377,7 @@ export function MaintenanceView({ onSelectVehicle }: MaintenanceViewProps) {
           transition={{ delay: 0.3, type: "spring" }}
         >
           <Button
-            onClick={() => setShowForm(true)}
+            onClick={() => { setEditRecord(null); setShowForm(true); }}
             className="size-14 rounded-full bg-gradient-to-br from-cyan-600 to-blue-600 shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/40"
             size="icon"
           >
@@ -335,8 +390,31 @@ export function MaintenanceView({ onSelectVehicle }: MaintenanceViewProps) {
       <MaintenanceForm
         open={showForm}
         onOpenChange={setShowForm}
+        preselectedVehicleId={editRecord ? records.find(r => r.id === editRecord.id)?.vehicleId : undefined}
+        record={editRecord}
         onSuccess={fetchData}
       />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este registro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará este registro de mantenimiento y su transacción asociada. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="rounded-xl bg-red-500 hover:bg-red-600"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }
