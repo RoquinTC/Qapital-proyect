@@ -19,8 +19,10 @@ export async function GET() {
         fuelLogs: { orderBy: { date: "desc" } },
         maintenanceRecords: {
           orderBy: { date: "desc" },
-          where: { nextDueKm: { not: null } },
-          take: 1,
+          include: { items: true },
+        },
+        documents: {
+          orderBy: { expiryDate: "desc" },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -28,7 +30,7 @@ export async function GET() {
 
     // Compute fuel level for each vehicle and attach it to the response
     const vehiclesWithFuelLevel = vehicles.map((vehicle) => {
-      const { fuelLogs, maintenanceRecords, ...vehicleData } = vehicle;
+      const { fuelLogs, maintenanceRecords, documents, ...vehicleData } = vehicle;
 
       // Serialize Decimal fields
       const serializedLogs = fuelLogs.map((log) => ({
@@ -46,6 +48,20 @@ export async function GET() {
         nextDueDate: rec.nextDueDate?.toISOString() ?? null,
         createdAt: rec.createdAt?.toISOString(),
         updatedAt: rec.updatedAt?.toISOString(),
+        items: rec.items?.map((item) => ({
+          ...item,
+          unitPrice: toNumber(item.unitPrice),
+          totalPrice: toNumber(item.totalPrice),
+        })) || [],
+      }));
+
+      const serializedDocuments = documents.map((doc) => ({
+        ...doc,
+        cost: toNumber(doc.cost),
+        issueDate: doc.issueDate.toISOString(),
+        expiryDate: doc.expiryDate.toISOString(),
+        createdAt: doc.createdAt?.toISOString(),
+        updatedAt: doc.updatedAt?.toISOString(),
       }));
 
       // Calculate fuel level using shared utility
@@ -73,6 +89,7 @@ export async function GET() {
         year: vehicle.year,
         fuelLogs: serializedLogs.slice(0, 10), // Up to 10 recent fuel logs for the card view
         maintenanceRecords: serializedMaintenance,
+        documents: serializedDocuments,
         fuelLevel: fuelLevelData.fuelLevel,
         currentFuel: fuelLevelData.currentFuel,
         estimatedRange: fuelLevelData.estimatedRange,

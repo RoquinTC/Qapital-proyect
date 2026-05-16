@@ -20,9 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { apiFetch, formatCurrency, getColombiaTodayString } from "@/lib/api";
-import type { Vehicle, FuelLog } from "@/lib/types";
-import { Loader2, Calculator, Fuel, Gauge, TrendingUp, AlertTriangle } from "lucide-react";
+import { apiFetch, getColombiaTodayString } from "@/lib/api";
+import type { Vehicle, FuelLog, PaymentMethodType } from "@/lib/types/transport";
+import { PaymentMethodSelector } from "@/components/transport/payment-method-selector";
+import { Loader2, Calculator, Fuel, Gauge, TrendingUp, AlertTriangle, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 interface FuelLogFormProps {
@@ -58,7 +59,23 @@ export function FuelLogForm({
   const [amount, setAmount] = useState("");
   const [pricePerGallon, setPricePerGallon] = useState("");
   const [isFullTank, setIsFullTank] = useState(true);
+  const [station, setStation] = useState("");
   const [notes, setNotes] = useState("");
+
+  // ── Finance integration state ──
+  const [paymentData, setPaymentData] = useState<{
+    paymentType: PaymentMethodType;
+    accountId: string | null;
+    subAccountId: string | null;
+    debtId: string | null;
+    installmentCount: number | null;
+  }>({
+    paymentType: "account",
+    accountId: null,
+    subAccountId: null,
+    debtId: null,
+    installmentCount: null,
+  });
 
   const isEditing = !!fuelLog;
 
@@ -101,7 +118,16 @@ export function FuelLogForm({
       setAmount(fuelLog.amount?.toString() || "");
       setPricePerGallon(fuelLog.pricePerGallon?.toString() || "");
       setIsFullTank(fuelLog.isFullTank ?? true);
+      setStation(fuelLog.station || "");
       setNotes(fuelLog.notes || "");
+      // Pre-fill payment data from existing record
+      setPaymentData({
+        paymentType: fuelLog.debtId ? "credit_card" : "account",
+        accountId: fuelLog.accountId || null,
+        subAccountId: fuelLog.subAccountId || null,
+        debtId: fuelLog.debtId || null,
+        installmentCount: fuelLog.installmentCount || null,
+      });
     }
   }, [open, fuelLog, preselectedVehicleId]);
 
@@ -185,17 +211,26 @@ export function FuelLogForm({
     if (!vehicleId || !amount || !pricePerGallon) return;
     setLoading(true);
     try {
+      const payload: Record<string, unknown> = {
+        date,
+        km: km !== "" && km !== undefined ? parseFloat(km) : undefined,
+        amount: parseFloat(amount),
+        pricePerGallon: parseFloat(pricePerGallon),
+        isFullTank,
+        station: station || null,
+        notes: notes || undefined,
+        // ── Finance integration ──
+        paymentType: paymentData.paymentType,
+        accountId: paymentData.accountId,
+        subAccountId: paymentData.subAccountId,
+        debtId: paymentData.debtId,
+        installmentCount: paymentData.installmentCount,
+      };
+
       if (isEditing && fuelLog) {
         await apiFetch(`/api/vehicles/${vehicleId}/fuel-logs/${fuelLog.id}`, {
           method: "PUT",
-          body: JSON.stringify({
-            date,
-            km: km !== "" && km !== undefined ? parseFloat(km) : undefined,
-            amount: parseFloat(amount),
-            pricePerGallon: parseFloat(pricePerGallon),
-            isFullTank,
-            notes: notes || undefined,
-          }),
+          body: JSON.stringify(payload),
         });
 
         toast.success("Recarga actualizada", {
@@ -204,14 +239,7 @@ export function FuelLogForm({
       } else {
         await apiFetch(`/api/vehicles/${vehicleId}/fuel-logs`, {
           method: "POST",
-          body: JSON.stringify({
-            date,
-            km: km !== "" && km !== undefined ? parseFloat(km) : undefined,
-            amount: parseFloat(amount),
-            pricePerGallon: parseFloat(pricePerGallon),
-            isFullTank,
-            notes: notes || undefined,
-          }),
+          body: JSON.stringify(payload),
         });
 
         toast.success("Recarga registrada", {
@@ -240,7 +268,15 @@ export function FuelLogForm({
       setAmount("");
       setPricePerGallon("");
       setIsFullTank(true);
+      setStation("");
       setNotes("");
+      setPaymentData({
+        paymentType: "account",
+        accountId: null,
+        subAccountId: null,
+        debtId: null,
+        installmentCount: null,
+      });
     }
   };
 
@@ -477,6 +513,32 @@ export function FuelLogForm({
             </div>
             <Switch checked={isFullTank} onCheckedChange={setIsFullTank} />
           </div>
+
+          {/* Gas Station */}
+          <div className="space-y-2">
+            <Label htmlFor="fuel-station" className="flex items-center gap-1.5">
+              <MapPin className="size-3.5 text-gray-400" />
+              Gasolinera
+            </Label>
+            <Input
+              id="fuel-station"
+              placeholder="Ej: Terpel, Shell, Texaco..."
+              value={station}
+              onChange={(e) => setStation(e.target.value)}
+              className="rounded-xl"
+            />
+          </div>
+
+          {/* ─── Payment Method ── */}
+          <PaymentMethodSelector
+            vehicleId={vehicleId}
+            defaultPaymentType={fuelLog?.debtId ? "credit_card" : "account"}
+            defaultAccountId={fuelLog?.accountId}
+            defaultSubAccountId={fuelLog?.subAccountId}
+            defaultDebtId={fuelLog?.debtId}
+            defaultInstallmentCount={fuelLog?.installmentCount}
+            onChange={setPaymentData}
+          />
 
           {/* Notes */}
           <div className="space-y-2">

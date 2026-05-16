@@ -498,6 +498,13 @@ export const fuelLogCreateSchema = z.object({
   amount: z.number().positive("El monto es obligatorio"),
   pricePerGallon: z.number().positive("El precio por galón es obligatorio"),
   isFullTank: z.boolean().optional().default(true),
+  station: z.string().nullable().optional(),
+  // ── Finance integration ──
+  paymentType: z.enum(["account", "credit_card"]).optional().default("account"),
+  accountId: z.string().nullable().optional(),
+  subAccountId: z.string().nullable().optional(),
+  debtId: z.string().nullable().optional(),
+  installmentCount: z.number().int().min(1).nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 
@@ -507,6 +514,13 @@ export const fuelLogUpdateSchema = z.object({
   amount: z.number().optional(),
   pricePerGallon: z.number().optional(),
   isFullTank: z.boolean().optional(),
+  station: z.string().nullable().optional(),
+  // ── Finance integration ──
+  paymentType: z.enum(["account", "credit_card"]).optional(),
+  accountId: z.string().nullable().optional(),
+  subAccountId: z.string().nullable().optional(),
+  debtId: z.string().nullable().optional(),
+  installmentCount: z.number().int().min(1).nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 
@@ -519,6 +533,20 @@ export const maintenanceCreateSchema = z.object({
   nextDueKm: z.number().nullable().optional(),
   nextDueDate: isoDateString.nullable().optional(),
   reminderEnabled: z.boolean().optional().default(true),
+  // ── Itemized list ──
+  items: z.array(z.object({
+    name: z.string().min(1),
+    quantity: z.number().positive().default(1),
+    unitPrice: z.number().positive("El precio unitario es obligatorio"),
+    totalPrice: z.number().positive(),
+    notes: z.string().nullable().optional(),
+  })).optional(),
+  // ── Finance integration ──
+  paymentType: z.enum(["account", "credit_card"]).optional().default("account"),
+  accountId: z.string().nullable().optional(),
+  subAccountId: z.string().nullable().optional(),
+  debtId: z.string().nullable().optional(),
+  installmentCount: z.number().int().min(1).nullable().optional(),
 });
 
 export const maintenanceUpdateSchema = z.object({
@@ -530,6 +558,70 @@ export const maintenanceUpdateSchema = z.object({
   nextDueKm: z.number().nullable().optional(),
   nextDueDate: isoDateString.nullable().optional(),
   reminderEnabled: z.boolean().optional(),
+  // ── Itemized list ──
+  items: z.array(z.object({
+    id: z.string().optional(), // existing item id for updates
+    name: z.string().min(1),
+    quantity: z.number().positive().default(1),
+    unitPrice: z.number().positive(),
+    totalPrice: z.number().positive(),
+    notes: z.string().nullable().optional(),
+  })).optional(),
+  // ── Finance integration ──
+  paymentType: z.enum(["account", "credit_card"]).optional(),
+  accountId: z.string().nullable().optional(),
+  subAccountId: z.string().nullable().optional(),
+  debtId: z.string().nullable().optional(),
+  installmentCount: z.number().int().min(1).nullable().optional(),
+});
+
+// ============================================
+// VEHICLE DOCUMENTS (SOAT, Tecnomecánica, etc.)
+// ============================================
+
+export const vehicleDocumentCreateSchema = z.object({
+  type: z.string().min(1, "El tipo de documento es obligatorio"),
+  documentNumber: z.string().nullable().optional(),
+  issueDate: isoDateString,
+  expiryDate: isoDateString,
+  cost: z.number().positive("El costo es obligatorio"),
+  reminderDays: z.number().int().min(1).default(30),
+  reminderEnabled: z.boolean().optional().default(true),
+  // ── Finance integration ──
+  paymentType: z.enum(["account", "credit_card"]).optional().default("account"),
+  accountId: z.string().nullable().optional(),
+  subAccountId: z.string().nullable().optional(),
+  debtId: z.string().nullable().optional(),
+  installmentCount: z.number().int().min(1).nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export const vehicleDocumentUpdateSchema = z.object({
+  type: z.string().optional(),
+  documentNumber: z.string().nullable().optional(),
+  issueDate: isoDateString.optional(),
+  expiryDate: isoDateString.optional(),
+  cost: z.number().optional(),
+  reminderDays: z.number().int().min(1).optional(),
+  reminderEnabled: z.boolean().optional(),
+  paymentType: z.enum(["account", "credit_card"]).optional(),
+  accountId: z.string().nullable().optional(),
+  subAccountId: z.string().nullable().optional(),
+  debtId: z.string().nullable().optional(),
+  installmentCount: z.number().int().min(1).nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+// ============================================
+// VEHICLE PAYMENT DEFAULTS
+// ============================================
+
+export const vehiclePaymentDefaultSchema = z.object({
+  paymentType: z.enum(["account", "credit_card"]).default("account"),
+  accountId: z.string().nullable().optional(),
+  subAccountId: z.string().nullable().optional(),
+  debtId: z.string().nullable().optional(),
+  installmentCount: z.number().int().min(1).nullable().optional(),
 });
 
 // ============================================

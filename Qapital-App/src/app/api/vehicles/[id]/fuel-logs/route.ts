@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate, getColombiaNow } from "@/lib/api";
 import { validateBody, fuelLogCreateSchema } from "@/lib/validations";
+import { createFinanceEntry, reverseFinanceEntry, getTransportDescription } from "@/lib/transport-finance";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -43,7 +44,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { id } = await params;
     const body = await validateBody(req, fuelLogCreateSchema);
-    const { date, km, amount, pricePerGallon, isFullTank, notes } = body;
+    const {
+      date, km, amount, pricePerGallon, isFullTank, station, notes,
+      paymentType, accountId, subAccountId, debtId, installmentCount,
+    } = body;
 
     const vehicle = await db.vehicle.findFirst({
       where: { id, userId: session.user.id },
@@ -54,16 +58,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const gallons = amount / pricePerGallon;
+    const recordDate = date ? createColombiaDate(date.split("T")[0]) : getColombiaNow();
 
+    // Create fuel log with finance integration fields
     const fuelLog = await db.fuelLog.create({
       data: {
         vehicleId: id,
-        date: date ? createColombiaDate(date.split("T")[0]) : getColombiaNow(),
+        date: recordDate,
         km: km ?? vehicle.currentKm,
         amount,
         pricePerGallon,
         gallons: Math.round(gallons * 100) / 100,
         isFullTank: isFullTank ?? true,
+        station: station || null,
+        accountId: accountId || null,
+        subAccountId: subAccountId || null,
+        debtId: debtId || null,
+        installmentCount: installmentCount || null,
         notes,
       },
     });
@@ -76,23 +87,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       });
     }
 
-    // Create finance transaction for cross-module sync
-    await db.transaction.create({
-      data: {
-        userId: session.user.id,
-        type: "expense",
-        category: "Transporte",
-        subCategory: "Combustible",
-        amount,
-        description: `Combustible - ${vehicle.name}`,
-        date: date ? createColombiaDate(date.split("T")[0]) : getColombiaNow(),
-        sourceModule: "transport",
-        sourceId: fuelLog.id,
-        accountId: null,
-      },
+    // Create finance entry with full integration (account/TC/budget)
+    const financeResult = await createFinanceEntry({
+      userId: session.user.id,
+      amount,
+      description: getTransportDescription("fuel", vehicle.name),
+      category: "Transporte",
+      subCategory: "Combustible",
+      date: recordDate,
+      sourceModule: "transport",
+      sourceId: fuelLog.id,
+      paymentType: paymentType || "account",
+      accountId,
+      subAccountId,
+      debtId,
+      installmentCount,
+      notes: station ? `Gasolinera: ${station}` : notes,
+      vehicleName: vehicle.name,
     });
 
-    return NextResponse.json(fuelLog, { status: 201 });
+    return NextResponse.json({
+      ...fuelLog,
+      _finance: financeResult,
+    }, { status: 201 });
   } catch (error) {
     if (error instanceof Response) return error;
     console.error("Create fuel log error:", error);

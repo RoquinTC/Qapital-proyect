@@ -87,6 +87,11 @@ model Account {
   goalSources           SavingsGoal[] @relation("GoalSourceAccount")
   goalDestinations      SavingsGoal[] @relation("GoalDestinationAccount")
   payrollGroups         PayrollGroup[]
+  // ── Transport relations ──
+  fuelLogPayments       FuelLog[]           @relation("FuelLogAccount")
+  maintenancePayments   MaintenanceRecord[] @relation("MaintenanceAccount")
+  vehicleDocumentPayments VehicleDocument[] @relation("VehicleDocumentAccount")
+  paymentDefaultVehicles VehiclePaymentDefault[] @relation("PaymentDefaultAccount")
 
   @@map("accounts")
 }
@@ -112,6 +117,11 @@ model SubAccount {
   savingsGoalLinks      SavingsGoalAccount[]
   recurringPayments     RecurringPayment[]
   payrollGroups         PayrollGroup[]
+  // ── Transport relations ──
+  fuelLogPayments       FuelLog[]           @relation("FuelLogSubAccount")
+  maintenancePayments   MaintenanceRecord[] @relation("MaintenanceSubAccount")
+  vehicleDocumentPayments VehicleDocument[] @relation("VehicleDocumentSubAccount")
+  paymentDefaultVehicles VehiclePaymentDefault[] @relation("PaymentDefaultSubAccount")
 
   @@map("sub_accounts")
 }
@@ -275,6 +285,11 @@ model Debt {
   installments    Installment[]
   abonos          Abono[]
   recurringPayments RecurringPayment[]
+  // ── Transport relations ──
+  fuelLogPayments       FuelLog[]           @relation("FuelLogDebt")
+  maintenancePayments   MaintenanceRecord[] @relation("MaintenanceDebt")
+  vehicleDocumentPayments VehicleDocument[] @relation("VehicleDocumentDebt")
+  paymentDefaultVehicles VehiclePaymentDefault[] @relation("PaymentDefaultDebt")
 
   @@map("debts")
 }
@@ -540,6 +555,8 @@ model Vehicle {
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   fuelLogs        FuelLog[]
   maintenanceRecords MaintenanceRecord[]
+  documents       VehicleDocument[]
+  paymentDefault  VehiclePaymentDefault?
 
   @@map("vehicles")
 }
@@ -553,10 +570,19 @@ model FuelLog {
   pricePerGallon  Decimal   // CHANGED: Float -> Decimal (fuel price)
   gallons         Float     // volume (NOT money — stays Float)
   isFullTank      Boolean   @default(true)
+  station         String?   // Gas station name
+  // ── Finance integration fields ──
+  accountId       String?   // Account used for payment (null = no account linked)
+  subAccountId    String?   // Sub-account (bolsillo) if applicable
+  debtId          String?   // Credit card used for payment (if TC)
+  installmentCount Int?     // Number of installments if paid with TC
   notes           String?
   createdAt       DateTime  @default(now())
 
   vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  account         Account?  @relation("FuelLogAccount", fields: [accountId], references: [id])
+  subAccount      SubAccount? @relation("FuelLogSubAccount", fields: [subAccountId], references: [id])
+  debt            Debt?     @relation("FuelLogDebt", fields: [debtId], references: [id])
 
   @@map("fuel_logs")
 }
@@ -564,7 +590,7 @@ model FuelLog {
 model MaintenanceRecord {
   id              String    @id @default(cuid())
   vehicleId       String
-  type            String    // oil_change, tire_change, brake_service, general, other
+  type            String    // oil_change, tire_change, brake_service, general, parts_replacement, alignment, suspension, transmission, electrical, cooling, ac, battery, inspection, wash, aesthetics, other
   description     String
   cost            Decimal   // CHANGED: Float -> Decimal
   km              Float     // distance (NOT money — stays Float)
@@ -572,12 +598,87 @@ model MaintenanceRecord {
   nextDueKm       Float?    // distance (NOT money — stays Float)
   nextDueDate     DateTime?
   reminderEnabled Boolean   @default(true)
+  // ── Finance integration fields ──
+  accountId       String?   // Account used for payment
+  subAccountId    String?   // Sub-account (bolsillo) if applicable
+  debtId          String?   // Credit card used for payment (if TC)
+  installmentCount Int?     // Number of installments if paid with TC
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  items           MaintenanceItem[]
+  account         Account?  @relation("MaintenanceAccount", fields: [accountId], references: [id])
+  subAccount      SubAccount? @relation("MaintenanceSubAccount", fields: [subAccountId], references: [id])
+  debt            Debt?     @relation("MaintenanceDebt", fields: [debtId], references: [id])
 
   @@map("maintenance_records")
+}
+
+// ============================================
+// TRANSPORT MODULE - EXTENDED MODELS
+// ============================================
+
+model VehicleDocument {
+  id              String    @id @default(cuid())
+  vehicleId       String
+  type            String    // soat, tecnomecanica, seguro, impuesto, otro
+  documentNumber  String?   // SOAT policy #, Tecnomecánica #, etc.
+  issueDate       DateTime  // When it was issued/purchased
+  expiryDate      DateTime  // When it expires
+  cost            Decimal   // CHANGED: Float -> Decimal (money paid)
+  reminderDays    Int       @default(30) // Days before expiry to trigger reminder
+  reminderEnabled Boolean   @default(true)
+  // ── Finance integration fields ──
+  accountId       String?   // Account used for payment
+  subAccountId    String?   // Sub-account (bolsillo) if applicable
+  debtId          String?   // Credit card used for payment (if TC)
+  installmentCount Int?     // Number of installments if paid with TC
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  account         Account?  @relation("VehicleDocumentAccount", fields: [accountId], references: [id])
+  subAccount      SubAccount? @relation("VehicleDocumentSubAccount", fields: [subAccountId], references: [id])
+  debt            Debt?     @relation("VehicleDocumentDebt", fields: [debtId], references: [id])
+
+  @@map("vehicle_documents")
+}
+
+model MaintenanceItem {
+  id                  String    @id @default(cuid())
+  maintenanceRecordId String
+  name                String    // e.g. "Aceite sintético 10W-40", "Filtro de aire"
+  quantity            Float     @default(1) // item count (NOT money — stays Float)
+  unitPrice           Decimal   // CHANGED: Float -> Decimal (money)
+  totalPrice          Decimal   // CHANGED: Float -> Decimal (money) = quantity * unitPrice
+  notes               String?
+  createdAt           DateTime  @default(now())
+
+  maintenanceRecord   MaintenanceRecord @relation(fields: [maintenanceRecordId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_items")
+}
+
+model VehiclePaymentDefault {
+  id              String    @id @default(cuid())
+  vehicleId       String    @unique // One default per vehicle
+  userId          String
+  paymentType     String    @default("account") // "account" or "credit_card"
+  accountId       String?   // Default account for payment
+  subAccountId    String?   // Default sub-account (bolsillo)
+  debtId          String?   // Default credit card (if paymentType = credit_card)
+  installmentCount Int?     // Default # of installments for TC
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  account         Account?  @relation("PaymentDefaultAccount", fields: [accountId], references: [id])
+  subAccount      SubAccount? @relation("PaymentDefaultSubAccount", fields: [subAccountId], references: [id])
+  debt            Debt?     @relation("PaymentDefaultDebt", fields: [debtId], references: [id])
+
+  @@map("vehicle_payment_defaults")
 }
 
 // ============================================
