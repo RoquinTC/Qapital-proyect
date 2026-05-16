@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { useAppStore, type ModuleType } from "@/lib/store";
+import { useAppStore, type ModuleType, type SidebarAction } from "@/lib/store";
 import {
   Home,
   Wallet,
@@ -16,6 +16,25 @@ import {
   Landmark,
   CreditCard,
   TrendingUp,
+  // Finance actions
+  ArrowLeftRight,
+  Banknote,
+  Receipt,
+  PiggyBank,
+  Landmark as DebtIcon,
+  Clock,
+  Tag,
+  // Transport actions
+  PlusCircle,
+  Fuel,
+  Wrench,
+  // Health actions
+  Pill,
+  Stethoscope,
+  // Pantry actions
+  Refrigerator,
+  ListPlus,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sheet,
@@ -27,13 +46,85 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ─── Menu structure ─────────────────────────────────
-const moduleItems = [
-  { id: "dashboard" as const, label: "Inicio", icon: Home, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30" },
-  { id: "finance" as const, label: "Finanzas", icon: Wallet, color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-100 dark:bg-teal-900/30" },
-  { id: "transport" as const, label: "Transporte", icon: Car, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30" },
-  { id: "health" as const, label: "Salud", icon: Heart, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30" },
-  { id: "pantry" as const, label: "Despensa", icon: ShoppingCart, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30" },
+// ─── Module definitions with quick actions ─────────────────────────
+
+type QuickAction = {
+  id: SidebarAction;
+  label: string;
+  icon: typeof Home;
+};
+
+type ModuleDef = {
+  id: ModuleType;
+  label: string;
+  icon: typeof Home;
+  color: string;
+  bg: string;
+  actions?: QuickAction[];
+};
+
+const moduleItems: ModuleDef[] = [
+  {
+    id: "dashboard",
+    label: "Inicio",
+    icon: Home,
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-100 dark:bg-emerald-900/30",
+    // Dashboard has no sub-actions — it just navigates
+  },
+  {
+    id: "finance",
+    label: "Finanzas",
+    icon: Wallet,
+    color: "text-teal-600 dark:text-teal-400",
+    bg: "bg-teal-100 dark:bg-teal-900/30",
+    actions: [
+      { id: "create-transaction", label: "Nueva Transacción", icon: ArrowLeftRight },
+      { id: "create-account", label: "Nueva Cuenta", icon: Banknote },
+      { id: "create-budget", label: "Nuevo Presupuesto", icon: Receipt },
+      { id: "create-savings-goal", label: "Nueva Meta de Ahorro", icon: PiggyBank },
+      { id: "create-debt", label: "Nueva Deuda", icon: CreditCard },
+      { id: "create-cdt", label: "Nuevo CDT", icon: DebtIcon },
+      { id: "create-recurring", label: "Nuevo Pago Recurrente", icon: Clock },
+      { id: "manage-categories", label: "Gestionar Categorías", icon: Tag },
+    ],
+  },
+  {
+    id: "transport",
+    label: "Transporte",
+    icon: Car,
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-100 dark:bg-blue-900/30",
+    actions: [
+      { id: "create-vehicle", label: "Nuevo Vehículo", icon: PlusCircle },
+      { id: "log-fuel", label: "Registrar Recarga", icon: Fuel },
+      { id: "log-maintenance", label: "Registrar Mantenimiento", icon: Wrench },
+      { id: "update-fuel-price", label: "Actualizar Precio Combustible", icon: Landmark },
+    ],
+  },
+  {
+    id: "health",
+    label: "Salud",
+    icon: Heart,
+    color: "text-rose-600 dark:text-rose-400",
+    bg: "bg-rose-100 dark:bg-rose-900/30",
+    actions: [
+      { id: "create-medication", label: "Nuevo Medicamento", icon: Pill },
+      { id: "create-appointment", label: "Nueva Cita Médica", icon: Stethoscope },
+    ],
+  },
+  {
+    id: "pantry",
+    label: "Despensa",
+    icon: ShoppingCart,
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-100 dark:bg-amber-900/30",
+    actions: [
+      { id: "create-pantry-item", label: "Nuevo Producto", icon: Refrigerator },
+      { id: "create-shopping-list", label: "Nueva Lista de Mercado", icon: ListPlus },
+      { id: "create-health-profile", label: "Perfil de Salud", icon: ShieldCheck },
+    ],
+  },
 ];
 
 const simulatorItems = [
@@ -44,7 +135,8 @@ const simulatorItems = [
 
 export function AppSidebar() {
   const { data: session } = useSession();
-  const { sidebarOpen, setSidebarOpen, setActiveModule, setFinanceSubView, setAuthView } = useAppStore();
+  const { sidebarOpen, setSidebarOpen, setActiveModule, setFinanceSubView, setAuthView, setSidebarAction } = useAppStore();
+  const [expandedModule, setExpandedModule] = useState<string | null>(null);
   const [simulatorsOpen, setSimulatorsOpen] = useState(false);
 
   const userInitials = session?.user?.name
@@ -58,6 +150,16 @@ export function AppSidebar() {
 
   const handleNavigate = (moduleId: ModuleType) => {
     setActiveModule(moduleId);
+    setSidebarOpen(false);
+  };
+
+  const handleToggleModule = (moduleId: string) => {
+    setExpandedModule(expandedModule === moduleId ? null : moduleId);
+  };
+
+  const handleQuickAction = (moduleId: ModuleType, action: SidebarAction) => {
+    setActiveModule(moduleId);
+    setSidebarAction(action);
     setSidebarOpen(false);
   };
 
@@ -92,27 +194,79 @@ export function AppSidebar() {
 
         {/* Scrollable content */}
         <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
-          {/* Module Navigation */}
+          {/* Module Navigation with expandable actions */}
           <div className="p-3 space-y-1">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
               Módulos
             </p>
             {moduleItems.map((item) => {
               const Icon = item.icon;
+              const isExpanded = expandedModule === item.id;
+              const hasActions = item.actions && item.actions.length > 0;
+
               return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavigate(item.id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
-                >
-                  <div className={`size-9 rounded-lg ${item.bg} flex items-center justify-center shrink-0`}>
-                    <Icon className={`size-4 ${item.color}`} />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1">
-                    {item.label}
-                  </span>
-                  <ChevronRight className="size-4 text-gray-300 dark:text-gray-600" />
-                </button>
+                <div key={item.id}>
+                  <button
+                    onClick={() => {
+                      if (hasActions) {
+                        handleToggleModule(item.id);
+                      } else {
+                        handleNavigate(item.id);
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+                  >
+                    <div className={`size-9 rounded-lg ${item.bg} flex items-center justify-center shrink-0`}>
+                      <Icon className={`size-4 ${item.color}`} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1">
+                      {item.label}
+                    </span>
+                    {hasActions ? (
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 90 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronRight className="size-4 text-gray-300 dark:text-gray-600" />
+                      </motion.div>
+                    ) : (
+                      <ChevronRight className="size-4 text-gray-300 dark:text-gray-600" />
+                    )}
+                  </button>
+
+                  {/* Expandable quick actions */}
+                  <AnimatePresence>
+                    {isExpanded && hasActions && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pl-4 pr-1 py-1 space-y-0.5">
+                          {item.actions!.map((action) => {
+                            const ActionIcon = action.icon;
+                            return (
+                              <button
+                                key={action.id}
+                                onClick={() => handleQuickAction(item.id, action.id)}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left group"
+                              >
+                                <div className={`size-6 rounded-md ${item.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                                  <ActionIcon className={`size-3 ${item.color}`} />
+                                </div>
+                                <span className="text-[13px] text-gray-600 dark:text-gray-400 flex-1">
+                                  {action.label}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               );
             })}
           </div>

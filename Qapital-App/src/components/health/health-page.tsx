@@ -1,10 +1,13 @@
 "use client";
 
-import { useAppStore, type HealthSubView } from "@/lib/store";
+import { useState, useEffect } from "react";
+import { useAppStore, type HealthSubView, type SidebarAction } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pill, Stethoscope } from "lucide-react";
 import { MedicationsView } from "./medications-view";
 import { AppointmentsView } from "./appointments-view";
+import { MedicationForm } from "./medication-form";
+import { AppointmentForm } from "./appointment-form";
 
 const tabs: { id: HealthSubView; label: string; icon: typeof Pill }[] = [
   { id: "medications", label: "Medicamentos", icon: Pill },
@@ -12,7 +15,33 @@ const tabs: { id: HealthSubView; label: string; icon: typeof Pill }[] = [
 ];
 
 export function HealthPage() {
-  const { healthSubView, setHealthSubView } = useAppStore();
+  const { healthSubView, setHealthSubView, sidebarAction, setSidebarAction } = useAppStore();
+
+  // Sidebar quick-action forms
+  const [showMedicationForm, setShowMedicationForm] = useState(false);
+  const [showAppointmentForm, setShowAppointmentForm] = useState(false);
+
+  // ─── Listen for sidebar quick-actions ───────────────────────────
+  useEffect(() => {
+    if (!sidebarAction) return;
+
+    const actionMap: Partial<Record<SidebarAction, () => void>> = {
+      "create-medication": () => {
+        setHealthSubView("medications");
+        setShowMedicationForm(true);
+      },
+      "create-appointment": () => {
+        setHealthSubView("appointments");
+        setShowAppointmentForm(true);
+      },
+    };
+
+    const handler = actionMap[sidebarAction];
+    if (handler) handler();
+
+    // Consume the action so it doesn't re-fire
+    setSidebarAction(null);
+  }, [sidebarAction, setSidebarAction, setHealthSubView]);
 
   const renderContent = () => {
     switch (healthSubView) {
@@ -84,6 +113,18 @@ export function HealthPage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* ─── Sidebar Quick-Action Forms ───────────────────────────── */}
+
+      <MedicationForm
+        open={showMedicationForm}
+        onOpenChange={setShowMedicationForm}
+      />
+
+      <AppointmentForm
+        open={showAppointmentForm}
+        onOpenChange={setShowAppointmentForm}
+      />
     </div>
   );
 }

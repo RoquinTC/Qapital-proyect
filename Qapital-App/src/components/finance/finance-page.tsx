@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, Component } from "react";
-import { useAppStore, type FinanceSubView } from "@/lib/store";
+import { useState, useEffect, Component } from "react";
+import { useAppStore, type FinanceSubView, type SidebarAction } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import { LayoutDashboard, Wallet, Receipt, CreditCard, PiggyBank, Landmark, Clock } from "lucide-react";
 import { FinanceOverview } from "./finance-overview";
@@ -16,6 +16,13 @@ import { DebtDetail } from "./debt-detail";
 import { SavingsGoalDetail } from "./savings-goal-detail";
 import { YieldSimulator } from "./yield-simulator";
 import { CreditSimulator } from "./credit-simulator";
+import { AccountForm } from "./account-form";
+import { BudgetForm } from "./budget-form";
+import { SavingsGoalForm } from "./savings-goal-form";
+import { DebtForm } from "./debt-form";
+import { CDTForm } from "./cdt-form";
+import { RecurringForm } from "./recurring-form";
+import { TransactionForm } from "./transaction-form";
 
 // Error boundary component to prevent a single tab crash from breaking the entire app
 class TabErrorBoundary extends Component<{
@@ -69,10 +76,65 @@ const tabs: { id: FinanceSubView; label: string; icon: typeof Wallet }[] = [
 ];
 
 export function FinancePage() {
-  const { financeSubView, setFinanceSubView } = useAppStore();
+  const { financeSubView, setFinanceSubView, sidebarAction, setSidebarAction } = useAppStore();
+
+  // Sidebar quick-action forms (managed at page level so they work from sidebar)
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [showAccountForm, setShowAccountForm] = useState(false);
+  const [showBudgetForm, setShowBudgetForm] = useState(false);
+  const [showSavingsForm, setShowSavingsForm] = useState(false);
+  const [showDebtForm, setShowDebtForm] = useState(false);
+  const [showCDTForm, setShowCDTForm] = useState(false);
+  const [showRecurringForm, setShowRecurringForm] = useState(false);
+  const [showCategoriesManager, setShowCategoriesManager] = useState(false);
 
   // Swipe gesture state
   const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null);
+
+  // ─── Listen for sidebar quick-actions ───────────────────────────
+  useEffect(() => {
+    if (!sidebarAction) return;
+
+    const actionMap: Partial<Record<SidebarAction, () => void>> = {
+      "create-transaction": () => {
+        setShowTransactionForm(true);
+      },
+      "create-account": () => {
+        setFinanceSubView("accounts");
+        setShowAccountForm(true);
+      },
+      "create-budget": () => {
+        setFinanceSubView("budgets");
+        setShowBudgetForm(true);
+      },
+      "create-savings-goal": () => {
+        setFinanceSubView("savings");
+        setShowSavingsForm(true);
+      },
+      "create-debt": () => {
+        setFinanceSubView("debts");
+        setShowDebtForm(true);
+      },
+      "create-cdt": () => {
+        setFinanceSubView("cdts");
+        setShowCDTForm(true);
+      },
+      "create-recurring": () => {
+        setFinanceSubView("recurring");
+        setShowRecurringForm(true);
+      },
+      "manage-categories": () => {
+        setFinanceSubView("overview");
+        setShowCategoriesManager(true);
+      },
+    };
+
+    const handler = actionMap[sidebarAction];
+    if (handler) handler();
+
+    // Consume the action so it doesn't re-fire
+    setSidebarAction(null);
+  }, [sidebarAction, setSidebarAction, setFinanceSubView]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() });
@@ -198,6 +260,73 @@ export function FinancePage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* ─── Sidebar Quick-Action Forms ───────────────────────────── */}
+
+      <TransactionForm
+        open={showTransactionForm}
+        onOpenChange={setShowTransactionForm}
+      />
+
+      <AccountForm
+        open={showAccountForm}
+        onOpenChange={setShowAccountForm}
+      />
+
+      <BudgetForm
+        open={showBudgetForm}
+        onOpenChange={setShowBudgetForm}
+      />
+
+      <SavingsGoalForm
+        open={showSavingsForm}
+        onOpenChange={setShowSavingsForm}
+      />
+
+      <DebtForm
+        open={showDebtForm}
+        onOpenChange={setShowDebtForm}
+      />
+
+      <CDTForm
+        open={showCDTForm}
+        onOpenChange={setShowCDTForm}
+      />
+
+      <RecurringForm
+        open={showRecurringForm}
+        onOpenChange={setShowRecurringForm}
+      />
+
+      {/* Categories Manager Dialog */}
+      {showCategoriesManager && (
+        <CategoriesManagerDialog
+          open={showCategoriesManager}
+          onOpenChange={setShowCategoriesManager}
+        />
+      )}
     </div>
+  );
+}
+
+// ─── Categories Manager in a Dialog ──────────────────────────────
+import { CategoriesManager } from "./categories-manager";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+function CategoriesManagerDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="rounded-2xl max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Gestionar Categorías</DialogTitle>
+        </DialogHeader>
+        <CategoriesManager />
+      </DialogContent>
+    </Dialog>
   );
 }

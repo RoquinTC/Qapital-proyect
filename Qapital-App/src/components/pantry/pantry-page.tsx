@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Refrigerator, ShoppingCart, ChefHat, ShieldCheck } from "lucide-react";
+import { useAppStore, type SidebarAction } from "@/lib/store";
 import { PantryView } from "./pantry-view";
 import { ShoppingListsView } from "./shopping-lists-view";
 import { RecipesView } from "./recipes-view";
 import { HealthProfilesView } from "./health-profiles-view";
+import { PantryItemForm } from "./pantry-item-form";
+import { ShoppingListForm } from "./shopping-list-form";
+import { HealthProfileForm } from "./health-profile-form";
 
 type PantryTab = "fridge" | "shopping" | "recipes" | "health";
 
@@ -18,7 +22,39 @@ const tabs: { id: PantryTab; label: string; icon: typeof Refrigerator }[] = [
 ];
 
 export function PantryPage() {
+  const { sidebarAction, setSidebarAction } = useAppStore();
   const [activeTab, setActiveTab] = useState<PantryTab>("fridge");
+
+  // Sidebar quick-action forms
+  const [showPantryItemForm, setShowPantryItemForm] = useState(false);
+  const [showShoppingListForm, setShowShoppingListForm] = useState(false);
+  const [showHealthProfileForm, setShowHealthProfileForm] = useState(false);
+
+  // ─── Listen for sidebar quick-actions ───────────────────────────
+  useEffect(() => {
+    if (!sidebarAction) return;
+
+    const actionMap: Partial<Record<SidebarAction, () => void>> = {
+      "create-pantry-item": () => {
+        setActiveTab("fridge");
+        setShowPantryItemForm(true);
+      },
+      "create-shopping-list": () => {
+        setActiveTab("shopping");
+        setShowShoppingListForm(true);
+      },
+      "create-health-profile": () => {
+        setActiveTab("health");
+        setShowHealthProfileForm(true);
+      },
+    };
+
+    const handler = actionMap[sidebarAction];
+    if (handler) handler();
+
+    // Consume the action so it doesn't re-fire
+    setSidebarAction(null);
+  }, [sidebarAction, setSidebarAction]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -92,6 +128,23 @@ export function PantryPage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* ─── Sidebar Quick-Action Forms ───────────────────────────── */}
+
+      <PantryItemForm
+        open={showPantryItemForm}
+        onOpenChange={setShowPantryItemForm}
+      />
+
+      <ShoppingListForm
+        open={showShoppingListForm}
+        onOpenChange={setShowShoppingListForm}
+      />
+
+      <HealthProfileForm
+        open={showHealthProfileForm}
+        onOpenChange={setShowHealthProfileForm}
+      />
     </div>
   );
 }

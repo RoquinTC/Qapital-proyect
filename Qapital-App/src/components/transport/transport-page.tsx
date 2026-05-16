@@ -1,12 +1,16 @@
 "use client";
 
-import { useAppStore, type TransportSubView } from "@/lib/store";
+import { useAppStore, type TransportSubView, type SidebarAction } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import { Car, Fuel, Wrench, Trash2 } from "lucide-react";
 import { VehiclesView } from "./vehicles-view";
 import { FuelView } from "./fuel-view";
 import { MaintenanceView } from "./maintenance-view";
 import { VehicleDetail } from "./vehicle-detail";
+import { VehicleForm } from "./vehicle-form";
+import { FuelLogForm } from "./fuel-log-form";
+import { MaintenanceForm } from "./maintenance-form";
+import { FuelPriceWidget } from "./fuel-price-widget";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -18,6 +22,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { apiFetch } from "@/lib/api";
 import { useLocalQuery } from "@/lib/local/hooks/queries";
 import { useState, useEffect, useCallback } from "react";
@@ -36,16 +46,23 @@ interface VehicleWithFuel {
   fuelLevel?: number;
   currentFuel?: number;
   estimatedRange?: number;
+  avgKmPerGallon?: number;
 }
 
 export function TransportPage() {
-  const { transportSubView, setTransportSubView } = useAppStore();
+  const { transportSubView, setTransportSubView, sidebarAction, setSidebarAction } = useAppStore();
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetting, setResetting] = useState(false);
 
+  // Sidebar quick-action forms
+  const [showVehicleForm, setShowVehicleForm] = useState(false);
+  const [showFuelLogForm, setShowFuelLogForm] = useState(false);
+  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [showFuelPriceDialog, setShowFuelPriceDialog] = useState(false);
+
   // Fetch vehicles for fuel level indicator in tabs
-  const { data: vehiclesData } = useLocalQuery<VehicleWithFuel>("/api/vehicles");
+  const { data: vehiclesData, refetch: refetchVehicles } = useLocalQuery<VehicleWithFuel>("/api/vehicles");
   const vehicles = (vehiclesData || []) as VehicleWithFuel[];
   const vehiclesWithTank = vehicles.filter((v) => v.tankCapacity && v.tankCapacity > 0);
   const primaryVehicle = vehiclesWithTank[0];
@@ -53,6 +70,56 @@ export function TransportPage() {
   const hasLowFuel = vehiclesWithTank.some((v) => (v.fuelLevel ?? 0) <= 25);
 
   const showDetail = selectedVehicleId !== null;
+
+  // ─── Listen for sidebar quick-actions ───────────────────────────
+  useEffect(() => {
+    if (!sidebarAction) return;
+
+    const actionMap: Record<SidebarAction, () => void> = {
+      "create-vehicle": () => {
+        setTransportSubView("vehicles");
+        setSelectedVehicleId(null);
+        setShowVehicleForm(true);
+      },
+      "log-fuel": () => {
+        setTransportSubView("fuel");
+        setSelectedVehicleId(null);
+        setShowFuelLogForm(true);
+      },
+      "log-maintenance": () => {
+        setTransportSubView("maintenance");
+        setSelectedVehicleId(null);
+        setShowMaintenanceForm(true);
+      },
+      "update-fuel-price": () => {
+        setTransportSubView("fuel");
+        setSelectedVehicleId(null);
+        setShowFuelPriceDialog(true);
+      },
+      // Finance actions (not handled here — consumed by FinancePage)
+      "create-transaction": () => {},
+      "create-account": () => {},
+      "create-budget": () => {},
+      "create-savings-goal": () => {},
+      "create-debt": () => {},
+      "create-cdt": () => {},
+      "create-recurring": () => {},
+      "manage-categories": () => {},
+      // Health actions (not handled here)
+      "create-medication": () => {},
+      "create-appointment": () => {},
+      // Pantry actions (not handled here)
+      "create-pantry-item": () => {},
+      "create-shopping-list": () => {},
+      "create-health-profile": () => {},
+    };
+
+    const handler = actionMap[sidebarAction];
+    if (handler) handler();
+
+    // Consume the action so it doesn't re-fire
+    setSidebarAction(null);
+  }, [sidebarAction, setSidebarAction, setTransportSubView]);
 
   const handleResetTransport = async () => {
     setResetting(true);
@@ -203,6 +270,42 @@ export function TransportPage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* ─── Sidebar Quick-Action Forms ───────────────────────────── */}
+
+      {/* Create Vehicle */}
+      <VehicleForm
+        open={showVehicleForm}
+        onOpenChange={setShowVehicleForm}
+        onSuccess={refetchVehicles}
+      />
+
+      {/* Log Fuel */}
+      <FuelLogForm
+        open={showFuelLogForm}
+        onOpenChange={setShowFuelLogForm}
+        onSuccess={refetchVehicles}
+      />
+
+      {/* Log Maintenance */}
+      <MaintenanceForm
+        open={showMaintenanceForm}
+        onOpenChange={setShowMaintenanceForm}
+        onSuccess={refetchVehicles}
+      />
+
+      {/* Update Fuel Price Dialog */}
+      <Dialog open={showFuelPriceDialog} onOpenChange={setShowFuelPriceDialog}>
+        <DialogContent className="rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Fuel className="size-5 text-cyan-600" />
+              Precio del Combustible
+            </DialogTitle>
+          </DialogHeader>
+          <FuelPriceWidget />
+        </DialogContent>
+      </Dialog>
 
       {/* Reset Transport Data Dialog */}
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>

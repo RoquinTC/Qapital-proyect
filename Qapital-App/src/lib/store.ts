@@ -8,6 +8,30 @@ export type TransportSubView = "vehicles" | "fuel" | "maintenance";
 export type HealthSubView = "medications" | "appointments" | "profiles";
 export type PantrySubView = "items" | "shopping-lists";
 
+// Sidebar quick-action identifiers — each module page listens for its actions
+export type SidebarAction =
+  // Finance
+  | "create-transaction"
+  | "create-account"
+  | "create-budget"
+  | "create-savings-goal"
+  | "create-debt"
+  | "create-cdt"
+  | "create-recurring"
+  | "manage-categories"
+  // Transport
+  | "create-vehicle"
+  | "log-fuel"
+  | "log-maintenance"
+  | "update-fuel-price"
+  // Health
+  | "create-medication"
+  | "create-appointment"
+  // Pantry
+  | "create-pantry-item"
+  | "create-shopping-list"
+  | "create-health-profile";
+
 export interface Notification {
   id: string;
   title: string;
@@ -37,6 +61,10 @@ interface AppState {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
+
+  // Sidebar quick-actions (pending action to be consumed by module page)
+  sidebarAction: SidebarAction | null;
+  setSidebarAction: (action: SidebarAction | null) => void;
 
   // User preferences
   currency: string;
@@ -91,6 +119,10 @@ export const useAppStore = create<AppState>()(
       sidebarOpen: false,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+
+      // Sidebar quick-actions
+      sidebarAction: null,
+      setSidebarAction: (action) => set({ sidebarAction: action }),
 
       // User preferences
       currency: "COP",
