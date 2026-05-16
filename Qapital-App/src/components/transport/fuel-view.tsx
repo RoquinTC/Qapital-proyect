@@ -226,8 +226,8 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
                       </div>
                       <div className="flex items-center gap-3 text-[11px] text-gray-500">
                         <span>{formatShortDate(log.date)}</span>
-                        <span>{log.km.toLocaleString("es-CO")} km</span>
-                        <span>{log.gallons.toFixed(2)} gal</span>
+                        <span>{(log.km ?? 0).toLocaleString("es-CO")} km</span>
+                        <span>{(log.gallons ?? 0).toFixed(2)} gal</span>
                       </div>
                     </div>
                     <span className="text-sm font-bold text-gray-900 dark:text-white">

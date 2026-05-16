@@ -289,7 +289,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
             <Gauge className="size-4 text-gray-400" />
             <span className="text-xs text-gray-500">Kilometraje actual</span>
             <span className="text-sm font-bold text-gray-900 dark:text-white ml-auto">
-              {vehicle.currentKm.toLocaleString("es-CO")} km
+              {(vehicle.currentKm ?? 0).toLocaleString("es-CO")} km
             </span>
             <Pencil className="size-3 text-gray-300 group-hover:text-cyan-500 transition-colors" />
           </div>
@@ -343,7 +343,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                         Consumo Anormal Detectado
                       </p>
                       <p className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">
-                        El consumo real ({fuelLevelData.actualConsumption.toFixed(2)} gal) excede el esperado ({fuelLevelData.expectedConsumption.toFixed(2)} gal).
+                        El consumo real ({(fuelLevelData.actualConsumption ?? 0).toFixed(2)} gal) excede el esperado ({(fuelLevelData.expectedConsumption ?? 0).toFixed(2)} gal).
                         Puede indicar problemas mecánicos o fugas.
                       </p>
                     </div>
@@ -434,9 +434,9 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
-                        <span>{log.km.toLocaleString("es-CO")} km</span>
+                        <span>{(log.km ?? 0).toLocaleString("es-CO")} km</span>
                         <span>•</span>
-                        <span>{log.gallons.toFixed(2)} gal</span>
+                        <span>{(log.gallons ?? 0).toFixed(2)} gal</span>
                         <span>•</span>
                         <span>{formatCurrency(log.pricePerGallon)}/gal</span>
                       </div>
@@ -513,7 +513,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[10px] text-gray-400">
-                            {formatShortDate(record.date)} • {record.km.toLocaleString("es-CO")} km
+                            {formatShortDate(record.date)} • {(record.km ?? 0).toLocaleString("es-CO")} km
                           </span>
                           {record.nextDueKm && (
                             <Badge
@@ -523,7 +523,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                                   : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
                                 }`}
                             >
-                              Próx: {record.nextDueKm.toLocaleString("es-CO")} km
+                              Próx: {(record.nextDueKm ?? 0).toLocaleString("es-CO")} km
                             </Badge>
                           )}
                         </div>

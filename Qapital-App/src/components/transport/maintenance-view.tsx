@@ -295,11 +295,11 @@ export function MaintenanceView({ onSelectVehicle }: MaintenanceViewProps) {
                             {formatShortDate(record.date)}
                           </span>
                           <span className="text-[10px] text-gray-400">
-                            {record.km.toLocaleString("es-CO")} km
+                            {(record.km ?? 0).toLocaleString("es-CO")} km
                           </span>
                           {record.nextDueKm && (
                             <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                              Próx: {record.nextDueKm.toLocaleString("es-CO")} km
+                              Próx: {(record.nextDueKm ?? 0).toLocaleString("es-CO")} km
                             </Badge>
                           )}
                         </div>

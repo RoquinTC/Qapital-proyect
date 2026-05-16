@@ -227,7 +227,7 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated }: VehicleCardProps)
               <Gauge className="size-4 text-gray-400" />
               <span className="text-xs text-gray-500">Kilometraje</span>
               <span className="text-sm font-bold text-gray-900 dark:text-white ml-auto">
-                {vehicle.currentKm.toLocaleString("es-CO")} km
+                {(vehicle.currentKm ?? 0).toLocaleString("es-CO")} km
               </span>
               <Pencil className="size-3 text-gray-300 group-hover:text-cyan-500 transition-colors" />
             </div>
@@ -247,7 +247,7 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated }: VehicleCardProps)
               <div className="flex items-center gap-2 text-gray-500" onClick={onClick}>
                 <Wrench className={`size-3.5 ${maintenanceStatus === "overdue" ? "text-red-500" : maintenanceStatus === "warning" ? "text-amber-500" : "text-emerald-500"}`} />
                 <span className="text-[11px]">
-                  Próx. mantenimiento: {nextMaintenance.nextDueKm.toLocaleString("es-CO")} km
+                  Próx. mantenimiento: {(nextMaintenance.nextDueKm ?? 0).toLocaleString("es-CO")} km
                 </span>
                 {maintenanceStatus !== "ok" && (
                   <AlertTriangle className={`size-3.5 ml-auto ${maintenanceStatus === "overdue" ? "text-red-500" : "text-amber-500"}`} />
