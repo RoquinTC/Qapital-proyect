@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { apiFetch } from "@/lib/api";
 import { Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const vehicleTypes = [
   { value: "motorcycle", label: "Motocicleta" },
@@ -64,6 +65,22 @@ export function VehicleForm({ open, onOpenChange, vehicle, onSuccess }: VehicleF
   const [fuelType, setFuelType] = useState(vehicle?.fuelType || "gasoline");
   const [currentKm, setCurrentKm] = useState(vehicle?.currentKm?.toString() || "0");
 
+  // Sync form state when vehicle prop changes (e.g., editing a different vehicle)
+  useEffect(() => {
+    if (open) {
+      setName(vehicle?.name || "");
+      setType(vehicle?.type || "motorcycle");
+      setBrand(vehicle?.brand || "");
+      setModel(vehicle?.model || "");
+      setYear(vehicle?.year?.toString() || "");
+      setColor(vehicle?.color || "");
+      setTankCapacity(vehicle?.tankCapacity?.toString() || "");
+      setFuelType(vehicle?.fuelType || "gasoline");
+      setCurrentKm(vehicle?.currentKm?.toString() || "0");
+      setError(null);
+    }
+  }, [vehicle, open]);
+
   const isEditing = !!vehicle;
 
   const handleSubmit = async () => {
@@ -88,10 +105,16 @@ export function VehicleForm({ open, onOpenChange, vehicle, onSuccess }: VehicleF
           method: "PUT",
           body: JSON.stringify(data),
         });
+        toast.success("Vehículo actualizado", {
+          description: "Los cambios se guardaron correctamente",
+        });
       } else {
         await apiFetch("/api/vehicles", {
           method: "POST",
           body: JSON.stringify(data),
+        });
+        toast.success("Vehículo creado", {
+          description: "El vehículo se registró correctamente",
         });
       }
 
@@ -101,6 +124,9 @@ export function VehicleForm({ open, onOpenChange, vehicle, onSuccess }: VehicleF
     } catch (err) {
       console.error("Error saving vehicle:", err);
       setError(err instanceof Error ? err.message : "Error al guardar vehículo");
+      toast.error("Error al guardar", {
+        description: "No se pudo guardar el vehículo. Intenta de nuevo.",
+      });
     } finally {
       setLoading(false);
     }

@@ -23,6 +23,7 @@ import {
 import { apiFetch, getColombiaTodayString } from "@/lib/api";
 import type { Vehicle } from "@/lib/types";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface MaintenanceFormProps {
   open: boolean;
@@ -128,11 +129,18 @@ export function MaintenanceForm({ open, onOpenChange, preselectedVehicleId, onSu
         }),
       });
 
+      toast.success("Mantenimiento registrado", {
+        description: "El registro de mantenimiento se guardó correctamente",
+      });
+
       onSuccess?.();
       onOpenChange(false);
       resetForm();
     } catch (error) {
       console.error("Error creating maintenance record:", error);
+      toast.error("Error al registrar", {
+        description: "No se pudo guardar el registro de mantenimiento. Intenta de nuevo.",
+      });
     } finally {
       setLoading(false);
     }

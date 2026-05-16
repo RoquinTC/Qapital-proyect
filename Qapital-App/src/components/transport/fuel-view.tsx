@@ -97,9 +97,10 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
   let avgKmPerGallon = 0;
   if (logsWithKm.length >= 2) {
     // Simple average based on consecutive logs
-    const first = logsWithKm[logsWithKm.length - 1];
-    const last = logsWithKm[0];
-    const totalKm = first.km - last.km;
+    // fuelLogs sorted by date DESC: index 0 = newest, last = oldest
+    const oldest = logsWithKm[logsWithKm.length - 1];
+    const newest = logsWithKm[0];
+    const totalKm = newest.km - oldest.km;
     const totalGallons = logsWithKm.slice(0, -1).reduce((s, l) => s + l.gallons, 0);
     if (totalGallons > 0 && totalKm > 0) {
       avgKmPerGallon = Math.round(totalKm / totalGallons);

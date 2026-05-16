@@ -117,7 +117,38 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(vehicle, { status: 201 });
+    // Compute fuel level for consistent response shape (same as GET /api/vehicles)
+    const fuelLevelData = calculateFuelLevel(
+      {
+        tankCapacity: vehicle.tankCapacity,
+        currentKm: vehicle.currentKm,
+        type: vehicle.type,
+      },
+      vehicle.fuelLogs.map((log) => ({
+        id: log.id,
+        date: log.date,
+        km: log.km,
+        amount: toNumber(log.amount),
+        pricePerGallon: toNumber(log.pricePerGallon),
+        gallons: log.gallons,
+        isFullTank: log.isFullTank,
+      }))
+    );
+
+    // Serialize to match GET response shape
+    const { fuelLogs, maintenanceRecords, ...vehicleData } = vehicle;
+    const serializedVehicle = {
+      ...vehicleData,
+      fuelLogs: [],
+      maintenanceRecords: [],
+      fuelLevel: fuelLevelData.fuelLevel,
+      currentFuel: fuelLevelData.currentFuel,
+      estimatedRange: fuelLevelData.estimatedRange,
+      avgKmPerGallon: fuelLevelData.avgKmPerGallon,
+      anomalyDetected: fuelLevelData.anomalyDetected,
+    };
+
+    return NextResponse.json(serializedVehicle, { status: 201 });
   } catch (error) {
     if (error instanceof Response) return error;
     console.error("Create vehicle error:", error);

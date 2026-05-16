@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { validateBody, vehicleUpdateSchema } from "@/lib/validations";
+import { calculateFuelLevel } from "@/lib/fuel-level";
+import { toNumber } from "@/lib/decimal-serializer";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
