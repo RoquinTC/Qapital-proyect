@@ -35,12 +35,12 @@ function calcFixedPayment(principal: number, annualRateEA: number, months: numbe
 }
 
 /** Generate full amortization table for fixed payments */
-function amortizationFixed(principal: number, annualRateEA: number, months: number) {
+function amortizationFixed(principal: number, annualRateEA: number, months: number): Array<{ month: number; payment: number; capital: number; interest: number; balance: number }> {
   if (principal <= 0 || annualRateEA <= 0 || months <= 0) return [];
   const monthlyRate = Math.pow(1 + annualRateEA / 100, 1 / 12) - 1;
   const payment = calcFixedPayment(principal, annualRateEA, months);
   let balance = principal;
-  const rows = [];
+  const rows: Array<{ month: number; payment: number; capital: number; interest: number; balance: number }> = [];
   for (let i = 1; i <= months; i++) {
     const interest = balance * monthlyRate;
     const capital = payment - interest;
@@ -58,12 +58,12 @@ function amortizationFixed(principal: number, annualRateEA: number, months: numb
 }
 
 /** Generate full amortization table for decreasing/variable payments */
-function amortizationVariable(principal: number, annualRateEA: number, months: number) {
+function amortizationVariable(principal: number, annualRateEA: number, months: number): Array<{ month: number; payment: number; capital: number; interest: number; balance: number }> {
   if (principal <= 0 || annualRateEA <= 0 || months <= 0) return [];
   const monthlyRate = Math.pow(1 + annualRateEA / 100, 1 / 12) - 1;
   const fixedCapital = principal / months; // Equal capital repayment each month
   let balance = principal;
-  const rows = [];
+  const rows: Array<{ month: number; payment: number; capital: number; interest: number; balance: number }> = [];
   for (let i = 1; i <= months; i++) {
     const interest = balance * monthlyRate;
     const payment = fixedCapital + interest;
