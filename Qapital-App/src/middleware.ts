@@ -84,6 +84,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ---- Aura AI Bypass ----
+  // Permite que el agente autónomo acceda a sus endpoints de sincronización
+  // usando su API Key en lugar de una sesión de usuario.
+  if (pathname.startsWith("/api/aura/sync")) {
+    const auraToken = request.headers.get("x-aura-token");
+    if (auraToken === process.env.AURA_API_KEY) {
+      return NextResponse.next();
+    }
+  }
+
   // Allow public routes (still apply lighter rate limiting below)
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 

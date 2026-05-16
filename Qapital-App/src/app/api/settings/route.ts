@@ -38,8 +38,15 @@ export async function GET() {
     );
     const needsReset = needsBudgetReset(settings.lastBudgetReset, period.start);
 
+    // Fetch user info for telegramId
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { telegramId: true }
+    });
+
     return NextResponse.json({
       ...settings,
+      telegramId: user?.telegramId,
       currentPeriod: {
         start: period.start.toISOString(),
         end: period.end.toISOString(),

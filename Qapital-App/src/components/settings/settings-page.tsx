@@ -84,6 +84,7 @@ type AppSettings = UserSettings & {
     end: string;
   };
   needsBudgetReset: boolean;
+  telegramId?: string | null;
 };
 
 function formatDateShort(dateStr: string): string {
@@ -190,6 +191,14 @@ export function SettingsPage() {
       mountedRef.current = false;
     };
   }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settings && (settings as any).telegramId) {
+      setAuraLinked(true);
+    } else {
+      setAuraLinked(false);
+    }
+  }, [settings]);
 
   const updateSetting = async (key: string, value: unknown) => {
     if (!settings) return;
