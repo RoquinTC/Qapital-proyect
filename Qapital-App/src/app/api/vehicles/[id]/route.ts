@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { validateBody, vehicleUpdateSchema } from "@/lib/validations";
 import { calculateFuelLevel } from "@/lib/fuel-level";
 import { toNumber } from "@/lib/decimal-serializer";
+import { reverseFinanceEntry } from "@/lib/transport-finance";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -89,10 +90,26 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const existing = await db.vehicle.findFirst({
       where: { id, userId: session.user.id },
+      include: {
+        fuelLogs: { select: { id: true } },
+        maintenanceRecords: { select: { id: true } },
+        documents: { select: { id: true } },
+      },
     });
 
     if (!existing) {
       return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
+    }
+
+    // Reverse all finance entries BEFORE deleting the vehicle (cascade delete would orphans them)
+    for (const log of existing.fuelLogs) {
+      await reverseFinanceEntry(log.id, session.user.id);
+    }
+    for (const rec of existing.maintenanceRecords) {
+      await reverseFinanceEntry(rec.id, session.user.id);
+    }
+    for (const doc of existing.documents) {
+      await reverseFinanceEntry(doc.id, session.user.id);
     }
 
     await db.vehicle.delete({ where: { id } });

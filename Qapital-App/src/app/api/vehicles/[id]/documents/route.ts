@@ -36,10 +36,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Enrich with status info
     const now = new Date();
     const enriched = documents.map(doc => {
-      const expiryDate = new Date(doc.expiryDate);
-      const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const expiryDate = doc.expiryDate ? new Date(doc.expiryDate) : null;
+      const daysUntilExpiry = expiryDate
+        ? Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        : 9999;
       const isExpired = daysUntilExpiry < 0;
-      const isExpiringSoon = !isExpired && daysUntilExpiry <= (doc.reminderDays || 30);
+      const isExpiringSoon = !isExpired && daysUntilExpiry <= 30;
       const status = isExpired ? "expired" : isExpiringSoon ? "expiring_soon" : "valid";
 
       return {

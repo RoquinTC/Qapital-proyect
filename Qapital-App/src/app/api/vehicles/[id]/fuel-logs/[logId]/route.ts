@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate } from "@/lib/api";
 import { validateBody, fuelLogUpdateSchema } from "@/lib/validations";
+import { reverseFinanceEntry } from "@/lib/transport-finance";
 
 export async function PUT(
   req: NextRequest,
@@ -112,12 +113,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Registro no encontrado" }, { status: 404 });
     }
 
-    await db.fuelLog.delete({ where: { id: logId } });
+    // Reverse finance entry (balance + budget) BEFORE deleting the record
+    await reverseFinanceEntry(logId, session.user.id);
 
-    // Delete the linked finance transaction
-    await db.transaction.deleteMany({
-      where: { sourceModule: "transport", sourceId: logId },
-    });
+    await db.fuelLog.delete({ where: { id: logId } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

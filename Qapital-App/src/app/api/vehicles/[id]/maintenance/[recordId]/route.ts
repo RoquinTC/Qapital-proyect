@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createColombiaDate } from "@/lib/api";
 import { validateBody, maintenanceUpdateSchema } from "@/lib/validations";
+import { reverseFinanceEntry } from "@/lib/transport-finance";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string; recordId: string }> }) {
   try {
@@ -92,12 +93,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ error: "Registro no encontrado" }, { status: 404 });
     }
 
-    await db.maintenanceRecord.delete({ where: { id: recordId } });
+    // Reverse finance entry (balance + budget) BEFORE deleting the record
+    await reverseFinanceEntry(recordId, session.user.id);
 
-    // Delete the linked finance transaction
-    await db.transaction.deleteMany({
-      where: { sourceModule: "transport", sourceId: recordId },
-    });
+    await db.maintenanceRecord.delete({ where: { id: recordId } });
 
     return NextResponse.json({ success: true });
   } catch (error) {
