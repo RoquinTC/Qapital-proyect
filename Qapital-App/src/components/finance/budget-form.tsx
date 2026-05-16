@@ -21,7 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch, formatCurrency, calcPercentage } from "@/lib/api";
-import { Loader2, Plus, X, Check } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { SubCategorySelector } from "./subcategory-selector";
 import type { CategoryData } from "@/lib/types";
 
 interface BudgetFormProps {
@@ -57,8 +58,6 @@ export function BudgetForm({ open, onOpenChange, budget, prefilledCategory, onSu
 
   // Categories from API
   const [categories, setCategories] = useState<CategoryData[]>([]);
-  const [newSubCategory, setNewSubCategory] = useState("");
-  const [showNewSubCategory, setShowNewSubCategory] = useState(false);
 
   const isEditing = !!budget;
 
@@ -126,17 +125,7 @@ export function BudgetForm({ open, onOpenChange, budget, prefilledCategory, onSu
     if (!isEditing) {
       setSubCategory("");
     }
-    setShowNewSubCategory(false);
-    setNewSubCategory("");
   }, [category, isEditing]);
-
-  const handleAddSubCategory = () => {
-    if (newSubCategory.trim()) {
-      setSubCategory(newSubCategory.trim());
-      setShowNewSubCategory(false);
-      setNewSubCategory("");
-    }
-  };
 
   const effectiveCategory = useCustom ? customCategory : category;
 
@@ -185,8 +174,6 @@ export function BudgetForm({ open, onOpenChange, budget, prefilledCategory, onSu
       setAmount("");
       setPeriod("monthly");
     }
-    setShowNewSubCategory(false);
-    setNewSubCategory("");
   };
 
   return (
@@ -283,83 +270,13 @@ export function BudgetForm({ open, onOpenChange, budget, prefilledCategory, onSu
           </div>
 
           {/* Sub-category */}
-          {(category || (useCustom && customCategory)) && (
-            <div className="space-y-2">
-              <Label>Subcategoría (opcional)</Label>
-
-              {/* Existing subcategories as tags */}
-              {availableSubCategories.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-1">
-                  {availableSubCategories.map((sub) => (
-                    <button
-                      key={sub}
-                      onClick={() => setSubCategory(sub === subCategory ? "" : sub)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-                        sub === subCategory
-                          ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-300"
-                          : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-600"
-                      }`}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* New subcategory creation or input */}
-              {showNewSubCategory ? (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Nueva subcategoría..."
-                    value={newSubCategory}
-                    onChange={(e) => setNewSubCategory(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddSubCategory();
-                    }}
-                    className="rounded-xl flex-1 text-sm h-9"
-                    />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl h-9"
-                    onClick={handleAddSubCategory}
-                    disabled={!newSubCategory.trim()}
-                  >
-                    <Check className="size-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-xl h-9"
-                    onClick={() => {
-                      setShowNewSubCategory(false);
-                      setNewSubCategory("");
-                    }}
-                  >
-                    <X className="size-3.5" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={subCategory || "Ej: Mercado, Restaurantes..."}
-                    value={subCategory}
-                    onChange={(e) => setSubCategory(e.target.value)}
-                    className="rounded-xl flex-1 text-sm h-9"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl h-9 text-xs gap-1"
-                    onClick={() => setShowNewSubCategory(true)}
-                  >
-                    <Plus className="size-3" />
-                    Nueva
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+          <SubCategorySelector
+            availableSubCategories={availableSubCategories}
+            value={subCategory}
+            onChange={setSubCategory}
+            visible={!!(category || (useCustom && customCategory))}
+            resetKey={category}
+          />
 
           {/* Amount */}
           <div className="space-y-2">

@@ -31,14 +31,12 @@ import {
   Wallet,
   CreditCard,
   Repeat,
-  Plus,
-  X,
-  Check,
   ArrowDownRight,
   ArrowLeftRight,
   TrendingUp,
   PiggyBank,
 } from "lucide-react";
+import { SubCategorySelector } from "./subcategory-selector";
 import type { CategoryData, Account, SubAccount, Debt } from "@/lib/types";
 
 const frequencyOptions = [
@@ -130,8 +128,6 @@ export function RecurringForm({
   const [customCategory, setCustomCategory] = useState("");
   const [useCustomCategory, setUseCustomCategory] = useState(false);
   const [subCategory, setSubCategory] = useState("");
-  const [newSubCategory, setNewSubCategory] = useState("");
-  const [showNewSubCategory, setShowNewSubCategory] = useState(false);
   const [notes, setNotes] = useState("");
   const [isRecurring, setIsRecurring] = useState(true);
 
@@ -237,8 +233,6 @@ export function RecurringForm({
     if (!editingPayment) {
       setSubCategory("");
     }
-    setShowNewSubCategory(false);
-    setNewSubCategory("");
   }, [category, editingPayment]);
 
   // When payment type changes, reset type-specific fields
@@ -278,18 +272,8 @@ export function RecurringForm({
     setCustomCategory("");
     setUseCustomCategory(false);
     setSubCategory("");
-    setNewSubCategory("");
-    setShowNewSubCategory(false);
     setNotes("");
     setIsRecurring(true);
-  };
-
-  const handleAddSubCategory = () => {
-    if (newSubCategory.trim()) {
-      setSubCategory(newSubCategory.trim());
-      setShowNewSubCategory(false);
-      setNewSubCategory("");
-    }
   };
 
   // Preview calculations — computed based on frequency
@@ -839,59 +823,15 @@ export function RecurringForm({
                 </Select>
               </div>
 
-              {/* Sub-category — tags */}
-              {category && (
-                <div className="space-y-2">
-                  <Label>Subcategoría</Label>
-                  {availableSubCategories.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-1">
-                      {availableSubCategories.map((sub) => (
-                        <button
-                          key={sub}
-                          onClick={() => setSubCategory(sub === subCategory ? "" : sub)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-                            sub === subCategory
-                              ? scheme.tagBg + " border"
-                              : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-600"
-                          }`}
-                        >
-                          {sub}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {showNewSubCategory ? (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nueva subcategoría..."
-                        value={newSubCategory}
-                        onChange={(e) => setNewSubCategory(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") handleAddSubCategory(); }}
-                        className="rounded-xl flex-1 text-sm h-9"
-                      />
-                      <Button variant="outline" size="sm" className="rounded-xl h-9" onClick={handleAddSubCategory} disabled={!newSubCategory.trim()}>
-                        <Check className="size-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="rounded-xl h-9" onClick={() => { setShowNewSubCategory(false); setNewSubCategory(""); }}>
-                        <X className="size-3.5" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder={subCategory || "Escribir subcategoría..."}
-                        value={subCategory}
-                        onChange={(e) => setSubCategory(e.target.value)}
-                        className="rounded-xl flex-1 text-sm h-9"
-                      />
-                      <Button variant="outline" size="sm" className="rounded-xl h-9 text-xs gap-1" onClick={() => setShowNewSubCategory(true)}>
-                        <Plus className="size-3" />
-                        Nueva
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Sub-category — income uses emerald */}
+              <SubCategorySelector
+                availableSubCategories={availableSubCategories}
+                value={subCategory}
+                onChange={setSubCategory}
+                visible={!!category}
+                colorScheme="emerald"
+                resetKey={category}
+              />
             </>
           ) : (
             <>
@@ -1092,63 +1032,15 @@ export function RecurringForm({
                 )}
               </div>
 
-              {/* SubCategory — tags + inline creation */}
-              {(category || (useCustomCategory && customCategory)) && (
-                <div className="space-y-2">
-                  <Label>Subcategoría (opcional)</Label>
-
-                  {/* Existing subcategories as tags */}
-                  {availableSubCategories.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-1">
-                      {availableSubCategories.map((sub) => (
-                        <button
-                          key={sub}
-                          onClick={() => setSubCategory(sub === subCategory ? "" : sub)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-                            sub === subCategory
-                              ? scheme.tagBg + " border"
-                              : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-600"
-                          }`}
-                        >
-                          {sub}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* New subcategory creation or input */}
-                  {showNewSubCategory ? (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nueva subcategoría..."
-                        value={newSubCategory}
-                        onChange={(e) => setNewSubCategory(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") handleAddSubCategory(); }}
-                        className="rounded-xl flex-1 text-sm h-9"
-                      />
-                      <Button variant="outline" size="sm" className="rounded-xl h-9" onClick={handleAddSubCategory} disabled={!newSubCategory.trim()}>
-                        <Check className="size-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="rounded-xl h-9" onClick={() => { setShowNewSubCategory(false); setNewSubCategory(""); }}>
-                        <X className="size-3.5" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder={subCategory || "Ej: Streaming, Internet..."}
-                        value={subCategory}
-                        onChange={(e) => setSubCategory(e.target.value)}
-                        className="rounded-xl flex-1 text-sm h-9"
-                      />
-                      <Button variant="outline" size="sm" className="rounded-xl h-9 text-xs gap-1" onClick={() => setShowNewSubCategory(true)}>
-                        <Plus className="size-3" />
-                        Nueva
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* SubCategory — expense uses rose */}
+              <SubCategorySelector
+                availableSubCategories={availableSubCategories}
+                value={subCategory}
+                onChange={setSubCategory}
+                visible={!!(category || (useCustomCategory && customCategory))}
+                colorScheme="rose"
+                resetKey={category}
+              />
             </>
           )}
 
