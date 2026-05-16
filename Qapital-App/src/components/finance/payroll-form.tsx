@@ -23,7 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch, formatCurrency } from "@/lib/api";
-import { Loader2, Briefcase, Calendar, TrendingUp, Plus, X, Check } from "lucide-react";
+import { Loader2, Briefcase, Calendar, TrendingUp } from "lucide-react";
+import { SubCategorySelector } from "./subcategory-selector";
 import type { Account, CategoryData, PayrollGroup } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -62,8 +63,6 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
   const [subAccountId, setSubAccountId] = useState("");
   const [category, setCategory] = useState("");
   const [subCategory, setSubCategory] = useState("");
-  const [newSubCategory, setNewSubCategory] = useState("");
-  const [showNewSubCategory, setShowNewSubCategory] = useState(false);
   const [adjustToBusinessDay, setAdjustToBusinessDay] = useState(false);
   const [businessDayDirection, setBusinessDayDirection] = useState<"before" | "after">("before");
 
@@ -92,8 +91,6 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
       setSubAccountId(editingGroup.subAccountId || "");
       setCategory(editingGroup.category || "");
       setSubCategory(editingGroup.subCategory || "");
-      setNewSubCategory("");
-      setShowNewSubCategory(false);
       setAdjustToBusinessDay(editingGroup.adjustToBusinessDay || false);
       setBusinessDayDirection((editingGroup.businessDayDirection as "before" | "after") || "before");
 
@@ -124,8 +121,6 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
       setSubAccountId("");
       setCategory("");
       setSubCategory("");
-      setNewSubCategory("");
-      setShowNewSubCategory(false);
       setAdjustToBusinessDay(false);
       setBusinessDayDirection("before");
       setMonthlyDay(1); setMonthlyAmount("");
@@ -151,8 +146,6 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
     if (!editingGroup) {
       setSubCategory("");
     }
-    setShowNewSubCategory(false);
-    setNewSubCategory("");
   }, [category, editingGroup]);
 
   const selectedAccount = accounts.find((a) => a.id === accountId);
@@ -163,14 +156,6 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
     if (frequency === "biweekly") return (parseFloat(biweeklyAmount1) || 0) + (parseFloat(biweeklyAmount2) || 0);
     if (frequency === "weekly") return (parseFloat(weeklyAmount) || 0) * 4;
     return 0;
-  };
-
-  const handleAddSubCategory = () => {
-    if (newSubCategory.trim()) {
-      setSubCategory(newSubCategory.trim());
-      setShowNewSubCategory(false);
-      setNewSubCategory("");
-    }
   };
 
   const handleSubmit = async () => {
@@ -190,37 +175,27 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
         schedules = [{ dayOfWeek: weeklyDayOfWeek, amount: parseFloat(weeklyAmount) || 0 }];
       }
 
-      const effectiveSubCategory = newSubCategory || subCategory || null;
+      const payload = {
+        description,
+        frequency,
+        schedules,
+        accountId,
+        subAccountId: subAccountId || null,
+        category: category || null,
+        subCategory: subCategory || null,
+        adjustToBusinessDay,
+        businessDayDirection,
+      };
 
       if (editingGroup) {
         await apiFetch(`/api/payroll/${editingGroup.id}`, {
           method: "PUT",
-          body: JSON.stringify({
-            description,
-            frequency,
-            schedules,
-            accountId,
-            subAccountId: subAccountId || null,
-            category: category || null,
-            subCategory: effectiveSubCategory,
-            adjustToBusinessDay,
-            businessDayDirection,
-          }),
+          body: JSON.stringify(payload),
         });
       } else {
         await apiFetch("/api/payroll", {
           method: "POST",
-          body: JSON.stringify({
-            description,
-            frequency,
-            schedules,
-            accountId,
-            subAccountId: subAccountId || null,
-            category: category || null,
-            subCategory: effectiveSubCategory,
-            adjustToBusinessDay,
-            businessDayDirection,
-          }),
+          body: JSON.stringify(payload),
         });
       }
 
@@ -435,79 +410,14 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
             </Select>
           </div>
 
-          {/* Sub-category — show as tags when available */}
-          {category && (
-            <div className="space-y-2">
-              <Label>Subcategoría</Label>
-
-              {/* Existing subcategories as clickable tags */}
-              {availableSubCategories.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-1">
-                  {availableSubCategories.map((sub) => (
-                    <button
-                      key={sub}
-                      onClick={() => setSubCategory(sub === subCategory ? "" : sub)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-                        sub === subCategory
-                          ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-300"
-                          : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-600"
-                      }`}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* New subcategory creation or free input */}
-              {showNewSubCategory ? (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Nueva subcategoría..."
-                    value={newSubCategory}
-                    onChange={(e) => setNewSubCategory(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleAddSubCategory(); }}
-                    className="rounded-xl flex-1 text-sm h-9"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl h-9"
-                    onClick={handleAddSubCategory}
-                    disabled={!newSubCategory.trim()}
-                  >
-                    <Check className="size-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-xl h-9"
-                    onClick={() => { setShowNewSubCategory(false); setNewSubCategory(""); }}
-                  >
-                    <X className="size-3.5" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={subCategory || "Escribir subcategoría..."}
-                    value={subCategory}
-                    onChange={(e) => setSubCategory(e.target.value)}
-                    className="rounded-xl flex-1 text-sm h-9"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-xl h-9 text-xs gap-1"
-                    onClick={() => setShowNewSubCategory(true)}
-                  >
-                    <Plus className="size-3" />
-                    Nueva
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Sub-category */}
+          <SubCategorySelector
+            availableSubCategories={availableSubCategories}
+            value={subCategory}
+            onChange={setSubCategory}
+            visible={!!category}
+            resetKey={category}
+          />
 
           {/* Business Day Adjustment */}
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl space-y-3">
