@@ -640,42 +640,44 @@ export function BudgetsView() {
 
       // Cards mode or grouped budgets with subcategories
       return (
-        <div key={category} className="space-y-1">
-          <Card className="border-0 shadow-sm rounded-2xl">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div key={category} className="space-y-0.5">
+          <Card className="border-0 shadow-sm rounded-xl">
+            <CardContent className="px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
                   <button
                     onClick={() => toggleCategory(category, budgetType, undefined)}
-                    className="size-7 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors shrink-0"
+                    className="size-5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors shrink-0"
                   >
                     {isExpanded ? (
-                      <ChevronDown className="size-4 text-gray-500" />
+                      <ChevronDown className="size-3 text-gray-500" />
                     ) : (
-                      <ChevronRight className="size-4 text-gray-500" />
+                      <ChevronRight className="size-3 text-gray-500" />
                     )}
                   </button>
-                  <div className={`size-8 rounded-lg ${bgColor} flex items-center justify-center shrink-0`}>
-                    <Icon className={`size-4 ${iconColor}`} />
+                  <div className={`size-6 rounded-md ${bgColor} flex items-center justify-center shrink-0`}>
+                    <Icon className={`size-3 ${iconColor}`} />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {category}
-                    </p>
-                    <p className="text-[10px] text-gray-400">
-                      {formatCurrency(totalSpent)} / {formatCurrency(totalAmount)}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                        {category}
+                      </p>
                       {hasChildren && (
-                        <span className="text-gray-300 dark:text-gray-600 ml-1">
-                          · {group.children.length} {group.children.length === 1 ? 'sub' : 'subs'}
+                        <span className="text-[9px] text-gray-400 shrink-0">
+                          {group.children.length} subs
                         </span>
                       )}
-                    </p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-[10px] text-gray-500 tabular-nums">
+                    {formatCurrency(totalSpent)} / {formatCurrency(totalAmount)}
+                  </span>
                   <Badge
                     variant="outline"
-                    className={`text-[10px] ${getProgressBg(totalPct)} border-0`}
+                    className={`text-[9px] px-1 py-0 ${getProgressBg(totalPct)} border-0`}
                   >
                     {totalPct}%
                   </Badge>
@@ -683,21 +685,21 @@ export function BudgetsView() {
                     <>
                       <button
                         onClick={() => group.parent && handleEdit(group.parent)}
-                        className="size-7 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+                        className="size-5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
                       >
-                        <Pencil className="size-3 text-gray-400" />
+                        <Pencil className="size-2.5 text-gray-400" />
                       </button>
                       <button
                         onClick={() => group.parent && setDeleteBudgetId(group.parent.id)}
-                        className="size-7 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center transition-colors"
+                        className="size-5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center transition-colors"
                       >
-                        <Trash2 className="size-3 text-gray-400 hover:text-red-500" />
+                        <Trash2 className="size-2.5 text-gray-400 hover:text-red-500" />
                       </button>
                     </>
                   )}
                 </div>
               </div>
-              <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mt-1">
                 <motion.div
                   className={`h-full rounded-full bg-gradient-to-r ${getProgressColor(totalPct)}`}
                   initial={{ width: 0 }}

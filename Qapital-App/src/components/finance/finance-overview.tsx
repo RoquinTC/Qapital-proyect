@@ -670,19 +670,31 @@ export function FinanceOverview() {
   // Active debts with progress
   const activeDebts = debts.filter((d) => d.currentBalance > 0);
 
-  // Budget progress data for circles
+  // Budget progress data for circles — aggregated by category (not subcategory)
   const budgetProgress = useMemo(() => {
-    return expenseBudgets
-      .filter((b) => b.amount > 0)
-      .map((b) => ({
-        id: b.id,
-        category: b.category,
-        spent: b.spent,
-        amount: b.amount,
-        percentage: calcPercentage(b.spent, b.amount),
-        color: CATEGORY_COLORS[b.category] || "#6B7280",
-        emoji: CATEGORY_ICONS[b.category] || "📦",
-        isOverBudget: b.spent > b.amount,
+    // Group budgets by category, summing spent and amount
+    const categoryMap = new Map<string, { spent: number; amount: number }>();
+    for (const b of expenseBudgets) {
+      if (b.amount <= 0) continue;
+      const existing = categoryMap.get(b.category);
+      if (existing) {
+        existing.spent += b.spent;
+        existing.amount += b.amount;
+      } else {
+        categoryMap.set(b.category, { spent: b.spent, amount: b.amount });
+      }
+    }
+
+    return Array.from(categoryMap.entries())
+      .map(([category, { spent, amount }]) => ({
+        id: category,
+        category,
+        spent,
+        amount,
+        percentage: calcPercentage(spent, amount),
+        color: CATEGORY_COLORS[category] || "#6B7280",
+        emoji: CATEGORY_ICONS[category] || "📦",
+        isOverBudget: spent > amount,
       }))
       .sort((a, b) => b.percentage - a.percentage);
   }, [expenseBudgets]);
