@@ -251,6 +251,7 @@ export async function POST(
           subCategory: isSavingsGoal ? payment.subCategory : null,
           date: todayColombia,
           sourceModule: isSavingsGoal ? "finance" : undefined,
+          excludeFromBudget: true, // Counterpart of a transfer — not real income
           notes: `Transferencia recurrente desde ${sourceAccount?.name || "cuenta"}`,
           relatedTransactionId: transferTx.id,
         },

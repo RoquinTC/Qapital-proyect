@@ -97,6 +97,7 @@ export async function POST() {
         userId,
         date: { gte: periodStart, lt: periodEndPlus },
         type: budget.type, // "expense" or "income"
+        relatedTransactionId: null, // Exclude transfer counterpart incomes (not real income)
         AND: [
           // Include sourceModule=NULL (manual) and anything that isn't "finance_transfer"
           {

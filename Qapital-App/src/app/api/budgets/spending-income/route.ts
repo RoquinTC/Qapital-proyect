@@ -63,6 +63,7 @@ export async function GET(req: NextRequest) {
         userId,
         date: { gte: periodStart, lt: new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000) },
         type: { in: ["income", "expense"] },
+        relatedTransactionId: null, // Exclude transfer counterpart incomes (not real income)
       },
       select: {
         date: true,
@@ -109,6 +110,7 @@ export async function GET(req: NextRequest) {
 
     for (const tx of transactions) {
       // Skip CC payment transfer transactions (they're not new expenses)
+      // Note: relatedTransactionId filter at query level already excludes transfer counterparts
       if (tx.sourceModule === "finance_transfer") continue;
 
       const dateStr = new Date(tx.date).toISOString().split("T")[0];
@@ -143,6 +145,8 @@ export async function GET(req: NextRequest) {
     const categoryMap = new Map<string, { category: string; subCategory: string | null; amount: number; type: string }>();
 
     for (const tx of transactions) {
+      // Skip CC payment transfer transactions (they're not new expenses)
+      // Note: relatedTransactionId filter at query level already excludes transfer counterparts
       if (tx.sourceModule === "finance_transfer") continue;
 
       const cat = tx.category || "Sin categoría";
