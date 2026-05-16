@@ -57,6 +57,7 @@ import {
   ShieldCheck,
   BellRing,
   Smartphone,
+  Send,
 } from "lucide-react";
 import { AccountManager } from "@/components/finance/account-manager";
 import { CategoriesManager } from "@/components/finance/categories-manager";
@@ -142,6 +143,12 @@ export function SettingsPage() {
   const [resettingAll, setResettingAll] = useState(false);
   const [resettingTransport, setResettingTransport] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+
+  // Aura AI state
+  const [auraPairingCode, setAuraPairingCode] = useState("");
+  const [linkingAura, setLinkingAura] = useState(false);
+  const [auraLinked, setAuraLinked] = useState(false);
+
 
   // Import state (legacy CSV)
   const [importing, setImporting] = useState(false);
@@ -588,6 +595,80 @@ export function SettingsPage() {
                       <p className="text-[10px] text-gray-500 dark:text-gray-400">
                         Las notificaciones push requieren instalar la app como PWA y usar un navegador compatible (Chrome, Edge, Firefox). Safari en iOS tiene soporte limitado.
                       </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </AccordionContent>
+          </AccordionItem>
+        </Card>
+
+        {/* ── AURA AI ── */}
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+          <AccordionItem value="aura" className="border-0">
+            <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-50 dark:hover:bg-gray-800/50">
+              <SectionHeader icon={Send} iconColor="text-blue-500" iconBg="bg-blue-50 dark:bg-blue-900/20" title="Aura AI - Telegram" badge={auraLinked ? "Vinculado" : "Pendiente"} />
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4 space-y-3">
+              <Card className="border border-blue-100 dark:border-blue-900/30 shadow-none rounded-xl bg-blue-50/30 dark:bg-blue-900/5">
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="size-10 rounded-2xl bg-blue-500 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
+                      <Send className="size-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">Conecta con Aura</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Habla con tu asistente financiera por Telegram, consulta saldos y registra gastos con lenguaje natural.</p>
+                    </div>
+                  </div>
+
+                  {!auraLinked ? (
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="pairing-code" className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Código de vinculación</Label>
+                        <div className="relative">
+                          <input
+                            id="pairing-code"
+                            type="text"
+                            placeholder="Ej: NLMR3J"
+                            value={auraPairingCode}
+                            onChange={(e) => setAuraPairingCode(e.target.value.toUpperCase())}
+                            className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm font-mono tracking-widest focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all uppercase"
+                            maxLength={6}
+                          />
+                        </div>
+                      </div>
+                      <Button 
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-xl py-6 shadow-md shadow-blue-500/10 gap-2"
+                        disabled={linkingAura || auraPairingCode.length < 4}
+                        onClick={async () => {
+                          setLinkingAura(true);
+                          try {
+                            // Aquí iría la llamada real a la API
+                            await new Promise(r => setTimeout(r, 1500));
+                            setAuraLinked(true);
+                            setResetResult("¡Aura vinculada con éxito! 🌸");
+                          } catch (err) {
+                            setError("Código inválido o expirado");
+                          } finally {
+                            setLinkingAura(false);
+                          }
+                        }}
+                      >
+                        {linkingAura ? <Loader2 className="size-4 animate-spin" /> : <Link className="size-4" />}
+                        Vincular con Telegram
+                      </Button>
+                      <p className="text-[10px] text-center text-gray-400">¿No tienes un código? Escríbele /start a tu bot de Telegram</p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-100 dark:border-emerald-800/30">
+                      <div className="size-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                        <CheckCircle2 className="size-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">¡Ya eres amigo de Aura!</p>
+                        <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/70">Puedes escribirle por Telegram en cualquier momento.</p>
+                      </div>
                     </div>
                   )}
                 </CardContent>
