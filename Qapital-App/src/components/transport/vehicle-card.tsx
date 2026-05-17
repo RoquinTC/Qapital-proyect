@@ -50,6 +50,7 @@ interface VehicleCardProps {
     gallonsToRefuel?: number;
     isLowFuel?: boolean;
     isLearning?: boolean;
+    lastPricePerGallon?: number;
   };
   onClick?: () => void;
   onKmUpdated?: () => void;
@@ -116,14 +117,16 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
     return "text-red-500";
   };
 
-  // Cost to fill calculation — always compute if tank exists and not electric
+  // Cost to fill calculation — prefer last logged price, fallback to fuel-prices API
+  const lastPricePerGallon = vehicle.lastPricePerGallon ?? 0;
   const costToFillData = (() => {
     if (fuelLevel >= 100 || !vehicle.tankCapacity || !vehicle.fuelType || vehicle.fuelType === "electric") return null;
     const gallonsNeeded = gallonsToRefuel > 0 ? gallonsToRefuel : vehicle.tankCapacity - currentFuel;
     if (gallonsNeeded <= 0) return null;
-    if (currentFuelPrice != null && currentFuelPrice > 0) {
-      const costToFill = gallonsNeeded * currentFuelPrice;
-      return { gallonsNeeded, costToFill, pricePerGallon: currentFuelPrice, hasPrice: true };
+    const effectivePrice = lastPricePerGallon > 0 ? lastPricePerGallon : (currentFuelPrice ?? 0);
+    if (effectivePrice > 0) {
+      const costToFill = gallonsNeeded * effectivePrice;
+      return { gallonsNeeded, costToFill, pricePerGallon: effectivePrice, hasPrice: true };
     }
     return { gallonsNeeded, costToFill: 0, pricePerGallon: 0, hasPrice: false };
   })();

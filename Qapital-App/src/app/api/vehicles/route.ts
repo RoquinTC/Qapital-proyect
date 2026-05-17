@@ -102,6 +102,7 @@ export async function GET() {
         gallonsToRefuel: fuelLevelData.gallonsToRefuel,
         isLowFuel: fuelLevelData.isLowFuel,
         isLearning: fuelLevelData.isLearning,
+        lastPricePerGallon: fuelLevelData.lastPricePerGallon,
       };
     });
 
@@ -172,6 +173,7 @@ export async function POST(req: Request) {
       estimatedRange: fuelLevelData.estimatedRange,
       avgKmPerGallon: fuelLevelData.avgKmPerGallon,
       anomalyDetected: fuelLevelData.anomalyDetected,
+      lastPricePerGallon: fuelLevelData.lastPricePerGallon,
     };
 
     return NextResponse.json(serializedVehicle, { status: 201 });

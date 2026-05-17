@@ -230,14 +230,16 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
     }
   }
 
-  // Cost to fill calculation — use gallonsToRefuel from fuel-level calculation
+  // Cost to fill calculation — prefer last logged price, fallback to fuel-prices API
   const costToFillData = (() => {
     if (!fuelLevelData || fuelLevelData.fuelLevel >= 100 || !vehicle.tankCapacity || !vehicle.fuelType || vehicle.fuelType === "electric") return null;
     const gallonsNeeded = fuelLevelData.gallonsToRefuel > 0 ? fuelLevelData.gallonsToRefuel : vehicle.tankCapacity - fuelLevelData.currentFuel;
     if (gallonsNeeded <= 0) return null;
-    if (currentFuelPrice != null && currentFuelPrice > 0) {
-      const costToFill = gallonsNeeded * currentFuelPrice;
-      return { gallonsNeeded, costToFill, pricePerGallon: currentFuelPrice, hasPrice: true };
+    // Priority: last price from fuel logs > fuel-prices API
+    const effectivePrice = fuelLevelData.lastPricePerGallon > 0 ? fuelLevelData.lastPricePerGallon : (currentFuelPrice ?? 0);
+    if (effectivePrice > 0) {
+      const costToFill = gallonsNeeded * effectivePrice;
+      return { gallonsNeeded, costToFill, pricePerGallon: effectivePrice, hasPrice: true };
     }
     return { gallonsNeeded, costToFill: 0, pricePerGallon: 0, hasPrice: false };
   })();
@@ -431,7 +433,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                             {costToFillData.gallonsNeeded.toFixed(1)} gal para llenar el tanque
                           </p>
                           <p className={`text-[9px] mt-0.5 ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
-                            Configura el precio de la gasolina para ver el costo estimado
+                            Registra un precio por galón para ver el costo estimado
                           </p>
                         </>
                       )}

@@ -122,6 +122,7 @@ export interface FuelLevelData {
   gallonsToRefuel: number;
   isLowFuel: boolean;
   isLearning: boolean;
+  lastPricePerGallon: number;
 }
 
 export interface FuelPrice {

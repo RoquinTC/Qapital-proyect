@@ -36,6 +36,7 @@ export interface FuelLevelResult {
   gallonsToRefuel: number;        // gallons needed to fill tank from current level
   isLowFuel: boolean;             // true if fuel level <= 20%
   isLearning: boolean;            // true if using default efficiency (not enough real data yet)
+  lastPricePerGallon: number;     // price per gallon from the most recent fuel log
 }
 
 const DEFAULT_FUEL_LEVEL: FuelLevelResult = {
@@ -55,6 +56,7 @@ const DEFAULT_FUEL_LEVEL: FuelLevelResult = {
   gallonsToRefuel: 0,
   isLowFuel: false,
   isLearning: true,
+  lastPricePerGallon: 0,
 };
 
 /**
@@ -257,6 +259,11 @@ export function calculateFuelLevel(
     }
   }
 
+  // ── Step 6: Get last price per gallon from most recent fuel log ──
+  const lastPricePerGallon = fuelLogs.length > 0
+    ? [...fuelLogs].sort((a, b) => b.date.getTime() - a.date.getTime())[0]?.pricePerGallon || 0
+    : 0;
+
   return {
     fuelLevel: Math.round(fuelLevel * 100) / 100,
     currentFuel: Math.round(currentFuel * 100) / 100,
@@ -274,5 +281,6 @@ export function calculateFuelLevel(
     gallonsToRefuel,
     isLowFuel,
     isLearning,
+    lastPricePerGallon: Math.round(lastPricePerGallon * 100) / 100,
   };
 }
