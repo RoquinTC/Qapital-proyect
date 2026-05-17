@@ -5,7 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useAppStore } from "@/lib/store";
 import { apiFetch } from "@/lib/api";
-import { cacheOfflineSession, getCachedSession, clearOfflineSession } from "@/lib/offline-session";
+import { cacheOfflineSession, getCachedSession, clearOfflineSession, clearOfflineCredentials } from "@/lib/offline-session";
 import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
@@ -63,6 +63,7 @@ export function AppShell() {
   const { setTheme: applyTheme } = useTheme();
   const [showBackupPrompt, setShowBackupPrompt] = useState(false);
   const [manuallyUnlocked, setManuallyUnlocked] = useState(false);
+  const [serverReachable, setServerReachable] = useState<boolean | null>(null);
 
   // Check for app updates every 60 seconds
   useUpdateChecker(60000);
@@ -232,11 +233,36 @@ export function AppShell() {
       setManuallyUnlocked(false);
       setJustLoggedIn(false);
       clearOfflineSession();
+      clearOfflineCredentials();
       // Notify Service Worker to clear cached session
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_SESSION' });
       }
     }
+  }, [status]);
+
+  // Check if server is reachable when we're unauthenticated but have a cached session
+  // This handles the case where navigator.onLine is true but the server/tunnel is down
+  useEffect(() => {
+    if (status !== "unauthenticated" || !getCachedSession()) {
+      setServerReachable(null); // Reset when not needed
+      return;
+    }
+    
+    let cancelled = false;
+    const checkServer = async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        await fetch("/api/health", { method: "HEAD", signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!cancelled) setServerReachable(true);
+      } catch {
+        if (!cancelled) setServerReachable(false);
+      }
+    };
+    checkServer();
+    return () => { cancelled = true; };
   }, [status]);
 
   // Loading state
@@ -264,10 +290,16 @@ export function AppShell() {
     const cachedSession = getCachedSession();
     if (cachedSession && !navigator.onLine) {
       // We're offline but have a cached session — show offline lock screen
-      // The user can unlock with PIN to access their data
+      // The user can unlock with PIN or password to access their data
       return <OfflineLockScreen cachedSession={cachedSession} onUnlock={() => {
-        // Inject cached session into next-auth by setting a flag
-        // The SW will serve the cached session on next /api/auth/session call
+        window.location.reload();
+      }} />;
+    }
+    // If online but session check failed (server down), also try offline mode
+    // This handles the case where navigator.onLine is true but the server is unreachable
+    if (cachedSession && status === "unauthenticated" && serverReachable === false) {
+      // Server is unreachable — use offline mode
+      return <OfflineLockScreen cachedSession={cachedSession} onUnlock={() => {
         window.location.reload();
       }} />;
     }

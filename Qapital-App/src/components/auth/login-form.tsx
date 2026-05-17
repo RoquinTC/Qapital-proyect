@@ -7,9 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mail, Lock, LogIn, Loader2, Fingerprint } from "lucide-react";
+import { Mail, Lock, LogIn, Loader2, Fingerprint, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { startAuthentication } from "@simplewebauthn/browser";
+import {
+  cacheOfflineSession,
+  getCachedSession,
+  cacheOfflineCredentials,
+  getCachedCredentials,
+  verifyOfflinePassword,
+  clearOfflineCredentials,
+  type CachedSession,
+} from "@/lib/offline-session";
 
 export function LoginForm() {
   const { setAuthView } = useAppStore();
@@ -17,10 +26,14 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
+  const [offlineMode, setOfflineMode] = useState(false);
 
   // Check if WebAuthn is available in this browser
-  const webAuthnAvailable = typeof window !== "undefined" && 
+  const webAuthnAvailable = typeof window !== "undefined" &&
     typeof PublicKeyCredential !== "undefined";
+
+  // Check if we have cached credentials for offline login
+  const hasOfflineCredentials = typeof window !== "undefined" && !!getCachedCredentials();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +44,7 @@ export function LoginForm() {
 
     setLoading(true);
     try {
+      // Try online login first
       const result = await signIn("credentials", {
         email,
         password,
@@ -38,28 +52,76 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        const errorMessages: Record<string, string> = {
-          "CredentialsSignin": "Correo o contraseña incorrectos",
-          "SessionRequired": "Debes iniciar sesión",
-        };
-        const msg = errorMessages[result.error] || result.error;
-        toast.error(msg);
+        // Check if it's a network error (server unreachable)
+        if (result.error === "TypeError: Failed to fetch" || !navigator.onLine) {
+          // Try offline login
+          const userId = await verifyOfflinePassword(email, password);
+          if (userId) {
+            toast.success("¡Sesión iniciada (sin conexión)!");
+            setOfflineMode(true);
+            // Create a cached session from what we have
+            const cachedCreds = getCachedCredentials();
+            if (cachedCreds) {
+              const cachedSession = getCachedSession();
+              if (cachedSession) {
+                // We have a previous session — reuse it
+                cacheOfflineSession(cachedSession);
+              }
+            }
+            try { sessionStorage.setItem("quid-just-logged-in", "true"); } catch {}
+            try { sessionStorage.setItem("quid-offline-auth", "true"); } catch {}
+            setTimeout(() => {
+              window.location.href = window.location.origin + "/";
+            }, 600);
+            return;
+          }
+          toast.error("Sin conexión. Verifica que hayas iniciado sesión antes en este dispositivo.");
+        } else {
+          const errorMessages: Record<string, string> = {
+            "CredentialsSignin": "Correo o contraseña incorrectos",
+            "SessionRequired": "Debes iniciar sesión",
+          };
+          const msg = errorMessages[result.error] || result.error;
+          toast.error(msg);
+        }
         setLoading(false);
       } else if (result?.ok) {
         toast.success("¡Sesión iniciada!");
         // Mark fresh login so AppShell skips the lock screen on reload
         try { sessionStorage.setItem("quid-just-logged-in", "true"); } catch {}
+
+        // Cache credentials for offline login (fetch password hash from server)
+        try {
+          const credsResponse = await fetch("/api/auth/offline-credentials");
+          if (credsResponse.ok) {
+            const creds = await credsResponse.json();
+            if (creds.passwordHash && creds.email && creds.userId) {
+              cacheOfflineCredentials(creds.email, creds.passwordHash, creds.userId);
+            }
+          }
+        } catch {
+          // Not critical — offline credentials will be cached next time
+        }
+
         // Use a hard redirect instead of client-side navigation.
-        // In iframe/embedded contexts, the session cookie (SameSite=None; Secure)
-        // needs a full page load to be properly recognized by the browser.
-        // Using window.location.href forces a full page reload which ensures
-        // the SessionProvider picks up the new session from /api/auth/session.
         setTimeout(() => {
           window.location.href = window.location.origin + "/";
         }, 600);
       }
     } catch {
-      toast.error("Error de conexión");
+      // Network error — try offline login
+      const userId = await verifyOfflinePassword(email, password);
+      if (userId) {
+        toast.success("¡Sesión iniciada (sin conexión)!");
+        setOfflineMode(true);
+        try { sessionStorage.setItem("quid-just-logged-in", "true"); } catch {}
+        try { sessionStorage.setItem("quid-offline-auth", "true"); } catch {}
+        setTimeout(() => {
+          window.location.href = window.location.origin + "/";
+        }, 600);
+        return;
+      }
+      toast.error("Sin conexión al servidor. Inicia sesión al menos una vez con conexión para habilitar el acceso offline.");
       setLoading(false);
     }
   };
@@ -69,10 +131,8 @@ export function LoginForm() {
     try {
       // === USERNAMELESS FLOW (preferred) ===
       // Try to authenticate without asking for email first.
-      // This works if the user registered a resident/discoverable credential
-      // (which we enforce with residentKey: "required" during registration).
 
-      // Step 1: Get authentication options WITHOUT userId (allows discoverable credentials)
+      // Step 1: Get authentication options WITHOUT userId
       const optionsRes = await fetch("/api/auth/webauthn/auth-options");
       if (!optionsRes.ok) {
         throw new Error("No se pudieron obtener las opciones de autenticación");
@@ -145,6 +205,14 @@ export function LoginForm() {
           </h1>
           <p className="text-sm text-gray-500 mt-1">Todo converge aqui</p>
         </div>
+
+        {/* Offline indicator */}
+        {offlineMode && (
+          <div className="flex items-center justify-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-full mb-4">
+            <WifiOff className="size-4" />
+            <span className="text-sm font-medium">Modo sin conexión</span>
+          </div>
+        )}
 
         <Card className="border-0 shadow-xl shadow-emerald-500/5 rounded-2xl">
           <CardHeader className="text-center pb-2">

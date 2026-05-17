@@ -3,29 +3,38 @@
 import { useState, useCallback } from "react";
 import { compare } from "bcryptjs";
 import { PinPad } from "./pin-pad";
-import { cacheOfflinePinHash, getCachedPinHash, type CachedSession } from "@/lib/offline-session";
-import { WifiOff } from "lucide-react";
-import { motion } from "framer-motion";
+import { cacheOfflinePinHash, getCachedPinHash, getCachedCredentials, verifyOfflinePassword, type CachedSession } from "@/lib/offline-session";
+import { WifiOff, Lock, Mail } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface OfflineLockScreenProps {
   cachedSession: CachedSession;
   onUnlock: () => void;
 }
 
+type AuthMethod = "pin" | "password";
+
 /**
  * Offline Lock Screen — shown when the server is unreachable
  * but the user has a previously cached session.
  * 
- * Allows the user to unlock with their PIN (verified locally
- * against the cached bcrypt hash) to access their data.
+ * Allows the user to unlock with their PIN or password (verified locally)
+ * to access their data.
  */
 export function OfflineLockScreen({ cachedSession, onUnlock }: OfflineLockScreenProps) {
+  const [method, setMethod] = useState<AuthMethod>(cachedSession.user.pinEnabled ? "pin" : "password");
   const [pinError, setPinError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
   
   const userId = cachedSession.user.id;
   const userName = cachedSession.user.name;
   const pinEnabled = cachedSession.user.pinEnabled;
+  const hasOfflineCredentials = !!getCachedCredentials();
 
   const handlePinComplete = useCallback(async (pin: string) => {
     setVerifying(true);
@@ -44,9 +53,9 @@ export function OfflineLockScreen({ cachedSession, onUnlock }: OfflineLockScreen
         }
         setPinError("PIN incorrecto");
       } else {
-        // No cached hash — we can't verify offline
-        // This shouldn't normally happen if the user has ever used PIN while online
-        setPinError("No se puede verificar sin conexión. Conéctate a internet primero.");
+        // No cached hash — try to use password instead
+        setPinError("PIN no disponible sin conexión. Usa tu contraseña.");
+        setMethod("password");
       }
     } catch {
       setPinError("Error de verificación");
@@ -55,13 +64,34 @@ export function OfflineLockScreen({ cachedSession, onUnlock }: OfflineLockScreen
     }
   }, [userId, onUnlock]);
 
+  const handlePasswordSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password) return;
+
+    setVerifying(true);
+    setPasswordError(null);
+
+    try {
+      const verifiedUserId = await verifyOfflinePassword(cachedSession.user.email || "", password);
+      if (verifiedUserId) {
+        onUnlock();
+        return;
+      }
+      setPasswordError("Contraseña incorrecta");
+    } catch {
+      setPasswordError("Error de verificación");
+    } finally {
+      setVerifying(false);
+    }
+  }, [password, cachedSession.user.email, onUnlock]);
+
   return (
     <div className="fixed inset-0 z-50 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex flex-col items-center justify-center p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-sm flex flex-col items-center gap-8"
+        className="w-full max-w-sm flex flex-col items-center gap-6"
       >
         {/* Logo */}
         <div className="text-center">
@@ -89,26 +119,94 @@ export function OfflineLockScreen({ cachedSession, onUnlock }: OfflineLockScreen
           </p>
         )}
 
-        {/* PIN Pad */}
-        {pinEnabled ? (
-          <div className="w-full">
-            <PinPad
-              onComplete={handlePinComplete}
-              error={pinError || undefined}
-              title="Ingresa tu PIN"
-              subtitle="Para acceder sin conexión"
-            />
-          </div>
-        ) : (
-          <div className="text-center space-y-4">
-            <p className="text-sm text-gray-500">
-              Activa el PIN en Ajustes para poder usar la app sin conexión.
-            </p>
-            <p className="text-xs text-gray-400">
-              Necesitas conectarte a internet al menos una vez para configurarlo.
-            </p>
-          </div>
-        )}
+        {/* Auth methods */}
+        <AnimatePresence mode="wait">
+          {method === "pin" && pinEnabled && (
+            <motion.div
+              key="pin"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="w-full"
+            >
+              <PinPad
+                onComplete={handlePinComplete}
+                error={pinError || undefined}
+                title="Ingresa tu PIN"
+                subtitle="Para acceder sin conexión"
+              />
+            </motion.div>
+          )}
+
+          {method === "password" && (
+            <motion.div
+              key="password"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="w-full"
+            >
+              {hasOfflineCredentials ? (
+                <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500 mb-4">Ingresa tu contraseña para acceder sin conexión</p>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                    <Input
+                      type="password"
+                      placeholder="Tu contraseña"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10 h-11 rounded-xl border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                      disabled={verifying}
+                      autoFocus
+                    />
+                  </div>
+                  {passwordError && (
+                    <p className="text-sm text-red-500 text-center">{passwordError}</p>
+                  )}
+                  <Button
+                    type="submit"
+                    className="w-full h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600"
+                    disabled={verifying || !password}
+                  >
+                    {verifying ? "Verificando..." : "Desbloquear"}
+                  </Button>
+                </form>
+              ) : (
+                <div className="text-center space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Necesitas haber iniciado sesión al menos una vez con conexión para acceder sin conexión.
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Conéctate a internet para iniciar sesión y habilitar el acceso offline.
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Switch between methods */}
+        <div className="flex gap-3">
+          {pinEnabled && method === "password" && (
+            <button
+              onClick={() => setMethod("pin")}
+              className="text-xs text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1"
+            >
+              Usar PIN
+            </button>
+          )}
+          {pinEnabled && method === "pin" && hasOfflineCredentials && (
+            <button
+              onClick={() => setMethod("password")}
+              className="text-xs text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1"
+            >
+              Usar contraseña
+            </button>
+          )}
+        </div>
       </motion.div>
 
       {/* Loading overlay */}
