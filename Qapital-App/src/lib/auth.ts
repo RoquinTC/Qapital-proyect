@@ -4,45 +4,42 @@ import { compare } from "bcryptjs";
 import { db } from "@/lib/db";
 
 /**
- * Cookie configuration that adapts to the environment:
+ * Cookie configuration for DUAL-MODE access (local + tunnel):
  *
- * - PREVIEW (iframe, HTTPS via proxy): SameSite=None, Secure=true, __Secure- prefix
- *   Required because the app runs in a cross-origin iframe where Lax cookies are blocked.
+ * The app must work BOTH ways simultaneously:
+ *   - LOCAL: http://localhost:5678 (direct access, no tunnel needed)
+ *   - TUNNEL: https://quid.roquintc.app (Cloudflare tunnel, when available)
  *
- * - LOCAL (direct browser, HTTP): SameSite=Lax, Secure=false, no prefix
- *   Works fine because there's no iframe and no cross-origin issue.
+ * Strategy: Use SameSite=Lax cookies WITHOUT the __Secure- prefix.
+ * This works for both HTTP and HTTPS because:
+ *   - SameSite=Lax is compatible with direct browser access (both HTTP and HTTPS)
+ *   - No __Secure- prefix means cookies are sent over both HTTP and HTTPS
+ *   - The tunnel proxies to the same container, so cookies are shared
  *
- * Detection: Uses NEXTAUTH_URL presence as the signal.
- * In the preview environment, NEXTAUTH_URL is set to the public HTTPS URL.
- * In local development, NEXTAUTH_URL is not set (or set to http://localhost:3000).
+ * Note: SameSite=None + Secure would NOT work because Secure cookies
+ * are never sent over HTTP (localhost), making the app unusable offline.
  */
-function getCookieConfig(isSecure: boolean) {
-  const prefix = isSecure ? "__Secure-" : "";
-  const sameSite = isSecure ? ("none" as const) : ("lax" as const);
-  const secure = isSecure;
 
+function getCookieConfig() {
   return {
     sessionToken: {
-      name: `${prefix}next-auth.session-token`,
-      options: { httpOnly: true, sameSite, path: "/", secure },
+      name: "next-auth.session-token",
+      options: { httpOnly: true, sameSite: "lax" as const, path: "/", secure: false },
     },
     callbackUrl: {
-      name: `${prefix}next-auth.callback-url`,
-      options: { httpOnly: true, sameSite, path: "/", secure },
+      name: "next-auth.callback-url",
+      options: { httpOnly: true, sameSite: "lax" as const, path: "/", secure: false },
     },
     csrfToken: {
-      name: `${prefix}next-auth.csrf-token`,
-      options: { httpOnly: true, sameSite, path: "/", secure },
+      name: "next-auth.csrf-token",
+      options: { httpOnly: true, sameSite: "lax" as const, path: "/", secure: false },
     },
     pkceCodeVerifier: {
-      name: `${prefix}next-auth.pkce.code_verifier`,
-      options: { httpOnly: true, sameSite, path: "/", secure },
+      name: "next-auth.pkce.code_verifier",
+      options: { httpOnly: true, sameSite: "lax" as const, path: "/", secure: false },
     },
   };
 }
-
-// Detect secure mode: if NEXTAUTH_URL starts with https://, we're behind a proxy
-const isSecureEnvironment = (process.env.NEXTAUTH_URL || "").startsWith("https://");
 
 // NEXTAUTH_SECRET validation:
 // - During `next build`, NODE_ENV=production but env vars from docker-compose
@@ -60,8 +57,9 @@ if (!process.env.NEXTAUTH_SECRET) {
 
 export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === "development",
-  // trustHost is supported by next-auth v4.24+ but not in the types yet
-  ...(process.env.NEXTAUTH_URL ? { trustHost: true } : {}),
+  // trustHost: always enabled so NextAuth accepts requests from any host
+  // (localhost:5678, 192.168.x.x, quid.roquintc.app, etc.)
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -184,5 +182,5 @@ export const authOptions: NextAuthOptions = {
     );
     return devSecret;
   })(),
-  cookies: getCookieConfig(isSecureEnvironment),
+  cookies: getCookieConfig(),
 };

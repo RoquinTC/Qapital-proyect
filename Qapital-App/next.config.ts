@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
     "192.168.1.10",
     ".trycloudflare.com",
     ".cloudflare.com",
+    ".roquintc.app",
+    "localhost",
+    "127.0.0.1",
   ],
   headers: async () => [
     {
