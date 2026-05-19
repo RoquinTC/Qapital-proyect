@@ -287,9 +287,9 @@ export function AppShell() {
 
   // Check onboarding - if not completed, show onboarding flow
   const onboardingCompleted = session.user.onboardingCompleted;
-  // Use loose comparison to handle both boolean and number (SQLite stores as 0/1)
   // Skip onboarding check when offline (we can't create onboarding data without server)
-  if (!isOffline && (onboardingCompleted === false || onboardingCompleted === 0)) {
+  // Use !onboardingCompleted to catch false, undefined, null, and 0 (SQLite stores booleans as 0/1)
+  if (!isOffline && !onboardingCompleted) {
     return <OnboardingFlow />;
   }
 
