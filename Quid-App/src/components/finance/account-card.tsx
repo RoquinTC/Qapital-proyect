@@ -136,7 +136,7 @@ export function AccountCard({ account, balanceHistory, onClick }: AccountCardPro
             <div className="size-9 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
               <Icon className="size-4.5 text-white" />
             </div>
-            <span className="text-[10px] text-white/70 uppercase tracking-wider font-medium">
+            <span className="text-xs text-white/70 uppercase tracking-wider font-medium">
               {typeLabel}
             </span>
           </div>
@@ -144,7 +144,7 @@ export function AccountCard({ account, balanceHistory, onClick }: AccountCardPro
             {account.isHighYield && (
               <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
                 <TrendingUp className="size-3 text-white/90" />
-                <span className="text-[9px] font-medium text-white/90">
+                <span className="text-[11px] font-medium text-white/90">
                   {account.yieldPercentage}%
                 </span>
               </div>
@@ -152,7 +152,7 @@ export function AccountCard({ account, balanceHistory, onClick }: AccountCardPro
             {account.isShared && (
               <div className="flex items-center gap-0.5 bg-white/20 backdrop-blur-sm rounded-full px-2 py-0.5">
                 <Users className="size-3 text-white/90" />
-                <span className="text-[9px] text-white/90">
+                <span className="text-[11px] text-white/90">
                   {account.isSharedWithMe
                     ? `De ${account.ownerName || "otro"}`
                     : account.sharedUsers && account.sharedUsers.length > 0
@@ -173,7 +173,7 @@ export function AccountCard({ account, balanceHistory, onClick }: AccountCardPro
         {/* Balance */}
         <div className="flex items-end justify-between mt-2 min-w-0">
           <div className="min-w-0 flex-1">
-            <span className="block text-[9px] text-white/50 uppercase tracking-wider">
+            <span className="block text-[11px] text-white/50 uppercase tracking-wider">
               Balance
             </span>
             <div className="flex items-center gap-1">
@@ -195,7 +195,7 @@ export function AccountCard({ account, balanceHistory, onClick }: AccountCardPro
           {/* Sub-accounts count */}
           {account.subAccounts && account.subAccounts.length > 0 && (
             <div className="text-right">
-              <span className="block text-[9px] text-white/50 uppercase tracking-wider">
+              <span className="block text-[11px] text-white/50 uppercase tracking-wider">
                 Bolsillos
               </span>
               <span className="text-sm font-semibold text-white/80">

@@ -241,7 +241,7 @@ export function PantryItemForm({ open, onOpenChange, item, onSuccess }: PantryIt
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <div>
               <Label className="text-sm">Stock mínimo</Label>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Alerta cuando la cantidad baje de este valor
               </p>
             </div>

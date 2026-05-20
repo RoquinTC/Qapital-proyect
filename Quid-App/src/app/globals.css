@@ -165,7 +165,7 @@
 
 /* Safe area bottom padding for scrollable content (prevents content hidden behind nav on iPhone) */
 .pb-safe {
-  padding-bottom: max(7rem, calc(5rem + env(safe-area-inset-bottom, 0px)));
+  padding-bottom: max(10rem, calc(8rem + env(safe-area-inset-bottom, 0px)));
 }
 
 /* Hide scrollbar utility */

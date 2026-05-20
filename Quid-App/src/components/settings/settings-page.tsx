@@ -121,7 +121,7 @@ function SectionHeader({
       </div>
       <span className="text-sm font-semibold text-gray-900 dark:text-white">{title}</span>
       {badge && (
-        <Badge variant="secondary" className="text-[10px] ml-auto mr-2 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+        <Badge variant="secondary" className="text-xs ml-auto mr-2 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
           {badge}
         </Badge>
       )}
@@ -492,7 +492,7 @@ export function SettingsPage() {
                       </div>
                       <div>
                         <p className="text-xs font-medium text-gray-900 dark:text-white">Tema</p>
-                        <p className="text-[10px] text-gray-400">Apariencia de la aplicación</p>
+                        <p className="text-xs text-gray-400">Apariencia de la aplicación</p>
                       </div>
                     </div>
                     <Select value={settings.theme} onValueChange={(val) => updateSetting("theme", val)}>
@@ -519,7 +519,7 @@ export function SettingsPage() {
                       </div>
                       <div>
                         <p className="text-xs font-medium text-gray-900 dark:text-white">Notificaciones en la app</p>
-                        <p className="text-[10px] text-gray-400">Recibir alertas y recordatorios dentro de Quid</p>
+                        <p className="text-xs text-gray-400">Recibir alertas y recordatorios dentro de Quid</p>
                       </div>
                     </div>
                     <Switch checked={settings.notificationsEnabled} onCheckedChange={(val) => updateSetting("notificationsEnabled", val)} />
@@ -537,22 +537,22 @@ export function SettingsPage() {
                       </div>
                       <div>
                         <p className="text-xs font-medium text-gray-900 dark:text-white">Notificaciones push</p>
-                        <p className="text-[10px] text-gray-400">Recibir alertas en tu celular aunque la app esté cerrada</p>
+                        <p className="text-xs text-gray-400">Recibir alertas en tu celular aunque la app esté cerrada</p>
                       </div>
                     </div>
                     {push.isSupported ? (
                       push.isSubscribed ? (
-                        <Badge variant="secondary" className="text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 shrink-0 gap-1">
+                        <Badge variant="secondary" className="text-[11px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 shrink-0 gap-1">
                           <BellRing className="size-3" />
                           Activo
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="text-[9px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
+                        <Badge variant="secondary" className="text-[11px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
                           Inactivo
                         </Badge>
                       )
                     ) : (
-                      <Badge variant="secondary" className="text-[9px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
+                      <Badge variant="secondary" className="text-[11px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
                         No disponible
                       </Badge>
                     )}
@@ -563,7 +563,7 @@ export function SettingsPage() {
                       {/* Permission status */}
                       {push.permission === 'denied' && (
                         <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-2.5">
-                          <p className="text-[10px] text-red-600 dark:text-red-400">
+                          <p className="text-xs text-red-600 dark:text-red-400">
                             Las notificaciones están bloqueadas. Ve a la configuración de tu navegador y permite notificaciones para este sitio.
                           </p>
                         </div>
@@ -571,7 +571,7 @@ export function SettingsPage() {
 
                       {push.permission === 'default' && !push.isSubscribed && (
                         <div className="bg-amber-50 dark:bg-amber-900/10 rounded-xl p-2.5">
-                          <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
                             Activa las notificaciones push para recibir alertas de cuentas compartidas, pagos recurrentes y más directamente en tu celular.
                           </p>
                         </div>
@@ -602,11 +602,11 @@ export function SettingsPage() {
                       {/* Info about what you'll receive */}
                       {push.isSubscribed && (
                         <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-2.5 space-y-1">
-                          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Recibirás notificaciones de:</p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Recibirás notificaciones de:</p>
                           <div className="flex flex-wrap gap-1.5">
-                            <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-md">Cuentas compartidas</span>
-                            <span className="text-[9px] bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-md">Pagos recurrentes</span>
-                            <span className="text-[9px] bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 px-2 py-0.5 rounded-md">Invitaciones</span>
+                            <span className="text-[11px] bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-md">Cuentas compartidas</span>
+                            <span className="text-[11px] bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-md">Pagos recurrentes</span>
+                            <span className="text-[11px] bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 px-2 py-0.5 rounded-md">Invitaciones</span>
                           </div>
                         </div>
                       )}
@@ -615,7 +615,7 @@ export function SettingsPage() {
 
                   {!push.isSupported && (
                     <div className="bg-gray-50 dark:bg-gray-800/30 rounded-xl p-2.5">
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         Las notificaciones push requieren instalar la app como PWA y usar un navegador compatible (Chrome, Edge, Firefox). Safari en iOS tiene soporte limitado.
                       </p>
                     </div>
@@ -635,7 +635,7 @@ export function SettingsPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-xs font-medium text-gray-900 dark:text-white">Invitar a Quid</p>
-                      <p className="text-[10px] text-gray-400">Comparte la app con amigos y familiares</p>
+                      <p className="text-xs text-gray-400">Comparte la app con amigos y familiares</p>
                     </div>
                     <ChevronDown className="size-3.5 text-gray-300 dark:text-gray-600 -rotate-90" />
                   </button>
@@ -667,7 +667,7 @@ export function SettingsPage() {
                   {!auraLinked ? (
                     <div className="space-y-3">
                       <div className="space-y-1.5">
-                        <Label htmlFor="pairing-code" className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Código de vinculación</Label>
+                        <Label htmlFor="pairing-code" className="text-xs uppercase tracking-wider font-bold text-gray-400">Código de vinculación</Label>
                         <div className="relative">
                           <input
                             id="pairing-code"
@@ -710,7 +710,7 @@ export function SettingsPage() {
                         {linkingAura ? <Loader2 className="size-4 animate-spin" /> : <Link className="size-4" />}
                         Vincular con Telegram
                       </Button>
-                      <p className="text-[10px] text-center text-gray-400">¿No tienes un código? Escríbele /start a tu bot de Telegram</p>
+                      <p className="text-xs text-center text-gray-400">¿No tienes un código? Escríbele /start a tu bot de Telegram</p>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-3">
@@ -720,7 +720,7 @@ export function SettingsPage() {
                         </div>
                         <div>
                           <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">¡Ya eres amigo de Aura!</p>
-                          <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/70">Puedes escribirle por Telegram en cualquier momento.</p>
+                          <p className="text-xs text-emerald-600/70 dark:text-emerald-500/70">Puedes escribirle por Telegram en cualquier momento.</p>
                         </div>
                       </div>
                       
@@ -768,7 +768,7 @@ export function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-900 dark:text-white">Día de corte del presupuesto</p>
-                      <p className="text-[10px] text-gray-400">El día que inicia tu ciclo financiero mensual</p>
+                      <p className="text-xs text-gray-400">El día que inicia tu ciclo financiero mensual</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 px-1">
@@ -777,7 +777,7 @@ export function SettingsPage() {
                     <span className="text-[11px] text-gray-400">de cada mes</span>
                   </div>
                   <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-2.5">
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mb-0.5">Período actual</p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-0.5">Período actual</p>
                     <p className="text-[11px] text-gray-700 dark:text-gray-300">
                       {settings.currentPeriod
                         ? `${formatDateShort(settings.currentPeriod.start)} — ${formatDateShort(settings.currentPeriod.end)}`
@@ -797,7 +797,7 @@ export function SettingsPage() {
                       </div>
                       <div>
                         <p className="text-xs font-medium text-gray-900 dark:text-white">Considerar días festivos</p>
-                        <p className="text-[10px] text-gray-400">Mover corte a día hábil anterior</p>
+                        <p className="text-xs text-gray-400">Mover corte a día hábil anterior</p>
                       </div>
                     </div>
                     <Switch checked={settings.respectHolidays} onCheckedChange={(val) => updateSetting("respectHolidays", val)} />
@@ -814,13 +814,13 @@ export function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-900 dark:text-white">Reiniciar presupuestos</p>
-                      <p className="text-[10px] text-gray-400">Poner en $0 lo gastado</p>
+                      <p className="text-xs text-gray-400">Poner en $0 lo gastado</p>
                     </div>
                   </div>
                   {settings.needsBudgetReset && (
                     <div className="bg-amber-50 dark:bg-amber-900/10 rounded-xl p-2 flex items-start gap-2">
                       <AlertTriangle className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400">Tus presupuestos necesitan reiniciarse para el período actual.</p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400">Tus presupuestos necesitan reiniciarse para el período actual.</p>
                     </div>
                   )}
                   <Button variant="outline" className="w-full rounded-xl text-xs gap-2 border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/10 h-8" onClick={handleResetBudgets} disabled={resetting}>
@@ -828,7 +828,7 @@ export function SettingsPage() {
                     Reiniciar Ahora
                   </Button>
                   {settings.lastBudgetReset && (
-                    <p className="text-[10px] text-center text-gray-400">Último reinicio: {formatDateShort(settings.lastBudgetReset)}</p>
+                    <p className="text-xs text-center text-gray-400">Último reinicio: {formatDateShort(settings.lastBudgetReset)}</p>
                   )}
                 </CardContent>
               </Card>
@@ -851,7 +851,7 @@ export function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-900 dark:text-white">Cuentas registradas</p>
-                      <p className="text-[10px] text-gray-400">Ver, editar y eliminar cuentas</p>
+                      <p className="text-xs text-gray-400">Ver, editar y eliminar cuentas</p>
                     </div>
                   </div>
                   <AccountManager />
@@ -876,7 +876,7 @@ export function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-900 dark:text-white">Categorías y subcategorías</p>
-                      <p className="text-[10px] text-gray-400">Editar nombres o eliminar categorías de presupuesto</p>
+                      <p className="text-xs text-gray-400">Editar nombres o eliminar categorías de presupuesto</p>
                     </div>
                   </div>
                   <CategoriesManager />
@@ -903,22 +903,22 @@ export function SettingsPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-xs font-semibold text-gray-900 dark:text-white">Movimientos Financieros</p>
-                      <p className="text-[10px] text-gray-400">Ingresos, gastos y transferencias</p>
+                      <p className="text-xs text-gray-400">Ingresos, gastos y transferencias</p>
                     </div>
-                    <Badge variant="secondary" className="text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 shrink-0">
+                    <Badge variant="secondary" className="text-[11px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 shrink-0">
                       Principal
                     </Badge>
                   </div>
                   <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-2.5 space-y-1.5">
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                       La plantilla tiene 3 hojas:
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-md">Ingresos</span>
-                      <span className="text-[9px] bg-rose-100 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 px-2 py-0.5 rounded-md">Gastos</span>
-                      <span className="text-[9px] bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-md">Transferencias</span>
+                      <span className="text-[11px] bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-md">Ingresos</span>
+                      <span className="text-[11px] bg-rose-100 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 px-2 py-0.5 rounded-md">Gastos</span>
+                      <span className="text-[11px] bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-md">Transferencias</span>
                     </div>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       Cada hoja corresponde a los campos reales: fecha, descripción, monto, categoría, subcategoría, cuenta y subcuenta.
                     </p>
                   </div>
@@ -951,7 +951,7 @@ export function SettingsPage() {
                   {transactionImportResult && (
                     <div className={`rounded-xl p-2.5 ${transactionImportResult.success ? "bg-emerald-50 dark:bg-emerald-900/10" : "bg-red-50 dark:bg-red-900/10"}`}>
                       {transactionImportResult.result ? (
-                        <div className="text-[10px] space-y-1">
+                        <div className="text-xs space-y-1">
                           <p className={transactionImportResult.success ? "text-emerald-600 dark:text-emerald-400 font-medium" : "text-red-600 dark:text-red-400 font-medium"}>
                             {transactionImportResult.result.created} de {transactionImportResult.result.total} movimientos importados
                           </p>
@@ -970,7 +970,7 @@ export function SettingsPage() {
                           )}
                         </div>
                       ) : (
-                        <p className="text-[10px] text-red-600 dark:text-red-400">Error al procesar el archivo. Verifica que sea un Excel (.xlsx) con el formato correcto.</p>
+                        <p className="text-xs text-red-600 dark:text-red-400">Error al procesar el archivo. Verifica que sea un Excel (.xlsx) con el formato correcto.</p>
                       )}
                     </div>
                   )}
@@ -986,14 +986,14 @@ export function SettingsPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Presupuestos</p>
-                      <p className="text-[10px] text-gray-400">Carga categorías y montos asignados por periodo</p>
+                      <p className="text-xs text-gray-400">Carga categorías y montos asignados por periodo</p>
                     </div>
-                    <Badge variant="secondary" className="text-[9px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
+                    <Badge variant="secondary" className="text-[11px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
                       Próximamente
                     </Badge>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800/30 rounded-xl p-2">
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-xs text-gray-400">
                       Columnas: categoría, subcategoría, tipo (ingreso/gasto), monto, periodo
                     </p>
                   </div>
@@ -1013,14 +1013,14 @@ export function SettingsPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Deudas</p>
-                      <p className="text-[10px] text-gray-400">Tarjetas de crédito, préstamos y otras deudas</p>
+                      <p className="text-xs text-gray-400">Tarjetas de crédito, préstamos y otras deudas</p>
                     </div>
-                    <Badge variant="secondary" className="text-[9px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
+                    <Badge variant="secondary" className="text-[11px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
                       Próximamente
                     </Badge>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800/30 rounded-xl p-2">
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-xs text-gray-400">
                       Columnas: nombre, tipo, monto total, saldo, tasa de interés, banco, día de corte, día de pago
                     </p>
                   </div>
@@ -1040,14 +1040,14 @@ export function SettingsPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Metas de Ahorro</p>
-                      <p className="text-[10px] text-gray-400">Objetivos de ahorro con frecuencia y fecha meta</p>
+                      <p className="text-xs text-gray-400">Objetivos de ahorro con frecuencia y fecha meta</p>
                     </div>
-                    <Badge variant="secondary" className="text-[9px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
+                    <Badge variant="secondary" className="text-[11px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
                       Próximamente
                     </Badge>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800/30 rounded-xl p-2">
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-xs text-gray-400">
                       Columnas: nombre, monto objetivo, monto actual, tipo, fecha meta, frecuencia
                     </p>
                   </div>
@@ -1067,14 +1067,14 @@ export function SettingsPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-xs font-medium text-gray-500 dark:text-gray-400">CDT</p>
-                      <p className="text-[10px] text-gray-400">Certificados de Depósito a Término</p>
+                      <p className="text-xs text-gray-400">Certificados de Depósito a Término</p>
                     </div>
-                    <Badge variant="secondary" className="text-[9px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
+                    <Badge variant="secondary" className="text-[11px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 shrink-0">
                       Próximamente
                     </Badge>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800/30 rounded-xl p-2">
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-xs text-gray-400">
                       Columnas: banco, monto, tasa efectiva anual, plazo en días, fechas, cuenta de rendimientos
                     </p>
                   </div>
@@ -1117,7 +1117,7 @@ export function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-900 dark:text-white">Eliminar datos financieros</p>
-                      <p className="text-[10px] text-gray-400">Borra cuentas, transacciones, presupuestos, deudas y ahorros</p>
+                      <p className="text-xs text-gray-400">Borra cuentas, transacciones, presupuestos, deudas y ahorros</p>
                     </div>
                   </div>
                   <Button variant="outline" className="w-full rounded-xl text-xs gap-2 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 h-8" onClick={() => setShowResetFinanceDialog(true)}>
@@ -1136,7 +1136,7 @@ export function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-900 dark:text-white">Eliminar datos de transporte</p>
-                      <p className="text-[10px] text-gray-400">Borra vehículos, combustible y mantenimiento</p>
+                      <p className="text-xs text-gray-400">Borra vehículos, combustible y mantenimiento</p>
                     </div>
                   </div>
                   <Button variant="outline" className="w-full rounded-xl text-xs gap-2 border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 h-8" onClick={() => setShowResetTransportDialog(true)}>
@@ -1155,11 +1155,11 @@ export function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-xs font-medium text-red-700 dark:text-red-400">Eliminar cuenta</p>
-                      <p className="text-[10px] text-gray-400">Borra tu usuario y todos los datos de todos los módulos</p>
+                      <p className="text-xs text-gray-400">Borra tu usuario y todos los datos de todos los módulos</p>
                     </div>
                   </div>
                   <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-2">
-                    <p className="text-[10px] text-red-600 dark:text-red-400">
+                    <p className="text-xs text-red-600 dark:text-red-400">
                       Al eliminar tu cuenta se borrarán todos tus datos sin excepción. Esta acción no se puede deshacer.
                     </p>
                   </div>
@@ -1241,14 +1241,14 @@ export function SettingsPage() {
       <Card className="border-0 shadow-sm rounded-xl bg-gray-50 dark:bg-gray-800/30">
         <CardContent className="p-3 text-center">
           <div className="inline-flex items-center justify-center size-7 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-sm mb-1.5">
-            <span className="text-[10px] font-bold text-white">Q</span>
+            <span className="text-xs font-bold text-white">Q</span>
           </div>
           <p className="text-[11px] font-semibold text-gray-900 dark:text-white">Quid</p>
           <div className="flex flex-col gap-0.5">
-            <p className="text-[9px] text-gray-400">v1.1.0</p>
+            <p className="text-[11px] text-gray-400">v1.1.0</p>
             <div className="flex items-center justify-center gap-1.5 opacity-60">
               <div className="size-1 rounded-full bg-emerald-500 animate-pulse" />
-              <p className="text-[8px] font-mono text-gray-500">Build: {currentBuildId}</p>
+              <p className="text-[11px] font-mono text-gray-500">Build: {currentBuildId}</p>
             </div>
           </div>
         </CardContent>

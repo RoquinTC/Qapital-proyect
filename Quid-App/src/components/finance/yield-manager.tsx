@@ -169,7 +169,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
               <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
                 Rendimientos del Mes
               </span>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 {yields.length} cuenta{yields.length !== 1 ? "s" : ""} · {confirmedCount}/{yields.length} confirmado{confirmedCount !== 1 ? "s" : ""}
               </p>
             </div>
@@ -179,7 +179,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
               <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
                 {formatCurrency(totalConfirmed || totalProjected)}
               </p>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 {totalConfirmed > 0 ? "Total confirmado" : "Proyectado"}
               </p>
             </div>
@@ -220,7 +220,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                         </span>
                         <Badge
                           variant="outline"
-                          className="text-[10px] bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-700 h-5 px-1.5"
+                          className="text-xs bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-700 h-5 px-1.5"
                         >
                           {previousMonthPending.length}
                         </Badge>
@@ -257,7 +257,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                   </span>
                                   <Badge
                                     variant="outline"
-                                    className="text-[10px] bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-700"
+                                    className="text-xs bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-700"
                                   >
                                     Mes anterior
                                   </Badge>
@@ -269,7 +269,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                   </span>
                                   <span>Proyectado: {formatCurrency(item.projectedYield)}</span>
                                 </div>
-                                <p className="text-[10px] text-red-500 dark:text-red-400 mb-2">
+                                <p className="text-xs text-red-500 dark:text-red-400 mb-2">
                                   Pendiente de {monthLabel}
                                 </p>
 
@@ -304,7 +304,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-7 text-[10px] rounded-lg"
+                                        className="h-7 text-xs rounded-lg"
                                         onClick={() => {
                                           setEditingId(itemKey);
                                           setEditValue(item.projectedYield.toString());
@@ -315,7 +315,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                       </Button>
                                       <Button
                                         size="sm"
-                                        className="h-7 text-[10px] rounded-lg bg-emerald-500"
+                                        className="h-7 text-xs rounded-lg bg-emerald-500"
                                         onClick={() => handleConfirm(item)}
                                       >
                                         Confirmar
@@ -352,7 +352,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                             </span>
                             <Badge
                               variant="outline"
-                              className="text-[10px] bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-700 h-5 px-1.5"
+                              className="text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-700 h-5 px-1.5"
                             >
                               {currentMonthPending.length}
                             </Badge>
@@ -386,7 +386,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                       </span>
                                       <Badge
                                         variant="outline"
-                                        className="text-[10px] bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-700"
+                                        className="text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-700"
                                       >
                                         Pendiente
                                       </Badge>
@@ -430,7 +430,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-7 text-[10px] rounded-lg"
+                                            className="h-7 text-xs rounded-lg"
                                             onClick={() => {
                                               setEditingId(itemKey);
                                               setEditValue(item.projectedYield.toString());
@@ -441,7 +441,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                           </Button>
                                           <Button
                                             size="sm"
-                                            className="h-7 text-[10px] rounded-lg bg-emerald-500"
+                                            className="h-7 text-xs rounded-lg bg-emerald-500"
                                             onClick={() => handleConfirm(item)}
                                           >
                                             Confirmar
@@ -465,7 +465,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                               {currentMonthPending.length} pendiente{currentMonthPending.length !== 1 ? "s" : ""}
                             </span>
                           </div>
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
                             Se mostrarán {daysUntilMonthEnd === 1 ? "mañana" : `en ${daysUntilMonthEnd} días`}
                           </span>
                         </div>
@@ -492,7 +492,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                         </span>
                         <Badge
                           variant="outline"
-                          className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700 h-5 px-1.5"
+                          className="text-xs bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700 h-5 px-1.5"
                         >
                           {confirmedYields.length}
                         </Badge>
@@ -530,7 +530,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                   </span>
                                   <Badge
                                     variant="outline"
-                                    className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700"
+                                    className="text-xs bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700"
                                   >
                                     {monthLabel ? monthLabel : "Confirmado"}
                                   </Badge>
@@ -553,13 +553,13 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                   {isConfirmingReverse ? (
                                     <div className="flex items-center gap-1.5">
                                       <AlertTriangle className="size-3.5 text-red-500" />
-                                      <span className="text-[10px] text-red-600 dark:text-red-400 font-medium">
+                                      <span className="text-xs text-red-600 dark:text-red-400 font-medium">
                                         ¿Revertir?
                                       </span>
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        className="h-6 text-[10px] rounded-lg border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20 px-2"
+                                        className="h-6 text-xs rounded-lg border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20 px-2"
                                         onClick={() => handleReverse(item)}
                                         disabled={isReversing}
                                       >
@@ -568,7 +568,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        className="h-6 text-[10px] rounded-lg px-2"
+                                        className="h-6 text-xs rounded-lg px-2"
                                         onClick={() => setConfirmReverseId(null)}
                                         disabled={isReversing}
                                       >
@@ -579,7 +579,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 text-[10px] rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20"
+                                      className="h-7 text-xs rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20"
                                       onClick={() => setConfirmReverseId(item.id || null)}
                                     >
                                       <Undo2 className="size-3 mr-1" />

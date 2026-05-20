@@ -333,7 +333,7 @@ export function VehicleDocumentForm({
                   {DOCUMENT_TYPES.find((t) => t.value === docType)?.label || "Documento"}
                 </span>
                 {expiryDate && !isEditing && (
-                  <span className={`text-[10px] font-medium ml-auto ${expiryBadgeColor}`}>
+                  <span className={`text-xs font-medium ml-auto ${expiryBadgeColor}`}>
                     {daysLeft > 0
                       ? `Vence en ${daysLeft} días`
                       : daysLeft === 0
@@ -355,7 +355,7 @@ export function VehicleDocumentForm({
                   {selectedVehicle?.name || vehicles[0]?.name || "Vehículo"}
                 </span>
                 {selectedVehicle?.plate && (
-                  <span className="text-[10px] text-gray-400 ml-auto">
+                  <span className="text-xs text-gray-400 ml-auto">
                     {selectedVehicle.plate}
                   </span>
                 )}
@@ -372,7 +372,7 @@ export function VehicleDocumentForm({
                         <Car className="size-3.5 text-gray-400" />
                         <span>{v.name}</span>
                         {v.plate && (
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-xs text-gray-400">
                             {v.plate}
                           </span>
                         )}
@@ -422,7 +422,7 @@ export function VehicleDocumentForm({
             <Label htmlFor="doc-number" className="flex items-center gap-1.5">
               <FileText className="size-3.5 text-gray-400" />
               Número de documento
-              <span className="text-[10px] text-gray-400 font-normal">
+              <span className="text-xs text-gray-400 font-normal">
                 (opcional)
               </span>
             </Label>
@@ -498,7 +498,7 @@ export function VehicleDocumentForm({
                 <Bell className="size-4 text-amber-500" />
                 <div>
                   <Label className="text-sm">Recordatorio</Label>
-                  <p className="text-[10px] text-gray-400">
+                  <p className="text-xs text-gray-400">
                     Recibir aviso antes del vencimiento
                   </p>
                 </div>
@@ -512,7 +512,7 @@ export function VehicleDocumentForm({
               <div className="space-y-1.5 pl-1">
                 <Label
                   htmlFor="doc-reminder-days"
-                  className="text-[10px] text-gray-500"
+                  className="text-xs text-gray-500"
                 >
                   Días de anticipación
                 </Label>
@@ -547,7 +547,7 @@ export function VehicleDocumentForm({
           <div className="space-y-2">
             <Label htmlFor="doc-notes">
               Notas{" "}
-              <span className="text-[10px] text-gray-400 font-normal">
+              <span className="text-xs text-gray-400 font-normal">
                 (opcional)
               </span>
             </Label>
@@ -556,7 +556,7 @@ export function VehicleDocumentForm({
               placeholder="Notas opcionales sobre el documento..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="rounded-xl min-h-[60px]"
+              className="rounded-xl min-h-[80px]"
             />
           </div>
 

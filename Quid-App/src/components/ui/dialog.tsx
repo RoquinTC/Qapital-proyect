@@ -149,7 +149,7 @@ function DialogStickyFooter({ className, ...props }: React.ComponentProps<"div">
     <div
       data-slot="dialog-sticky-footer"
       className={cn(
-        "shrink-0 border-t border-border/50 px-6 py-4 bg-background",
+        "shrink-0 border-t border-border/50 px-6 py-4 bg-background safe-area-bottom",
         className
       )}
       {...props}

@@ -618,7 +618,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
               >
                 <SlidersHorizontal className="size-4" />
                 {activeFilterCount > 0 && (
-                  <Badge className="absolute -top-1.5 -right-1.5 size-4 p-0 flex items-center justify-center text-[8px] bg-emerald-500 text-white border-0">
+                  <Badge className="absolute -top-1.5 -right-1.5 size-4 p-0 flex items-center justify-center text-[11px] bg-emerald-500 text-white border-0">
                     {activeFilterCount}
                   </Badge>
                 )}
@@ -639,7 +639,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
                     <CardContent className="p-3 space-y-2.5">
                       {/* Type filter buttons */}
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-gray-500">Tipo</Label>
+                        <Label className="text-xs text-gray-500">Tipo</Label>
                         <div className="flex gap-1">
                           {[
                             { value: "all", label: "Todos" },
@@ -650,7 +650,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
                             <button
                               key={opt.value}
                               onClick={() => setFilterType(opt.value)}
-                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                 filterType === opt.value
                                   ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700"
                                   : "bg-gray-50 dark:bg-gray-800 text-gray-400 border border-transparent"
@@ -664,7 +664,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
 
                       {/* Account filter */}
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-gray-500">Cuenta</Label>
+                        <Label className="text-xs text-gray-500">Cuenta</Label>
                         <Select value={filterAccountId} onValueChange={setFilterAccountId}>
                           <SelectTrigger className="rounded-lg h-8 text-xs">
                             <SelectValue placeholder="Todas" />
@@ -685,7 +685,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
 
                       {/* Category filter */}
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-gray-500">Categoría</Label>
+                        <Label className="text-xs text-gray-500">Categoría</Label>
                         <Select value={filterCategory} onValueChange={setFilterCategory}>
                           <SelectTrigger className="rounded-lg h-8 text-xs">
                             <SelectValue placeholder="Todas" />
@@ -703,7 +703,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
 
                       {/* Amount range */}
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-gray-500">Rango de monto</Label>
+                        <Label className="text-xs text-gray-500">Rango de monto</Label>
                         <div className="flex gap-2">
                           <Input
                             type="number"
@@ -763,7 +763,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
             <>
               {groups.map((group) => (
                 <div key={group.label}>
-                  <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                     {group.label}
                   </h4>
                   <div className="space-y-2">
@@ -795,7 +795,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
                               <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-none">
                                 {day}
                               </span>
-                              <span className="text-[10px] text-gray-400 leading-none mt-0.5">
+                              <span className="text-xs text-gray-400 leading-none mt-0.5">
                                 {month}
                               </span>
                             </div>
@@ -816,22 +816,22 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                 </p>
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span
-                                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
+                                    className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
                                   >
                                     {config.label}
                                   </span>
-                                  <span className="text-[10px] text-gray-400">
+                                  <span className="text-xs text-gray-400">
                                     {tx.category || ""}
                                   </span>
                                   {tx.account && (
                                     <>
-                                      <span className="text-[10px] text-gray-300">·</span>
+                                      <span className="text-xs text-gray-300">·</span>
                                       <div className="flex items-center gap-0.5">
                                         <div
                                           className="size-1.5 rounded-full"
                                           style={{ backgroundColor: tx.account.color }}
                                         />
-                                        <span className="text-[10px] text-gray-400">
+                                        <span className="text-xs text-gray-400">
                                           {tx.account.name}
                                         </span>
                                       </div>
@@ -839,8 +839,8 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                   )}
                                   {tx.user && tx.user.name && tx.userId && tx.userId !== session?.user?.id && (
                                     <>
-                                      <span className="text-[10px] text-gray-300">·</span>
-                                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-0.5">
+                                      <span className="text-xs text-gray-300">·</span>
+                                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-0.5">
                                         <UserIcon className="size-2.5" />
                                         {tx.user.name}
                                       </span>
@@ -883,33 +883,33 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                       {/* Detail Grid */}
                                       <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                          <span className="text-[10px] text-gray-400 uppercase tracking-wider">Tipo</span>
+                                          <span className="text-xs text-gray-400 uppercase tracking-wider">Tipo</span>
                                           <span className={`block text-xs font-medium ${config.badgeText}`}>
                                             {config.label}
                                           </span>
                                         </div>
                                         <div>
-                                          <span className="text-[10px] text-gray-400 uppercase tracking-wider">Monto</span>
+                                          <span className="text-xs text-gray-400 uppercase tracking-wider">Monto</span>
                                           <span className="block text-xs font-bold" style={{ color: config.color }}>
                                             {tx.type === "income" ? "+" : "-"}
                                             {formatCurrency(Math.abs(tx.amount))}
                                           </span>
                                         </div>
                                         <div>
-                                          <span className="text-[10px] text-gray-400 uppercase tracking-wider">Categoría</span>
+                                          <span className="text-xs text-gray-400 uppercase tracking-wider">Categoría</span>
                                           <span className="block text-xs text-gray-700 dark:text-gray-300">
                                             {tx.category || "Sin categoría"}
                                           </span>
                                         </div>
                                         <div>
-                                          <span className="text-[10px] text-gray-400 uppercase tracking-wider">Fecha</span>
+                                          <span className="text-xs text-gray-400 uppercase tracking-wider">Fecha</span>
                                           <span className="block text-xs text-gray-700 dark:text-gray-300">
                                             {formatDate(tx.date)}
                                           </span>
                                         </div>
                                         {tx.account && (
                                           <div>
-                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Cuenta</span>
+                                            <span className="text-xs text-gray-400 uppercase tracking-wider">Cuenta</span>
                                             <div className="flex items-center gap-1.5">
                                               <div className="size-2 rounded-full" style={{ backgroundColor: tx.account.color }} />
                                               <span className="text-xs text-gray-700 dark:text-gray-300">{tx.account.name}</span>
@@ -918,7 +918,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                         )}
                                         {tx.subAccount && (
                                           <div>
-                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Bolsillo</span>
+                                            <span className="text-xs text-gray-400 uppercase tracking-wider">Bolsillo</span>
                                             <span className="text-xs text-gray-700 dark:text-gray-300">
                                               {tx.subAccount.name}
                                             </span>
@@ -926,7 +926,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                         )}
                                         {tx.user && tx.user.name && tx.userId && tx.userId !== session?.user?.id && (
                                           <div>
-                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Creado por</span>
+                                            <span className="text-xs text-gray-400 uppercase tracking-wider">Creado por</span>
                                             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-1">
                                               <UserIcon className="size-3" />
                                               {tx.user.name}
@@ -935,7 +935,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                         )}
                                         {tx.type === "transfer" && tx.transferToAccount && (
                                           <div>
-                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Hacia</span>
+                                            <span className="text-xs text-gray-400 uppercase tracking-wider">Hacia</span>
                                             <div className="flex items-center gap-1.5">
                                               <div className="size-2 rounded-full" style={{ backgroundColor: tx.transferToAccount.color }} />
                                               <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
@@ -1006,7 +1006,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                                 setEditType(t);
                                                 setEditCategory("");
                                               }}
-                                              className={`flex-1 py-2 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-all ${
+                                              className={`flex-1 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-all ${
                                                 isActive
                                                   ? `${tConfig.badgeBg} ${tConfig.badgeText} border`
                                                   : "bg-white dark:bg-gray-800 text-gray-400 border border-transparent"
@@ -1022,7 +1022,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
 
                                       {/* Amount */}
                                       <div className="space-y-1">
-                                        <Label className="text-[10px]">Monto</Label>
+                                        <Label className="text-xs">Monto</Label>
                                         <CurrencyInput
                                           value={editAmount}
                                           onChange={setEditAmount}
@@ -1034,7 +1034,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
 
                                       {/* Description */}
                                       <div className="space-y-1">
-                                        <Label className="text-[10px]">Descripción</Label>
+                                        <Label className="text-xs">Descripción</Label>
                                         <Input
                                           value={editDescription}
                                           onChange={(e) => setEditDescription(e.target.value)}
@@ -1044,7 +1044,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
 
                                       {/* Account */}
                                       <div className="space-y-1">
-                                        <Label className="text-[10px]">Cuenta</Label>
+                                        <Label className="text-xs">Cuenta</Label>
                                         <Select value={editAccountId} onValueChange={(v) => { setEditAccountId(v); setEditSubAccountId(""); }}>
                                           <SelectTrigger className="rounded-lg h-9 text-sm">
                                             <SelectValue placeholder="Seleccionar" />
@@ -1065,7 +1065,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                       {/* Sub-account (if available) */}
                                       {subAccounts.length > 0 && (
                                         <div className="space-y-1">
-                                          <Label className="text-[10px]">Bolsillo</Label>
+                                          <Label className="text-xs">Bolsillo</Label>
                                           <Select value={editSubAccountId || "none"} onValueChange={(v) => setEditSubAccountId(v === "none" ? "" : v)}>
                                             <SelectTrigger className="rounded-lg h-9 text-sm">
                                               <SelectValue placeholder="Principal" />
@@ -1085,7 +1085,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                       {/* Category */}
                                       {editType !== "transfer" && (
                                         <div className="space-y-1">
-                                          <Label className="text-[10px]">Categoría</Label>
+                                          <Label className="text-xs">Categoría</Label>
                                           <Select value={editCategory} onValueChange={(v) => { setEditCategory(v); setEditSubCategory(""); }}>
                                             <SelectTrigger className="rounded-lg h-9 text-sm">
                                               <SelectValue placeholder="Seleccionar" />
@@ -1104,14 +1104,14 @@ export function TransactionList({ accountId }: TransactionListProps) {
                                       {/* SubCategory */}
                                       {editType !== "transfer" && editCategory && (
                                         <div className="space-y-1">
-                                          <Label className="text-[10px]">Subcategoría</Label>
+                                          <Label className="text-xs">Subcategoría</Label>
                                           {availableSubCategories.length > 0 && (
                                             <div className="flex flex-wrap gap-1 mb-1">
                                               {availableSubCategories.map((sub) => (
                                                 <button
                                                   key={sub}
                                                   onClick={() => setEditSubCategory(sub === editSubCategory ? "" : sub)}
-                                                  className={`px-2 py-0.5 rounded-md text-[9px] font-medium transition-all ${
+                                                  className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-all ${
                                                     sub === editSubCategory
                                                       ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
                                                       : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
@@ -1133,7 +1133,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
 
                                       {/* Date */}
                                       <div className="space-y-1">
-                                        <Label className="text-[10px]">Fecha</Label>
+                                        <Label className="text-xs">Fecha</Label>
                                         <Input
                                           type="date"
                                           value={editDate}
@@ -1144,7 +1144,7 @@ export function TransactionList({ accountId }: TransactionListProps) {
 
                                       {/* Notes */}
                                       <div className="space-y-1">
-                                        <Label className="text-[10px]">Notas</Label>
+                                        <Label className="text-xs">Notas</Label>
                                         <Input
                                           value={editNotes}
                                           onChange={(e) => setEditNotes(e.target.value)}

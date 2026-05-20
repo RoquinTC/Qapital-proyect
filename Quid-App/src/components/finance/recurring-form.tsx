@@ -569,7 +569,7 @@ export function RecurringForm({
                   <p className={`text-[11px] font-bold ${frequency === opt.value ? scheme.activeText : "text-gray-600 dark:text-gray-400"}`}>
                     {opt.label}
                   </p>
-                  <p className="text-[8px] text-gray-400 mt-0.5">{opt.desc}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{opt.desc}</p>
                 </button>
               ))}
             </div>
@@ -584,7 +584,7 @@ export function RecurringForm({
                 { label: "Segunda quincena", day: biweeklyDay2, setDay: setBiweeklyDay2, amt: biweeklyAmount2, setAmt: setBiweeklyAmount2 },
               ].map((item, idx) => (
                 <div key={idx} className="space-y-1">
-                  <p className="text-[10px] text-gray-500 font-medium">{item.label}</p>
+                  <p className="text-xs text-gray-500 font-medium">{item.label}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <DaySelect
                       value={item.day}
@@ -603,7 +603,7 @@ export function RecurringForm({
                 </div>
               ))}
               {((parseFloat(biweeklyAmount1) || 0) + (parseFloat(biweeklyAmount2) || 0)) > 0 && (
-                <p className="text-[10px] text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
                   Total mensual: <span className="font-semibold text-gray-600 dark:text-gray-300">{formatCurrency((parseFloat(biweeklyAmount1) || 0) + (parseFloat(biweeklyAmount2) || 0))}</span>
                 </p>
               )}
@@ -639,7 +639,7 @@ export function RecurringForm({
                 </div>
               </div>
               {(parseFloat(weeklyAmount) || 0) > 0 && (
-                <p className="text-[10px] text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
                   Total mensual estimado: <span className="font-semibold text-gray-600 dark:text-gray-300">{formatCurrency((parseFloat(weeklyAmount) || 0) * 4)}</span>
                 </p>
               )}
@@ -953,7 +953,7 @@ export function RecurringForm({
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
                       Se registrará como gasto en la tarjeta de crédito. La cuenta se usará cuando pagues la factura.
                     </p>
                   </div>
@@ -1051,7 +1051,7 @@ export function RecurringForm({
                 <Repeat className="size-3.5" />
                 Recurrente
               </Label>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Se generará el siguiente pago automáticamente
               </p>
             </div>
@@ -1087,26 +1087,26 @@ export function RecurringForm({
                   {frequency === "biweekly" && (
                     <>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400">1ra quincena (día {biweeklyDay1})</span>
-                        <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(biweeklyAmount1) || 0)}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">1ra quincena (día {biweeklyDay1})</span>
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(biweeklyAmount1) || 0)}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400">2da quincena (día {biweeklyDay2})</span>
-                        <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(biweeklyAmount2) || 0)}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">2da quincena (día {biweeklyDay2})</span>
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(biweeklyAmount2) || 0)}</span>
                       </div>
                     </>
                   )}
                   {frequency === "weekly" && (
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         Cada {dayOfWeekOptions.find((d) => d.value === weeklyDayOfWeek)?.label}
                       </span>
-                      <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(weeklyAmount) || 0)}</span>
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(weeklyAmount) || 0)}</span>
                     </div>
                   )}
                   {nextPaymentDate && frequency !== "biweekly" && (
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         <Calendar className="size-3" />
                         Próximo pago
                       </span>
@@ -1116,7 +1116,7 @@ export function RecurringForm({
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       {frequency === "biweekly" ? "Total mensual" : frequency === "weekly" ? "Total mensual estimado" : "Costo anual estimado"}
                     </span>
                     <span className={`text-xs font-bold ${paymentType === "expense" ? "text-rose-700 dark:text-rose-400" : paymentType === "income" ? "text-emerald-700 dark:text-emerald-400" : "text-blue-700 dark:text-blue-400"}`}>
@@ -1127,7 +1127,7 @@ export function RecurringForm({
                   </div>
                   {selectedSourceName && (
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         {paymentType === "transfer" ? (
                           <ArrowLeftRight className="size-3" />
                         ) : paymentType === "income" ? (
@@ -1140,7 +1140,7 @@ export function RecurringForm({
                         {selectedSourceName}
                       </span>
                       {selectedSourceBalance !== null && (
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-xs text-gray-400">
                           Saldo: {formatCurrency(selectedSourceBalance)}
                         </span>
                       )}
@@ -1148,7 +1148,7 @@ export function RecurringForm({
                   )}
                   {paymentType === "transfer" && selectedDestName && (
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         <ArrowLeftRight className="size-3" />
                         → {selectedDestName}
                       </span>
@@ -1156,10 +1156,10 @@ export function RecurringForm({
                   )}
                   {category && (
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         Categoría
                       </span>
-                      <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300">
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
                         {category}{subCategory ? ` / ${subCategory}` : ""}
                       </span>
                     </div>

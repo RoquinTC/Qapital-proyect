@@ -266,7 +266,7 @@ function ScoreGauge({
         >
           {score}
         </motion.span>
-        <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5 font-medium">
+        <span className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 font-medium">
           de 100
         </span>
       </div>
@@ -301,7 +301,7 @@ function StatusBadge({ status }: { status: "healthy" | "warning" | "danger" }) {
   };
   const c = config[status];
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${c.bg} ${c.text}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${c.bg} ${c.text}`}>
       {c.icon} {c.label}
     </span>
   );
@@ -423,7 +423,7 @@ export function HealthScoreWidget({
                   <StatusDot status={ind.status} />
                 </div>
               </div>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">
                 {ind.tip}
               </p>
             </div>

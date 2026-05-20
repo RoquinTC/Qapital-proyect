@@ -59,7 +59,7 @@ export function AppointmentCard({ appointment, onClick }: AppointmentCardProps) 
               : "bg-red-400"
           }`}>
             <span className="text-xs font-bold text-white leading-none">{day}</span>
-            <span className="text-[9px] text-white/80 uppercase">{month}</span>
+            <span className="text-[11px] text-white/80 uppercase">{month}</span>
           </div>
 
           {/* Details */}
@@ -76,7 +76,7 @@ export function AppointmentCard({ appointment, onClick }: AppointmentCardProps) 
                   <span className="text-xs text-gray-500 ml-5">{appointment.specialty}</span>
                 )}
               </div>
-              <Badge className={`${statusInfo.bgColor} ${statusInfo.color} border-0 text-[10px] shrink-0`}>
+              <Badge className={`${statusInfo.bgColor} ${statusInfo.color} border-0 text-xs shrink-0`}>
                 {statusInfo.label}
               </Badge>
             </div>

@@ -357,7 +357,7 @@ function WidgetCustomizationDialog({
                 }`}>
                   {widget.title}
                   {isBalance && (
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1.5">
+                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-1.5">
                       (siempre visible)
                     </span>
                   )}
@@ -783,12 +783,12 @@ export function FinanceOverview() {
               Resumen Financiero
             </h2>
             {!isOnline && (
-              <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
                 Sin conexión
               </span>
             )}
             {syncing && (
-              <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full animate-pulse">
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full animate-pulse">
                 Sincronizando...
               </span>
             )}
@@ -851,7 +851,7 @@ export function FinanceOverview() {
                             <ArrowUpRight className="size-3.5 text-emerald-200" />
                           </div>
                           <div>
-                            <p className="text-[10px] text-emerald-200">Ingresos</p>
+                            <p className="text-xs text-emerald-200">Ingresos</p>
                             <p className="text-sm font-semibold">
                               {formatCurrency(monthlyIncome)}
                             </p>
@@ -862,7 +862,7 @@ export function FinanceOverview() {
                             <ArrowDownRight className="size-3.5 text-rose-200" />
                           </div>
                           <div>
-                            <p className="text-[10px] text-emerald-200">Gastos</p>
+                            <p className="text-xs text-emerald-200">Gastos</p>
                             <p className="text-sm font-semibold">
                               {formatCurrency(monthlyExpenses)}
                             </p>
@@ -902,7 +902,7 @@ export function FinanceOverview() {
                         <BarChart3 className="size-4 text-blue-500" />
                         Gráfico de Cascada
                       </CardTitle>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
+                      <p className="text-xs text-gray-400 mt-0.5">
                         Saldo inicial → Ingresos → Gastos → Deudas → Saldo final
                       </p>
                     </CardHeader>
@@ -1012,11 +1012,11 @@ export function FinanceOverview() {
                           <div className="flex items-center justify-center gap-4 mt-2">
                             <div className="flex items-center gap-1.5">
                               <div className="size-2.5 rounded-full bg-emerald-500" />
-                              <span className="text-[10px] text-gray-500">Ingresos</span>
+                              <span className="text-xs text-gray-500">Ingresos</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <div className="size-2.5 rounded-full bg-red-500" />
-                              <span className="text-[10px] text-gray-500">Gastos</span>
+                              <span className="text-xs text-gray-500">Gastos</span>
                             </div>
                           </div>
                           {/* Current month summary pill */}
@@ -1063,7 +1063,7 @@ export function FinanceOverview() {
                           <TrendingUp className="size-4 text-blue-500" />
                           Proyección de Flujo de Caja
                         </CardTitle>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
+                        <p className="text-xs text-gray-400 mt-0.5">
                           12 meses histórico + 12 meses proyección
                         </p>
                       </div>
@@ -1139,11 +1139,11 @@ export function FinanceOverview() {
                           <div className="flex items-center justify-center gap-4 mt-2">
                             <div className="flex items-center gap-1.5">
                               <div className="w-4 h-0.5 bg-blue-500 rounded" />
-                              <span className="text-[10px] text-gray-500">Histórico</span>
+                              <span className="text-xs text-gray-500">Histórico</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <div className="w-4 h-0.5 border-t-2 border-dashed border-purple-500" />
-                              <span className="text-[10px] text-gray-500">Proyectado</span>
+                              <span className="text-xs text-gray-500">Proyectado</span>
                             </div>
                           </div>
                         </>
@@ -1168,7 +1168,7 @@ export function FinanceOverview() {
                         </CardTitle>
                         <Badge
                           variant="secondary"
-                          className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] px-2"
+                          className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs px-2"
                         >
                           {formatCurrency(totalSpentOnCategories)}
                         </Badge>
@@ -1199,12 +1199,12 @@ export function FinanceOverview() {
                             key={`pill-${cat.name}-${i}`}
                             className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800/60 rounded-full px-2 py-1"
                           >
-                            <span className="text-[10px]">{cat.emoji}</span>
-                            <span className="text-[10px] text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                            <span className="text-xs">{cat.emoji}</span>
+                            <span className="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
                               {cat.name}
                             </span>
                             <span
-                              className="text-[10px] font-semibold"
+                              className="text-xs font-semibold"
                               style={{ color: cat.color }}
                             >
                               {cat.percentage}%
@@ -1259,15 +1259,15 @@ export function FinanceOverview() {
                               strokeWidth={5}
                               color={budget.isOverBudget ? "#EF4444" : budget.color}
                             >
-                              <span className="text-[10px] font-bold text-gray-700 dark:text-gray-200">
+                              <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
                                 {budget.percentage > 999 ? "999+" : `${budget.percentage}%`}
                               </span>
                             </CircularProgress>
-                            <span className="text-[10px] mt-1.5">{budget.emoji}</span>
-                            <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 text-center leading-tight mt-0.5">
+                            <span className="text-xs mt-1.5">{budget.emoji}</span>
+                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300 text-center leading-tight mt-0.5">
                               {budget.category}
                             </span>
-                            <span className="text-[9px] text-gray-400 mt-0.5 text-center">
+                            <span className="text-[11px] text-gray-400 mt-0.5 text-center">
                               {formatCurrency(budget.spent)} / {formatCurrency(budget.amount)}
                             </span>
                           </motion.div>
@@ -1308,7 +1308,7 @@ export function FinanceOverview() {
                         <div className="space-y-4">
                           {groupedTransactions.map(([dateHeader, txs]) => (
                             <div key={dateHeader}>
-                              <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+                              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
                                 {dateHeader}
                               </p>
                               <div className="space-y-2.5">
@@ -1335,7 +1335,7 @@ export function FinanceOverview() {
                                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                           {tx.description}
                                         </p>
-                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1 flex-wrap">
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 flex-wrap">
                                           <span>
                                             {tx.category
                                               ? `${CATEGORY_ICONS[tx.category] || "📦"} ${tx.category}`
@@ -1347,7 +1347,7 @@ export function FinanceOverview() {
                                                 className="size-1.5 rounded-full inline-block"
                                                 style={{ backgroundColor: tx.account.color }}
                                               />
-                                              <span className="text-[9px] text-gray-500 dark:text-gray-400">
+                                              <span className="text-[11px] text-gray-500 dark:text-gray-400">
                                                 {tx.account.name}
                                               </span>
                                             </span>
@@ -1358,7 +1358,7 @@ export function FinanceOverview() {
                                                 className="size-1.5 rounded-full inline-block"
                                                 style={{ backgroundColor: tx.subAccount.color || "#8B5CF6" }}
                                               />
-                                              <span className="text-[9px] text-violet-500 dark:text-violet-400">
+                                              <span className="text-[11px] text-violet-500 dark:text-violet-400">
                                                 {tx.subAccount.name}
                                               </span>
                                             </span>
@@ -1366,7 +1366,7 @@ export function FinanceOverview() {
                                           {tx.user && tx.user.name && tx.userId && tx.userId !== session?.user?.id && (
                                             <span className="inline-flex items-center gap-0.5 bg-emerald-50 dark:bg-emerald-900/20 rounded px-1 py-px">
                                               <UserIcon className="size-2" />
-                                              <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                                                 {tx.user.name}
                                               </span>
                                             </span>
@@ -1413,7 +1413,7 @@ export function FinanceOverview() {
                       {/* Sub-section 1: Próximos Pagos Recurrentes */}
                       {upcomingRecurring.length > 0 && (
                         <div>
-                          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+                          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
                             Pagos Recurrentes Próximos
                           </p>
                           <div className="space-y-2">
@@ -1439,7 +1439,7 @@ export function FinanceOverview() {
                                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         {rec.description}
                                       </p>
-                                      <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                                      <p className="text-xs text-gray-400 dark:text-gray-500">
                                         {d.toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
                                         {rec.category && ` · ${rec.category}`}
                                       </p>
@@ -1460,7 +1460,7 @@ export function FinanceOverview() {
                       {/* Sub-section 2: Progreso de Deudas */}
                       {activeDebts.length > 0 && (
                         <div>
-                          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+                          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
                             Progreso de Deudas
                           </p>
                           <div className="space-y-2.5">
@@ -1497,12 +1497,12 @@ export function FinanceOverview() {
                                         style={{ width: `${Math.min(progressPct, 100)}%` }}
                                       />
                                     </div>
-                                    <span className="text-[10px] text-gray-400 font-medium">
+                                    <span className="text-xs text-gray-400 font-medium">
                                       {progressPct}%
                                     </span>
                                   </div>
                                   {debt.monthlyPayment && (
-                                    <p className="text-[10px] text-gray-400 mt-1">
+                                    <p className="text-xs text-gray-400 mt-1">
                                       Cuota: {formatCurrency(debt.monthlyPayment)}
                                       {debt.paymentDate ? ` · Día ${debt.paymentDate}` : ""}
                                     </p>

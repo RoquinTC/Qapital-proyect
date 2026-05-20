@@ -514,7 +514,7 @@ function SortableAccountCard({
                 {account.name}
               </p>
             </div>
-            <p className="text-[9px] text-white/50 mb-1.5 leading-tight">
+            <p className="text-[11px] text-white/50 mb-1.5 leading-tight">
               {typeLabel}
             </p>
             <p className="text-[15px] font-bold text-white tracking-tight leading-tight">
@@ -531,14 +531,14 @@ function SortableAccountCard({
                     />
                   ))}
                 </div>
-                <span className="text-[8px] text-white/50">
+                <span className="text-[11px] text-white/50">
                   {account.subAccounts.length} bolsillo{account.subAccounts.length > 1 ? "s" : ""}
                 </span>
               </div>
             )}
             <div className="flex items-center gap-1 mt-1.5">
               <div className={`size-1.5 rounded-full ${isNegative ? "bg-rose-300" : "bg-emerald-300"}`} />
-              <span className="text-[8px] text-white/40">
+              <span className="text-[11px] text-white/40">
                 {isNegative ? "Negativo" : "Positivo"}
               </span>
               {/* Sparkline de tendencia 30 días */}
@@ -556,7 +556,7 @@ function SortableAccountCard({
             {/* Indicador de tendencia junto al balance */}
             {hasHistory && (
               <div className="flex items-center gap-0.5 mt-0.5">
-                <span className={"text-[8px] font-semibold " + (trendUp ? "text-emerald-300" : "text-rose-300")}>
+                <span className={"text-[11px] font-semibold " + (trendUp ? "text-emerald-300" : "text-rose-300")}>
                   {trendUp ? "▲" : "▼"}
                 </span>
                 <span className="text-[7px] text-white/30">30d</span>
@@ -643,7 +643,7 @@ function SortableSheetItem({
           {widget.label}
         </span>
 
-        <span className="text-[10px] text-gray-400 font-mono shrink-0">
+        <span className="text-xs text-gray-400 font-mono shrink-0">
           #{index + 1}
         </span>
 
@@ -1029,7 +1029,7 @@ export function AccountsView() {
                     <ArrowUpRight className="size-3.5 text-emerald-200" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-emerald-200">Ingresos</p>
+                    <p className="text-xs text-emerald-200">Ingresos</p>
                     <p className="text-sm font-semibold">
                       {formatCurrency(monthlyIncome)}
                     </p>
@@ -1040,7 +1040,7 @@ export function AccountsView() {
                     <ArrowDownRight className="size-3.5 text-rose-200" />
                   </div>
                   <div>
-                    <p className="text-[10px] text-emerald-200">Gastos</p>
+                    <p className="text-xs text-emerald-200">Gastos</p>
                     <p className="text-sm font-semibold">
                       {formatCurrency(monthlyExpenses)}
                     </p>
@@ -1050,7 +1050,7 @@ export function AccountsView() {
               <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Wallet className="size-3 text-emerald-300/60" />
-                  <span className="text-[10px] text-emerald-200/60">
+                  <span className="text-xs text-emerald-200/60">
                     Balance Total
                   </span>
                 </div>
@@ -1060,10 +1060,10 @@ export function AccountsView() {
               </div>
               {excludedBalance > 0 && (
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-[10px] text-emerald-200/50">
+                  <span className="text-xs text-emerald-200/50">
                     Excluidos
                   </span>
-                  <span className="text-[10px] text-emerald-200/50">
+                  <span className="text-xs text-emerald-200/50">
                     {formatCurrency(excludedBalance)}
                   </span>
                 </div>
@@ -1102,7 +1102,7 @@ export function AccountsView() {
                 <BarChart3 className="size-4 text-blue-500" />
                 Gráfico de Cascada
               </CardTitle>
-              <p className="text-[10px] text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-400 mt-0.5">
                 Saldo inicial → Ingresos → Gastos → Saldo final
               </p>
             </CardHeader>
@@ -1205,11 +1205,11 @@ export function AccountsView() {
                   <div className="flex items-center justify-center gap-4 mt-2">
                     <div className="flex items-center gap-1.5">
                       <div className="size-2.5 rounded-full bg-emerald-500" />
-                      <span className="text-[10px] text-gray-500">Ingresos</span>
+                      <span className="text-xs text-gray-500">Ingresos</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="size-2.5 rounded-full bg-red-500" />
-                      <span className="text-[10px] text-gray-500">Gastos</span>
+                      <span className="text-xs text-gray-500">Gastos</span>
                     </div>
                   </div>
                 </>
@@ -1229,7 +1229,7 @@ export function AccountsView() {
                 </CardTitle>
                 <Badge
                   variant="secondary"
-                  className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] px-2"
+                  className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs px-2"
                 >
                   {formatCurrency(totalSpentOnCategories)}
                 </Badge>
@@ -1260,12 +1260,12 @@ export function AccountsView() {
                     key={`pill-${cat.name}-${i}`}
                     className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800/60 rounded-full px-2 py-1"
                   >
-                    <span className="text-[10px]">{cat.emoji}</span>
-                    <span className="text-[10px] text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    <span className="text-xs">{cat.emoji}</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
                       {cat.name}
                     </span>
                     <span
-                      className="text-[10px] font-semibold"
+                      className="text-xs font-semibold"
                       style={{ color: cat.color }}
                     >
                       {cat.percentage}%
@@ -1346,7 +1346,7 @@ export function AccountsView() {
                   >
                     <div className="w-[140px] h-[130px] rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-colors">
                       <Plus className="size-4 text-gray-400" />
-                      <span className="text-[9px] text-gray-400 font-medium">
+                      <span className="text-[11px] text-gray-400 font-medium">
                         Nueva Cuenta
                       </span>
                     </div>
@@ -1390,7 +1390,7 @@ export function AccountsView() {
               </DragOverlay>
             </DndContext>
 
-            <p className="text-[9px] text-gray-400 dark:text-gray-500 mt-1.5 text-center flex items-center justify-center gap-1">
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5 text-center flex items-center justify-center gap-1">
               <GripVertical className="size-3" />
               Arrastra el ícono para reordenar
             </p>
@@ -1438,7 +1438,7 @@ export function AccountsView() {
                 <div className="space-y-4">
                   {groupedTransactions.map(([dateHeader, txs]) => (
                     <div key={dateHeader}>
-                      <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+                      <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
                         {dateHeader}
                       </p>
                       <div className="space-y-2.5">
@@ -1465,7 +1465,7 @@ export function AccountsView() {
                                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                   {tx.description}
                                 </p>
-                                <p className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1 flex-wrap">
+                                <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 flex-wrap">
                                   <span>
                                     {tx.category
                                       ? `${CATEGORY_ICONS[tx.category] || "📦"} ${tx.category}`
@@ -1477,7 +1477,7 @@ export function AccountsView() {
                                         className="size-1.5 rounded-full inline-block"
                                         style={{ backgroundColor: tx.account.color }}
                                       />
-                                      <span className="text-[9px] text-gray-500 dark:text-gray-400">
+                                      <span className="text-[11px] text-gray-500 dark:text-gray-400">
                                         {tx.account.name}
                                       </span>
                                     </span>
@@ -1488,7 +1488,7 @@ export function AccountsView() {
                                         className="size-1.5 rounded-full inline-block"
                                         style={{ backgroundColor: tx.subAccount.color || "#8B5CF6" }}
                                       />
-                                      <span className="text-[9px] text-violet-500 dark:text-violet-400">
+                                      <span className="text-[11px] text-violet-500 dark:text-violet-400">
                                         {tx.subAccount.name}
                                       </span>
                                     </span>
@@ -1496,7 +1496,7 @@ export function AccountsView() {
                                   {tx.user && tx.user.name && tx.userId && tx.userId !== session?.user?.id && (
                                     <span className="inline-flex items-center gap-0.5 bg-emerald-50 dark:bg-emerald-900/20 rounded px-1 py-px">
                                       <UserIcon className="size-2" />
-                                      <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                                         {tx.user.name}
                                       </span>
                                     </span>
@@ -1624,7 +1624,7 @@ export function AccountsView() {
         </DndContext>
 
         {/* Hint text for widget drag */}
-        <p className="text-[9px] text-gray-400 dark:text-gray-500 text-center flex items-center justify-center gap-1">
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center flex items-center justify-center gap-1">
           <GripVertical className="size-3" />
           Arrastra el ícono para reordenar secciones
         </p>

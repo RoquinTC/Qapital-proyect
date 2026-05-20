@@ -112,9 +112,9 @@ export function TransactionNotes({ notes, isCcPayment, size = "sm" }: Transactio
   if (!notes) return null;
 
   const isSmall = size === "sm";
-  const textXs = isSmall ? "text-[9px]" : "text-[10px]";
+  const textXs = isSmall ? "text-[11px]" : "text-xs";
   const textSm = isSmall ? "text-[11px]" : "text-xs";
-  const badgeText = isSmall ? "text-[8px]" : "text-[9px]";
+  const badgeText = isSmall ? "text-[11px]" : "text-[11px]";
   const badgePx = isSmall ? "px-1 py-0" : "px-1.5 py-0.5";
   const rowPad = isSmall ? "py-1 px-1.5" : "py-1.5 px-2";
 

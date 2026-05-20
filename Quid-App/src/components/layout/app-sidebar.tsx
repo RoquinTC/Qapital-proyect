@@ -202,7 +202,7 @@ export function AppSidebar() {
         <div className="overflow-y-auto" style={{ maxHeight: "calc(100dvh - 160px)" }}>
           {/* Module Navigation with expandable actions */}
           <div className="p-3 space-y-1">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
               Módulos
             </p>
             {moduleItems.map((item) => {
@@ -335,7 +335,7 @@ export function AppSidebar() {
                             {item.label}
                           </span>
                           {item.comingSoon && (
-                            <span className="text-[9px] font-semibold bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                            <span className="text-[11px] font-semibold bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                               Próximamente
                             </span>
                           )}

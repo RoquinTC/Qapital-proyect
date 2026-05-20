@@ -230,7 +230,7 @@ export function MaintenanceView({ onSelectVehicle }: MaintenanceViewProps) {
                         <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
                           {getVehicleName(r.vehicleId)} • {maintTypeLabels[r.type] || r.type}
                         </p>
-                        <p className="text-[10px] text-gray-500">
+                        <p className="text-xs text-gray-500">
                           {kmRemaining !== null && (
                             <span className={isOverdue ? "text-red-500 font-medium" : ""}>
                               {isOverdue ? "Vencido" : `Faltan ${kmRemaining.toLocaleString("es-CO")} km`}
@@ -346,14 +346,14 @@ export function MaintenanceView({ onSelectVehicle }: MaintenanceViewProps) {
                           {record.description}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-xs text-gray-400">
                             {formatShortDate(record.date)}
                           </span>
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-xs text-gray-400">
                             {(record.km ?? 0).toLocaleString("es-CO")} km
                           </span>
                           {record.nextDueKm && (
-                            <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                            <Badge variant="secondary" className="text-[11px] h-4 px-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                               Próx: {(record.nextDueKm ?? 0).toLocaleString("es-CO")} km
                             </Badge>
                           )}

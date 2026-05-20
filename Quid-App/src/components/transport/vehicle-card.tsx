@@ -176,12 +176,12 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold text-white">{vehicle.name}</h3>
                     {vehicle.plate && (
-                      <span className="text-[9px] font-bold bg-white text-gray-800 border border-gray-300 rounded px-1.5 py-0 leading-4 tracking-wider uppercase">
+                      <span className="text-[11px] font-bold bg-white text-gray-800 border border-gray-300 rounded px-1.5 py-0 leading-4 tracking-wider uppercase">
                         {vehicle.plate}
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-white/70">
+                  <span className="text-xs text-white/70">
                     {vehicle.brand && vehicle.model
                       ? `${vehicle.brand} ${vehicle.model}`
                       : vehicleTypeLabels[vehicle.type] || vehicle.type}
@@ -191,7 +191,7 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
               </div>
               <div className="flex items-center gap-2">
                 {vehicle.fuelType && (
-                  <span className="text-[9px] bg-white/20 backdrop-blur-sm text-white rounded-full px-2 py-0.5">
+                  <span className="text-[11px] bg-white/20 backdrop-blur-sm text-white rounded-full px-2 py-0.5">
                     {fuelTypeLabels[vehicle.fuelType] || vehicle.fuelType}
                   </span>
                 )}
@@ -227,7 +227,7 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
                       <Fuel className={`size-3.5 ${getFuelColorClass(fuelLevel)}`} />
                       <span className="text-xs text-gray-500">Combustible</span>
                       {isLearning && (
-                        <span className="text-[8px] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded px-1 py-0" title="Rendimiento estimado, se ajustará con más registros">
+                        <span className="text-[11px] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded px-1 py-0" title="Rendimiento estimado, se ajustará con más registros">
                           Aprendiendo
                         </span>
                       )}
@@ -287,7 +287,7 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
                     ) : (
                       <span className={isLowFuel ? "text-red-600 dark:text-red-400" : "text-cyan-600 dark:text-cyan-400"}>
                         {costToFillData.gallonsNeeded.toFixed(1)} gal para llenar
-                        <span className="text-[9px] block opacity-70">Configura el precio de la gasolina para ver el costo</span>
+                        <span className="text-[11px] block opacity-70">Configura el precio de la gasolina para ver el costo</span>
                       </span>
                     )}
                   </div>
@@ -304,11 +304,11 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
                         ? "¡Tanquea pronto!"
                         : `Tanquea en ~${daysUntilRefuel} días`}
                     </span>
-                    <span className={`text-[9px] ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
+                    <span className={`text-[11px] ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
                       {refuelDateText}
                     </span>
                     {avgKmPerDay > 0 && (
-                      <span className={`text-[8px] ml-auto ${isLowFuel ? "text-red-400 dark:text-red-500" : "text-cyan-400 dark:text-cyan-500"}`}>
+                      <span className={`text-[11px] ml-auto ${isLowFuel ? "text-red-400 dark:text-red-500" : "text-cyan-400 dark:text-cyan-500"}`}>
                         ~{avgKmPerDay.toFixed(0)} km/día
                       </span>
                     )}
@@ -321,7 +321,7 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
             {vehicle.anomalyDetected && (
               <div className="flex items-center gap-2 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
                 <AlertTriangle className="size-4 text-red-500 flex-shrink-0" />
-                <p className="text-[10px] text-red-600 dark:text-red-400">
+                <p className="text-xs text-red-600 dark:text-red-400">
                   Consumo anormal detectado — posible fuga o problema mecánico
                 </p>
               </div>
@@ -376,14 +376,14 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
                         {recentFuelLogs.slice(1).map((log) => (
                           <div key={log.id} className="flex items-center gap-2 text-gray-500 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-1 py-1" onClick={onClick}>
                             <Fuel className="size-3 text-gray-400" />
-                            <span className="text-[10px]">
+                            <span className="text-xs">
                               {formatDate(log.date)} • {formatCurrency(log.amount)} • {log.gallons.toFixed(2)} gal
                             </span>
                           </div>
                         ))}
                         <button
                           onClick={onClick}
-                          className="text-[10px] text-cyan-600 dark:text-cyan-400 hover:underline pl-5"
+                          className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline pl-5"
                         >
                           Ver todo el historial →
                         </button>
@@ -410,7 +410,7 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
             {/* Tank capacity badge */}
             {vehicle.tankCapacity && (
               <div className="flex items-center gap-1 pt-1" onClick={onClick}>
-                <span className="text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full px-2 py-0.5">
+                <span className="text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full px-2 py-0.5">
                   Tanque: {vehicle.tankCapacity} gal
                 </span>
               </div>

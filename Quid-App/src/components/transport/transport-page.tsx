@@ -455,7 +455,7 @@ export function TransportPage() {
 
         {/* ─── Compact Indicators Row ─────────────────────────── */}
         {selectedVehicle && (
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             {/* Fuel bar + level + range — clickable to show fuel details */}
             {tankCapacity > 0 && (
               <button
@@ -492,7 +492,7 @@ export function TransportPage() {
               <Pencil className="size-2.5 text-gray-300" />
               {/* KM Outdated Warning pill */}
               {isKmOutdated && (
-                <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[8px] font-bold animate-pulse">
+                <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[11px] font-bold animate-pulse">
                   <AlertTriangle className="size-2" />
                   Actualizar
                 </span>
@@ -513,7 +513,7 @@ export function TransportPage() {
             {selectedVehicle.anomalyDetected && (
               <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 dark:bg-red-900/20">
                 <AlertTriangle className="size-3 text-red-500" />
-                <span className="text-[10px] font-semibold text-red-500">Alerta</span>
+                <span className="text-xs font-semibold text-red-500">Alerta</span>
               </div>
             )}
           </div>
@@ -544,7 +544,7 @@ export function TransportPage() {
                         <div>
                           <h3 className="text-sm font-bold text-gray-900 dark:text-white">Estado del Combustible</h3>
                           {lastKmUpdateLabel && (
-                            <p className="text-[10px] text-gray-400">{lastKmUpdateLabel}</p>
+                            <p className="text-xs text-gray-400">{lastKmUpdateLabel}</p>
                           )}
                         </div>
                       </div>
@@ -575,7 +575,7 @@ export function TransportPage() {
                                 transition={{ duration: 0.8, ease: "easeOut" }}
                               />
                             </div>
-                            <div className="flex justify-between text-[9px] text-gray-400">
+                            <div className="flex justify-between text-[11px] text-gray-400">
                               <span>0 gal</span>
                               <span>{tankCapacity} gal</span>
                             </div>
@@ -589,21 +589,21 @@ export function TransportPage() {
                             <p className="text-xs font-bold text-gray-900 dark:text-white">
                               {currentFuel.toFixed(1)} gal
                             </p>
-                            <p className="text-[9px] text-gray-400">En tanque</p>
+                            <p className="text-[11px] text-gray-400">En tanque</p>
                           </div>
                           <div className="bg-white dark:bg-gray-800 rounded-xl p-2 text-center">
                             <MapPin className="size-3 text-cyan-500 mx-auto mb-0.5" />
                             <p className="text-xs font-bold text-gray-900 dark:text-white">
                               ~{estimatedRange} km
                             </p>
-                            <p className="text-[9px] text-gray-400">Autonomía</p>
+                            <p className="text-[11px] text-gray-400">Autonomía</p>
                           </div>
                           <div className="bg-white dark:bg-gray-800 rounded-xl p-2 text-center">
                             <Activity className="size-3 text-cyan-500 mx-auto mb-0.5" />
                             <p className="text-xs font-bold text-gray-900 dark:text-white">
                               {avgKmPerGallon} km/g
                             </p>
-                            <p className="text-[9px] text-gray-400">Promedio</p>
+                            <p className="text-[11px] text-gray-400">Promedio</p>
                           </div>
                         </div>
 
@@ -636,18 +636,18 @@ export function TransportPage() {
                                 <span className={`text-[11px] font-semibold ${isLowFuel ? "text-red-700 dark:text-red-300" : "text-cyan-700 dark:text-cyan-300"}`}>
                                   {daysUntilRefuel <= 0 ? "¡Tanquea hoy!" : daysUntilRefuel === 1 ? "¡Tanquea mañana!" : `Tanquea en ~${daysUntilRefuel} días`}
                                 </span>
-                                <span className={`text-[9px] ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
+                                <span className={`text-[11px] ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
                                   {refuelDateText}
                                 </span>
                                 {avgKmPerDay > 0 && (
-                                  <span className={`text-[8px] ml-auto ${isLowFuel ? "text-red-400" : "text-cyan-400"}`}>
+                                  <span className={`text-[11px] ml-auto ${isLowFuel ? "text-red-400" : "text-cyan-400"}`}>
                                     ~{avgKmPerDay.toFixed(0)} km/día
                                   </span>
                                 )}
                               </div>
                             )}
                             {isLearning && (
-                              <p className="text-[8px] text-amber-600 dark:text-amber-400 mt-1">
+                              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
                                 Rendimiento estimado — se ajustará con más registros
                               </p>
                             )}
@@ -677,7 +677,7 @@ export function TransportPage() {
                         <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                           Sin registros de combustible
                         </p>
-                        <p className="text-[10px] text-gray-400 max-w-[220px] mx-auto mb-2">
+                        <p className="text-xs text-gray-400 max-w-[220px] mx-auto mb-2">
                           Registra una recarga con &quot;Tanque lleno&quot; para empezar a rastrear el nivel de combustible estimado
                         </p>
                         <Button
@@ -739,7 +739,7 @@ export function TransportPage() {
             {groupedTimeline().map((group) => (
               <div key={group.month}>
                 {/* Month header */}
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
                   {group.month}
                 </p>
 
@@ -951,7 +951,7 @@ function TimelineCard({
               {isFuel ? "Recarga" : (maintTypeLabels[entry.maintType || ""] || entry.maintType || "Mantenimiento")}
             </span>
             {isFuel && entry.isFullTank && (
-              <Badge variant="secondary" className="text-[8px] h-4 px-1.5 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+              <Badge variant="secondary" className="text-[11px] h-4 px-1.5 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
                 Lleno
               </Badge>
             )}
@@ -999,7 +999,7 @@ function TimelineCard({
           {!isFuel && entry.nextDueKm && (
             <>
               <span>•</span>
-              <Badge variant="secondary" className="text-[8px] h-3.5 px-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+              <Badge variant="secondary" className="text-[11px] h-3.5 px-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                 Próx: {entry.nextDueKm.toLocaleString("es-CO")} km
               </Badge>
             </>
@@ -1095,7 +1095,7 @@ function VehicleDetailView({
         </div>
 
         {/* Compact stats row */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* KM */}
           <button
             className="flex items-center gap-1.5 bg-white/15 rounded-lg px-2.5 py-1.5 backdrop-blur-sm"
@@ -1184,7 +1184,7 @@ function VehicleDetailView({
                     <span className="text-[11px] text-gray-700 dark:text-gray-300">
                       {maintTypeLabels[r.type] || r.type}
                     </span>
-                    <span className={`text-[10px] ml-auto font-semibold ${isOverdue ? "text-red-500" : "text-amber-600"}`}>
+                    <span className={`text-xs ml-auto font-semibold ${isOverdue ? "text-red-500" : "text-amber-600"}`}>
                       {isOverdue ? "Vencido" : `Faltan ${kmRemaining?.toLocaleString("es-CO")} km`}
                     </span>
                   </div>
@@ -1199,7 +1199,7 @@ function VehicleDetailView({
           <div className="px-4 pt-3">
             <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
               <AlertTriangle className="size-4 text-red-500 flex-shrink-0" />
-              <p className="text-[10px] text-red-600 dark:text-red-400">
+              <p className="text-xs text-red-600 dark:text-red-400">
                 Consumo anormal detectado — posible fuga o problema mecánico
               </p>
             </div>

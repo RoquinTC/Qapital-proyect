@@ -113,12 +113,12 @@ export function MedicationsView() {
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-3xl font-bold tracking-tight">{activeCount}</p>
-                <span className="text-[10px] text-rose-200">
+                <span className="text-xs text-rose-200">
                   activo{activeCount !== 1 ? "s" : ""} de {medications.length} total
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-[10px] text-rose-200">Hoy</span>
+                <span className="text-xs text-rose-200">Hoy</span>
                 <p className="text-lg font-bold">
                   {medications.filter((m) => m.isActive).length}
                 </p>

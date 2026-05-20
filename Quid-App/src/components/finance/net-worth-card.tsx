@@ -61,7 +61,7 @@ export function NetWorthCard() {
               <Wallet className="size-4 text-white" />
             </div>
             <div>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Patrimonio Neto
               </p>
               <p className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
@@ -95,12 +95,12 @@ export function NetWorthCard() {
                 <span className="text-xs font-bold">Sin cambio</span>
               </div>
             )}
-            <p className="text-[9px] text-gray-400">
+            <p className="text-[11px] text-gray-400">
               vs periodo anterior · {isPositive ? "+" : ""}{percentageChange}%
             </p>
           </div>
         </div>
-        <p className="text-[9px] text-gray-400 mt-1.5">
+        <p className="text-[11px] text-gray-400 mt-1.5">
           Balance total menos deudas activas
         </p>
       </CardContent>

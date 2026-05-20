@@ -195,7 +195,7 @@ export function AccountForm({ open, onOpenChange, account, onSuccess }: AccountF
             )}
             <CurrencyInput value={balance} onChange={setBalance} showPrefix placeholder="0" className="rounded-xl" />
             {isEditing && account.balance !== parseFloat(balance) && (
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Balance actual: {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(account.balance)}
               </p>
             )}
@@ -205,7 +205,7 @@ export function AccountForm({ open, onOpenChange, account, onSuccess }: AccountF
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <div>
               <Label className="text-sm">Cuenta de alto rendimiento</Label>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Genera rendimientos mensuales
               </p>
             </div>
@@ -231,7 +231,7 @@ export function AccountForm({ open, onOpenChange, account, onSuccess }: AccountF
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <div>
               <Label className="text-sm">Cuenta compartida</Label>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Compartir con otras personas
               </p>
             </div>
@@ -242,7 +242,7 @@ export function AccountForm({ open, onOpenChange, account, onSuccess }: AccountF
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <div>
               <Label className="text-sm">Excluir de disponible</Label>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 No contar este saldo en el dinero disponible para gastar
               </p>
             </div>

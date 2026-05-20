@@ -164,11 +164,11 @@ export function AppointmentsView() {
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-3xl font-bold tracking-tight">{scheduledCount}</p>
-                <span className="text-[10px] text-violet-200">programada{scheduledCount !== 1 ? "s" : ""}</span>
+                <span className="text-xs text-violet-200">programada{scheduledCount !== 1 ? "s" : ""}</span>
               </div>
               {nextAppointment && (
                 <div className="text-right">
-                  <span className="text-[10px] text-violet-200">Próxima cita</span>
+                  <span className="text-xs text-violet-200">Próxima cita</span>
                   <p className="text-sm font-bold">
                     {new Date(nextAppointment.date).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
                   </p>
@@ -360,7 +360,7 @@ function AppointmentDetail({
           <div className="flex items-center gap-3 mb-4">
             <div className="size-14 rounded-xl flex flex-col items-center justify-center bg-white/20">
               <span className="text-lg font-bold leading-none">{date.getDate()}</span>
-              <span className="text-[9px] text-white/80 uppercase">
+              <span className="text-[11px] text-white/80 uppercase">
                 {date.toLocaleDateString("es-CO", { month: "short" }).replace(".", "")}
               </span>
             </div>

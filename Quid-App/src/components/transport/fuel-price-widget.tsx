@@ -171,7 +171,7 @@ export function FuelPriceWidget() {
 
         {/* Last updated */}
         {gasolinePrice && (
-          <p className="text-[10px] text-gray-400 text-right">
+          <p className="text-xs text-gray-400 text-right">
             Actualizado: {formatDate(gasolinePrice.updatedAt)}
           </p>
         )}

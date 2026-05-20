@@ -285,7 +285,7 @@ export function NotificationPanel() {
         >
           <Bell className="size-5" />
           {unreadCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 size-5 p-0 flex items-center justify-center bg-amber-400 text-emerald-900 text-[10px] font-bold border-0">
+            <Badge className="absolute -top-1 -right-1 size-5 p-0 flex items-center justify-center bg-amber-400 text-emerald-900 text-xs font-bold border-0">
               {unreadCount > 99 ? "99+" : unreadCount}
             </Badge>
           )}

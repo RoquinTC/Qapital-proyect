@@ -453,7 +453,7 @@ export function MaintenanceForm({
                         {type.label}
                       </span>
                       {type.nextKmInterval > 0 && (
-                        <span className="text-[9px] text-gray-400">
+                        <span className="text-[11px] text-gray-400">
                           Cada {type.nextKmInterval.toLocaleString()} km
                         </span>
                       )}
@@ -463,7 +463,7 @@ export function MaintenanceForm({
                     {isSelected && selectedService && (
                       <div className="px-3 pb-3 pt-0">
                         <div className="flex items-center gap-2 ml-8">
-                          <Label className="text-[10px] text-gray-500 flex-shrink-0">Valor:</Label>
+                          <Label className="text-xs text-gray-500 flex-shrink-0">Valor:</Label>
                           <CurrencyInput
                             showPrefix
                             placeholder="0"
@@ -570,7 +570,7 @@ export function MaintenanceForm({
                   {selectedVehicle?.name || vehicles[0]?.name || "Vehículo"}
                 </span>
                 {selectedVehicle?.plate && (
-                  <span className="text-[10px] text-gray-400 ml-auto">
+                  <span className="text-xs text-gray-400 ml-auto">
                     {selectedVehicle.plate}
                   </span>
                 )}
@@ -729,7 +729,7 @@ export function MaintenanceForm({
             <Label>
               Costo total{" "}
               {selectedServices.length > 0 && (
-                <span className="text-[9px] text-cyan-500 font-normal">(auto)</span>
+                <span className="text-[11px] text-cyan-500 font-normal">(auto)</span>
               )}
             </Label>
             <CurrencyInput
@@ -744,7 +744,7 @@ export function MaintenanceForm({
 
           {/* ─── 6. Description (optional) ─── */}
           <div className="space-y-2">
-            <Label>Descripción <span className="text-gray-400 font-normal text-[10px]">(opcional)</span></Label>
+            <Label>Descripción <span className="text-gray-400 font-normal text-xs">(opcional)</span></Label>
             <Input
               placeholder="Ej: Cambio de aceite sintético 10W-40"
               value={description}
@@ -760,7 +760,7 @@ export function MaintenanceForm({
             </Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="maint-nextkm" className="text-[10px] text-gray-500">
+                <Label htmlFor="maint-nextkm" className="text-xs text-gray-500">
                   KM próx. cambio
                 </Label>
                 <Input
@@ -773,7 +773,7 @@ export function MaintenanceForm({
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="maint-nextdate" className="text-[10px] text-gray-500">
+                <Label htmlFor="maint-nextdate" className="text-xs text-gray-500">
                   Fecha próx. cambio
                 </Label>
                 <Input
@@ -791,7 +791,7 @@ export function MaintenanceForm({
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <div>
               <Label className="text-sm">Recordatorio</Label>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Recibir aviso del próximo mantenimiento
               </p>
             </div>

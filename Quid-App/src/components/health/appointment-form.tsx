@@ -197,7 +197,7 @@ export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: 
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <div>
               <Label className="text-sm">Recordatorio</Label>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Notificación antes de la cita
               </p>
             </div>

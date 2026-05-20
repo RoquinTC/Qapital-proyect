@@ -184,7 +184,7 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingDown className="size-4 text-cyan-500" />
-              <span className="text-[10px] text-gray-500">Gasto este mes</span>
+              <span className="text-xs text-gray-500">Gasto este mes</span>
             </div>
             <p className="text-lg font-bold text-gray-900 dark:text-white">
               {formatCurrency(totalSpentThisMonth)}
@@ -195,7 +195,7 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <BarChart3 className="size-4 text-blue-500" />
-              <span className="text-[10px] text-gray-500">Prom. km/gal</span>
+              <span className="text-xs text-gray-500">Prom. km/gal</span>
             </div>
             <p className="text-lg font-bold text-gray-900 dark:text-white">
               {avgKmPerGallon > 0 ? `${avgKmPerGallon}` : "—"}
@@ -250,7 +250,7 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
                           {getVehicleName(log.vehicleId)}
                         </span>
                         {log.isFullTank && (
-                          <Badge variant="secondary" className="text-[9px] h-4 px-1.5 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+                          <Badge variant="secondary" className="text-[11px] h-4 px-1.5 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
                             Tanque lleno
                           </Badge>
                         )}

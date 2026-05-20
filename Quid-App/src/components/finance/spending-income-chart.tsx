@@ -167,7 +167,7 @@ export function SpendingIncomeChart() {
             >
               <ChevronLeft className="size-4" />
             </Button>
-            <span className="text-[10px] text-gray-500 min-w-[140px] text-center">
+            <span className="text-xs text-gray-500 min-w-[140px] text-center">
               {data
                 ? formatPeriodLabel(data.periodStart, data.periodEnd)
                 : "Cargando..."}
@@ -189,7 +189,7 @@ export function SpendingIncomeChart() {
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
             <button
               onClick={() => setChartType("bar")}
-              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
                 chartType === "bar"
                   ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
                   : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -200,7 +200,7 @@ export function SpendingIncomeChart() {
             </button>
             <button
               onClick={() => setChartType("area")}
-              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
                 chartType === "area"
                   ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
                   : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -211,7 +211,7 @@ export function SpendingIncomeChart() {
             </button>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-gray-400">Balance del periodo</p>
+            <p className="text-[11px] text-gray-400">Balance del periodo</p>
             <p
               className={`text-sm font-bold ${
                 isPositive
@@ -230,7 +230,7 @@ export function SpendingIncomeChart() {
           <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-2.5">
             <div className="flex items-center gap-1 mb-0.5">
               <TrendingUp className="size-3 text-emerald-500" />
-              <span className="text-[9px] text-emerald-600 dark:text-emerald-400">
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
                 Ingresos
               </span>
             </div>
@@ -241,7 +241,7 @@ export function SpendingIncomeChart() {
           <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-2.5">
             <div className="flex items-center gap-1 mb-0.5">
               <TrendingDown className="size-3 text-rose-500" />
-              <span className="text-[9px] text-rose-600 dark:text-rose-400">
+              <span className="text-[11px] text-rose-600 dark:text-rose-400">
                 Gastos
               </span>
             </div>
@@ -370,7 +370,7 @@ export function SpendingIncomeChart() {
         {/* Category breakdown mini-list */}
         {data?.categoryBreakdown && data.categoryBreakdown.length > 0 && (
           <div className="mt-3 border-t border-gray-100 dark:border-gray-800 pt-3">
-            <p className="text-[10px] font-medium text-gray-500 mb-2">
+            <p className="text-xs font-medium text-gray-500 mb-2">
               Desglose por categoría
             </p>
             <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
@@ -394,11 +394,11 @@ export function SpendingIncomeChart() {
                         isIncome ? "bg-emerald-500" : "bg-rose-500"
                       }`}
                     />
-                    <span className="text-[10px] text-gray-600 dark:text-gray-400 flex-1 truncate">
+                    <span className="text-xs text-gray-600 dark:text-gray-400 flex-1 truncate">
                       {label}
                     </span>
                     <span
-                      className={`text-[10px] font-medium ${
+                      className={`text-xs font-medium ${
                         isIncome
                           ? "text-emerald-600 dark:text-emerald-400"
                           : "text-rose-600 dark:text-rose-400"

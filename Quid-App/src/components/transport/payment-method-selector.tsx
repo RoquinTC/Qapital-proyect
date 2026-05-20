@@ -177,7 +177,7 @@ export function PaymentMethodSelector({
       <div className="space-y-2">
         <Label className="text-sm font-medium">Método de pago</Label>
         {optional && (
-          <p className="text-[10px] text-gray-400">
+          <p className="text-xs text-gray-400">
             Opcional para datos históricos. Obligatorio para registros nuevos.
           </p>
         )}
@@ -236,7 +236,7 @@ export function PaymentMethodSelector({
                         style={{ backgroundColor: account.color || "#10B981" }}
                       />
                       <span>{account.name}</span>
-                      <span className="text-[10px] text-gray-400 ml-auto">
+                      <span className="text-xs text-gray-400 ml-auto">
                         ${account.balance?.toLocaleString("es-CO")}
                       </span>
                     </div>
@@ -272,7 +272,7 @@ export function PaymentMethodSelector({
                       <div className="flex items-center gap-2">
                         <PiggyBank className="size-3 text-pink-400" />
                         <span>{sub.name}</span>
-                        <span className="text-[10px] text-gray-400 ml-auto">
+                        <span className="text-xs text-gray-400 ml-auto">
                           ${sub.balance?.toLocaleString("es-CO")}
                         </span>
                       </div>
@@ -287,7 +287,7 @@ export function PaymentMethodSelector({
           {accountId && (
             <div className="flex items-start gap-1.5 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <Info className="size-3 text-blue-500 mt-0.5 flex-shrink-0" />
-              <span className="text-[10px] text-blue-600 dark:text-blue-400">
+              <span className="text-xs text-blue-600 dark:text-blue-400">
                 Se debitará de {selectedAccount?.name}
                 {subAccountId && selectedAccount?.subAccounts
                   ? ` → ${selectedAccount.subAccounts.find(s => s.id === subAccountId)?.name || "bolsillo"}`
@@ -321,7 +321,7 @@ export function PaymentMethodSelector({
                     <div className="flex items-center gap-2">
                       <CreditCard className="size-3" style={{ color: cc.color || "#8B5CF6" }} />
                       <span>{cc.name}</span>
-                      <span className="text-[10px] text-gray-400 ml-auto">
+                      <span className="text-xs text-gray-400 ml-auto">
                         Saldo: ${cc.currentBalance?.toLocaleString("es-CO")}
                       </span>
                     </div>
@@ -355,7 +355,7 @@ export function PaymentMethodSelector({
                 ))}
               </div>
               {installmentCount && installmentCount > 1 && (
-                <p className="text-[10px] text-violet-500">
+                <p className="text-xs text-violet-500">
                   Se creará una compra en {installmentCount} cuotas en la TC
                 </p>
               )}
@@ -369,7 +369,7 @@ export function PaymentMethodSelector({
                 <Landmark className="size-3" />
                 Cuenta de pago de la TC
               </Label>
-              <p className="text-[9px] text-gray-400">
+              <p className="text-[11px] text-gray-400">
                 Se debitará de esta cuenta al pagar la tarjeta de crédito
               </p>
               <Select
@@ -389,7 +389,7 @@ export function PaymentMethodSelector({
                           style={{ backgroundColor: account.color || "#10B981" }}
                         />
                         <span>{account.name}</span>
-                        <span className="text-[10px] text-gray-400 ml-auto">
+                        <span className="text-xs text-gray-400 ml-auto">
                           ${account.balance?.toLocaleString("es-CO")}
                         </span>
                       </div>
@@ -420,7 +420,7 @@ export function PaymentMethodSelector({
                         <div className="flex items-center gap-2">
                           <PiggyBank className="size-3 text-pink-400" />
                           <span>{sub.name}</span>
-                          <span className="text-[10px] text-gray-400 ml-auto">
+                          <span className="text-xs text-gray-400 ml-auto">
                             ${sub.balance?.toLocaleString("es-CO")}
                           </span>
                         </div>
@@ -436,7 +436,7 @@ export function PaymentMethodSelector({
           {debtId && (
             <div className="flex items-start gap-1.5 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <Info className="size-3 text-blue-500 mt-0.5 flex-shrink-0" />
-              <span className="text-[10px] text-blue-600 dark:text-blue-400">
+              <span className="text-xs text-blue-600 dark:text-blue-400">
                 Se registrará como compra en {creditCards.find(c => c.id === debtId)?.name}
                 {installmentCount && installmentCount > 1
                   ? ` a ${installmentCount} cuotas`

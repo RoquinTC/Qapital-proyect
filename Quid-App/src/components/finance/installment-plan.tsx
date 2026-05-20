@@ -479,7 +479,7 @@ export function InstallmentPlan({
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 text-[10px] text-gray-500 ml-6 flex-wrap">
+                <div className="flex items-center gap-2 text-xs text-gray-500 ml-6 flex-wrap">
                   <span className="inline-flex items-center gap-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-md font-medium">
                     <Calendar className="size-2.5" />
                     {formatDate(inst.purchaseDate)}
@@ -511,7 +511,7 @@ export function InstallmentPlan({
 
                 {/* Show paid amount breakdown for paid installments with interest */}
                 {inst.isPaid && inst.interestAmount != null && inst.interestAmount > 0 && (
-                  <div className="flex items-center gap-2 text-[10px] text-gray-400 ml-6 mt-0.5">
+                  <div className="flex items-center gap-2 text-xs text-gray-400 ml-6 mt-0.5">
                     <span>Pagado: {formatCurrency(inst.paidAmount)}</span>
                     <span>(Capital: {formatCurrency(inst.installmentAmount)} + Interés: {formatCurrency(inst.interestAmount)}{inst.otherChargesAmount ? ` + Otros: ${formatCurrency(inst.otherChargesAmount)}` : ""})</span>
                   </div>
@@ -521,7 +521,7 @@ export function InstallmentPlan({
                 {showAccount && accountName && (
                   <div className="flex items-center gap-1 ml-6 mt-1">
                     <Wallet className="size-3 text-gray-400" />
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-xs text-gray-400">
                       Paga desde: {accountName}
                       {subAccountName && ` → ${subAccountName}`}
                     </span>
@@ -547,17 +547,17 @@ export function InstallmentPlan({
 
               <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
                 {status === "due" && (
-                  <Badge variant="destructive" className="text-[10px]">
+                  <Badge variant="destructive" className="text-xs">
                     Vencida
                   </Badge>
                 )}
                 {status === "future" && (
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-xs text-gray-400">
                     {formatDate(inst.nextPaymentDate)}
                   </span>
                 )}
                 {status === "paid" && (
-                  <Badge variant="secondary" className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                  <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                     Pagada
                   </Badge>
                 )}
@@ -635,17 +635,17 @@ export function InstallmentPlan({
                               Ciclo {cycle.cycleLabel}
                             </span>
                             {isCutoffPassed && !isPaymentDuePassed && (
-                              <Badge className="text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0">
+                              <Badge className="text-[11px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0">
                                 Corte pasado
                               </Badge>
                             )}
                             {isPaymentDuePassed && (
-                              <Badge variant="destructive" className="text-[9px]">
+                              <Badge variant="destructive" className="text-[11px]">
                                 Pago vencido
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 text-[10px] text-gray-500 mt-0.5 ml-6">
+                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5 ml-6">
                             <span className="flex items-center gap-1">
                               <Calendar className="size-3" />
                               Corte: {formatDate(cycle.cutoffDate)}
@@ -707,11 +707,11 @@ export function InstallmentPlan({
                                     {group.accountName}
                                   </span>
                                   {group.subAccountName && (
-                                    <span className="text-[10px] text-gray-400">
+                                    <span className="text-xs text-gray-400">
                                       → {group.subAccountName}
                                     </span>
                                   )}
-                                  <Badge variant="secondary" className="text-[9px] ml-1">
+                                  <Badge variant="secondary" className="text-[11px] ml-1">
                                     {group.installments.length} compra{group.installments.length > 1 ? "s" : ""}
                                   </Badge>
                                 </div>
@@ -787,7 +787,7 @@ export function InstallmentPlan({
                       <span className="text-sm font-semibold text-gray-900 dark:text-white">
                         {group.dateLabel}
                       </span>
-                      <div className="text-[10px] text-gray-500">
+                      <div className="text-xs text-gray-500">
                         {group.installments.length} compra{group.installments.length > 1 ? "s" : ""}
                         {hasDue && (
                           <span className="text-red-500 ml-1">
@@ -872,11 +872,11 @@ export function InstallmentPlan({
                         {group.accountName}
                       </span>
                       {group.subAccountName && (
-                        <div className="text-[10px] text-gray-400">
+                        <div className="text-xs text-gray-400">
                           → {group.subAccountName}
                         </div>
                       )}
-                      <div className="text-[10px] text-gray-500">
+                      <div className="text-xs text-gray-500">
                         {group.installments.length} compra{group.installments.length > 1 ? "s" : ""}
                         {hasDue && (
                           <span className="text-red-500 ml-1">
@@ -1046,14 +1046,14 @@ export function InstallmentPlan({
             <div className="flex items-center gap-2">
               <button
                 onClick={onSelectAllDue}
-                className="text-[10px] text-emerald-600 dark:text-emerald-400 hover:underline"
+                className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
               >
                 Todas
               </button>
               <span className="text-gray-300 dark:text-gray-600">|</span>
               <button
                 onClick={onDeselectAllDue}
-                className="text-[10px] text-gray-500 hover:underline"
+                className="text-xs text-gray-500 hover:underline"
               >
                 Ninguna
               </button>
@@ -1198,11 +1198,11 @@ export function InstallmentPlan({
                                 {group.accountName}
                               </span>
                               {group.subAccountName && (
-                                <span className="text-[10px] text-gray-400">
+                                <span className="text-xs text-gray-400">
                                   → {group.subAccountName}
                                 </span>
                               )}
-                              <Badge variant="secondary" className="text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 ml-1">
+                              <Badge variant="secondary" className="text-[11px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 ml-1">
                                 {group.installments.length}
                               </Badge>
                             </div>

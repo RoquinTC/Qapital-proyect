@@ -213,7 +213,7 @@ export function VehicleForm({ open, onOpenChange, vehicle, onSuccess }: VehicleF
                   title={iconLabels[key]}
                 >
                   <VehicleIcon icon={key} type={type} className={`size-5 ${icon === key ? "text-cyan-600 dark:text-cyan-400" : "text-gray-500 dark:text-gray-400"}`} />
-                  <span className="text-[8px] mt-1 text-gray-500 dark:text-gray-400 leading-tight truncate w-full text-center">
+                  <span className="text-[11px] mt-1 text-gray-500 dark:text-gray-400 leading-tight truncate w-full text-center">
                     {iconLabels[key]}
                   </span>
                 </button>

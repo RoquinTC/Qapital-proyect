@@ -100,7 +100,7 @@ export function SavingsContributeForm({
                 <button
                   key={qa}
                   onClick={() => setAmount(qa.toString())}
-                  className="py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-[10px] font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
                   {formatCurrency(qa)}
                 </button>

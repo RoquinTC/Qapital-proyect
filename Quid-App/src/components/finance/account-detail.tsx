@@ -556,7 +556,7 @@ export function AccountDetail() {
             </>
           )}
           {account.isSharedWithMe && (
-            <Badge variant="outline" className="text-[10px] rounded-lg border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400">
+            <Badge variant="outline" className="text-xs rounded-lg border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400">
               {account.myRole === "editor" ? "Editor" : "Visualizador"}
             </Badge>
           )}
@@ -580,7 +580,7 @@ export function AccountDetail() {
               {formatCurrency(projectedYield)}
               <span className="text-xs font-normal text-emerald-500 ml-1">/mes</span>
             </p>
-            <p className="text-[10px] text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               Basado en {account.yieldPercentage}% anual
             </p>
           </CardContent>
@@ -641,12 +641,12 @@ export function AccountDetail() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900 dark:text-white">{sub.name}</p>
-                            <span className="text-[10px] text-gray-400">
+                            <span className="text-xs text-gray-400">
                               {subTypeLabels[sub.type] || "Otro"}
                               {sub.isHighYield && ` · ${sub.yieldPercentage}% anual`}
                             </span>
                             {subYield > 0 && (
-                              <span className="block text-[10px] text-emerald-500 font-medium">
+                              <span className="block text-xs text-emerald-500 font-medium">
                                 +{formatCurrency(subYield)}/mes rendimiento estimado
                               </span>
                             )}
@@ -705,7 +705,7 @@ export function AccountDetail() {
 
                             {subTxs.length > 0 ? (
                               <div className="space-y-1.5">
-                                <span className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Movimientos</span>
+                                <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">Movimientos</span>
                                 {subTxs.map((tx) => {
                                   const txType = (tx.type as keyof typeof typeConfig) || "expense";
                                   const config = typeConfig[txType] || typeConfig.expense;
@@ -732,7 +732,7 @@ export function AccountDetail() {
                                             <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 leading-none">
                                               {day}
                                             </span>
-                                            <span className="text-[8px] text-gray-400 leading-none mt-0.5">
+                                            <span className="text-[11px] text-gray-400 leading-none mt-0.5">
                                               {month}
                                             </span>
                                           </div>
@@ -748,19 +748,19 @@ export function AccountDetail() {
                                             </p>
                                             <div className="flex items-center gap-1.5">
                                               <span
-                                                className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
+                                                className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
                                               >
                                                 {config.label}
                                               </span>
                                               {tx.category && (
-                                                <span className="text-[9px] text-gray-400">
+                                                <span className="text-[11px] text-gray-400">
                                                   {tx.category}
                                                 </span>
                                               )}
                                               {tx.user && tx.user.name && tx.userId && tx.userId !== session?.user?.id && (
                                                 <>
-                                                  <span className="text-[9px] text-gray-300">·</span>
-                                                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-0.5">
+                                                  <span className="text-[11px] text-gray-300">·</span>
+                                                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-0.5">
                                                     <UserIcon className="size-2.5" />
                                                     {tx.user.name}
                                                   </span>
@@ -802,26 +802,26 @@ export function AccountDetail() {
                                                 <div className="p-3 space-y-2">
                                                   <div className="grid grid-cols-2 gap-2">
                                                     <div>
-                                                      <span className="text-[9px] text-gray-400 uppercase tracking-wider">Tipo</span>
+                                                      <span className="text-[11px] text-gray-400 uppercase tracking-wider">Tipo</span>
                                                       <span className={`block text-[11px] font-medium ${config.badgeText}`}>
                                                         {config.label}
                                                       </span>
                                                     </div>
                                                     <div>
-                                                      <span className="text-[9px] text-gray-400 uppercase tracking-wider">Monto</span>
+                                                      <span className="text-[11px] text-gray-400 uppercase tracking-wider">Monto</span>
                                                       <span className="block text-[11px] font-bold" style={{ color: config.color }}>
                                                         {tx.type === "income" ? "+" : "-"}
                                                         {formatCurrency(Math.abs(tx.amount))}
                                                       </span>
                                                     </div>
                                                     <div>
-                                                      <span className="text-[9px] text-gray-400 uppercase tracking-wider">Categoría</span>
+                                                      <span className="text-[11px] text-gray-400 uppercase tracking-wider">Categoría</span>
                                                       <span className="block text-[11px] text-gray-700 dark:text-gray-300">
                                                         {tx.category || "Sin categoría"}
                                                       </span>
                                                     </div>
                                                     <div>
-                                                      <span className="text-[9px] text-gray-400 uppercase tracking-wider">Fecha</span>
+                                                      <span className="text-[11px] text-gray-400 uppercase tracking-wider">Fecha</span>
                                                       <span className="block text-[11px] text-gray-700 dark:text-gray-300">
                                                         {formatDate(tx.date)}
                                                       </span>
@@ -831,7 +831,7 @@ export function AccountDetail() {
                                                     )}
                                                     {tx.user && tx.user.name && tx.userId && tx.userId !== session?.user?.id && (
                                                       <div>
-                                                        <span className="text-[9px] text-gray-400 uppercase tracking-wider">Creado por</span>
+                                                        <span className="text-[11px] text-gray-400 uppercase tracking-wider">Creado por</span>
                                                         <span className="block text-[11px] text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-1">
                                                           <UserIcon className="size-3" />
                                                           {tx.user.name}
@@ -844,7 +844,7 @@ export function AccountDetail() {
                                                     <Button
                                                       variant="outline"
                                                       size="sm"
-                                                      className="flex-1 rounded-xl text-[10px] h-8"
+                                                      className="flex-1 rounded-xl text-xs h-8"
                                                       onClick={() => setEditingTxId(expandedTxId)}
                                                     >
                                                       <Pencil className="size-3 mr-1" />
@@ -853,7 +853,7 @@ export function AccountDetail() {
                                                     <Button
                                                       variant="outline"
                                                       size="sm"
-                                                      className="flex-1 rounded-xl text-[10px] h-8 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
+                                                      className="flex-1 rounded-xl text-xs h-8 text-red-500 hover:text-red-600 border-red-200 hover:border-red-300 hover:bg-red-50"
                                                       onClick={() => setShowTxDeleteDialog(tx.id)}
                                                     >
                                                       <Trash2 className="size-3 mr-1" />
@@ -865,7 +865,7 @@ export function AccountDetail() {
                                                 /* Inline Edit Form */
                                                 <div className="p-3 space-y-2 bg-gray-50/50 dark:bg-gray-800/50">
                                                   <div className="flex items-center justify-between mb-1">
-                                                    <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                                       Editar
                                                     </span>
                                                     <button
@@ -889,7 +889,7 @@ export function AccountDetail() {
                                                             setEditType(t);
                                                             setEditCategory("");
                                                           }}
-                                                          className={`flex-1 py-1.5 rounded-lg text-[9px] font-medium flex items-center justify-center gap-1 transition-all ${
+                                                          className={`flex-1 py-1.5 rounded-lg text-[11px] font-medium flex items-center justify-center gap-1 transition-all ${
                                                             isActive
                                                               ? `${tConfig.badgeBg} ${tConfig.badgeText} border`
                                                               : "bg-white dark:bg-gray-800 text-gray-400 border border-transparent"
@@ -905,7 +905,7 @@ export function AccountDetail() {
 
                                                   {/* Amount */}
                                                   <div className="space-y-1">
-                                                    <Label className="text-[9px]">Monto</Label>
+                                                    <Label className="text-[11px]">Monto</Label>
                                                     <CurrencyInput
                                                       value={editAmount}
                                                       onChange={setEditAmount}
@@ -917,7 +917,7 @@ export function AccountDetail() {
 
                                                   {/* Description */}
                                                   <div className="space-y-1">
-                                                    <Label className="text-[9px]">Descripción</Label>
+                                                    <Label className="text-[11px]">Descripción</Label>
                                                     <Input
                                                       value={editDescription}
                                                       onChange={(e) => setEditDescription(e.target.value)}
@@ -928,7 +928,7 @@ export function AccountDetail() {
                                                   {/* Category */}
                                                   {editType !== "transfer" && (
                                                     <div className="space-y-1">
-                                                      <Label className="text-[9px]">Categoría</Label>
+                                                      <Label className="text-[11px]">Categoría</Label>
                                                       <Select value={editCategory} onValueChange={(v) => { setEditCategory(v); setEditSubCategory(""); }}>
                                                         <SelectTrigger className="rounded-lg h-8 text-xs">
                                                           <SelectValue placeholder="Seleccionar" />
@@ -947,14 +947,14 @@ export function AccountDetail() {
                                                   {/* SubCategory */}
                                                   {editType !== "transfer" && editCategory && (
                                                     <div className="space-y-1">
-                                                      <Label className="text-[9px]">Subcategoría</Label>
+                                                      <Label className="text-[11px]">Subcategoría</Label>
                                                       {availableSubCategories.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 mb-1">
                                                           {availableSubCategories.map((sub) => (
                                                             <button
                                                               key={sub}
                                                               onClick={() => setEditSubCategory(sub === editSubCategory ? "" : sub)}
-                                                              className={`px-1.5 py-0.5 rounded-md text-[8px] font-medium transition-all ${
+                                                              className={`px-1.5 py-0.5 rounded-md text-[11px] font-medium transition-all ${
                                                                 sub === editSubCategory
                                                                   ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
                                                                   : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
@@ -969,14 +969,14 @@ export function AccountDetail() {
                                                         value={editSubCategory}
                                                         onChange={(e) => setEditSubCategory(e.target.value)}
                                                         placeholder="Opcional..."
-                                                        className="rounded-lg h-7 text-[10px]"
+                                                        className="rounded-lg h-7 text-xs"
                                                       />
                                                     </div>
                                                   )}
 
                                                   {/* Date */}
                                                   <div className="space-y-1">
-                                                    <Label className="text-[9px]">Fecha</Label>
+                                                    <Label className="text-[11px]">Fecha</Label>
                                                     <Input
                                                       type="date"
                                                       value={editDate}
@@ -987,7 +987,7 @@ export function AccountDetail() {
 
                                                   {/* Notes */}
                                                   <div className="space-y-1">
-                                                    <Label className="text-[9px]">Notas</Label>
+                                                    <Label className="text-[11px]">Notas</Label>
                                                     <Input
                                                       value={editNotes}
                                                       onChange={(e) => setEditNotes(e.target.value)}
@@ -1001,7 +1001,7 @@ export function AccountDetail() {
                                                     <Button
                                                       variant="outline"
                                                       size="sm"
-                                                      className="flex-1 rounded-xl text-[10px] h-8"
+                                                      className="flex-1 rounded-xl text-xs h-8"
                                                       onClick={handleCancelEdit}
                                                       disabled={saving}
                                                     >
@@ -1009,7 +1009,7 @@ export function AccountDetail() {
                                                     </Button>
                                                     <Button
                                                       size="sm"
-                                                      className="flex-1 rounded-xl text-[10px] h-8 text-white"
+                                                      className="flex-1 rounded-xl text-xs h-8 text-white"
                                                       style={{ backgroundColor: config.color }}
                                                       onClick={handleSaveEdit}
                                                       disabled={saving || !editAmount || !editDescription}
@@ -1205,7 +1205,7 @@ export function AccountDetail() {
                 >
                   <SlidersHorizontal className="size-4" />
                   {activeFilterCount > 0 && (
-                    <Badge className="absolute -top-1.5 -right-1.5 size-4 p-0 flex items-center justify-center text-[8px] bg-emerald-500 text-white border-0">
+                    <Badge className="absolute -top-1.5 -right-1.5 size-4 p-0 flex items-center justify-center text-[11px] bg-emerald-500 text-white border-0">
                       {activeFilterCount}
                     </Badge>
                   )}
@@ -1226,7 +1226,7 @@ export function AccountDetail() {
                       <CardContent className="p-3 space-y-2.5">
                         {/* Type filter buttons */}
                         <div className="space-y-1">
-                          <Label className="text-[10px] text-gray-500">Tipo</Label>
+                          <Label className="text-xs text-gray-500">Tipo</Label>
                           <div className="flex gap-1">
                             {[
                               { value: "all", label: "Todos" },
@@ -1237,7 +1237,7 @@ export function AccountDetail() {
                               <button
                                 key={opt.value}
                                 onClick={() => setFilterType(opt.value)}
-                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                   filterType === opt.value
                                     ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700"
                                     : "bg-gray-50 dark:bg-gray-800 text-gray-400 border border-transparent"
@@ -1251,7 +1251,7 @@ export function AccountDetail() {
 
                         {/* Category filter */}
                         <div className="space-y-1">
-                          <Label className="text-[10px] text-gray-500">Categoría</Label>
+                          <Label className="text-xs text-gray-500">Categoría</Label>
                           <Select value={filterCategory} onValueChange={setFilterCategory}>
                             <SelectTrigger className="rounded-lg h-8 text-xs">
                               <SelectValue placeholder="Todas" />
@@ -1269,7 +1269,7 @@ export function AccountDetail() {
 
                         {/* Amount range */}
                         <div className="space-y-1">
-                          <Label className="text-[10px] text-gray-500">Rango de monto</Label>
+                          <Label className="text-xs text-gray-500">Rango de monto</Label>
                           <div className="flex gap-2">
                             <Input
                               type="number"
@@ -1352,7 +1352,7 @@ export function AccountDetail() {
                             <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-none">
                               {day}
                             </span>
-                            <span className="text-[10px] text-gray-400 leading-none mt-0.5">
+                            <span className="text-xs text-gray-400 leading-none mt-0.5">
                               {month}
                             </span>
                           </div>
@@ -1368,19 +1368,19 @@ export function AccountDetail() {
                             </p>
                             <div className="flex items-center gap-1.5">
                               <span
-                                className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
+                                className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText}`}
                               >
                                 {config.label}
                               </span>
                               {tx.category && (
-                                <span className="text-[10px] text-gray-400">
+                                <span className="text-xs text-gray-400">
                                   {tx.category}
                                 </span>
                               )}
                               {tx.user && tx.user.name && tx.userId && tx.userId !== session?.user?.id && (
                                 <>
-                                  <span className="text-[10px] text-gray-300">·</span>
-                                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-0.5">
+                                  <span className="text-xs text-gray-300">·</span>
+                                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-0.5">
                                     <UserIcon className="size-2.5" />
                                     {tx.user.name}
                                   </span>
@@ -1422,33 +1422,33 @@ export function AccountDetail() {
                                 <div className="p-4 space-y-3">
                                   <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Tipo</span>
+                                      <span className="text-xs text-gray-400 uppercase tracking-wider">Tipo</span>
                                       <span className={`block text-xs font-medium ${config.badgeText}`}>
                                         {config.label}
                                       </span>
                                     </div>
                                     <div>
-                                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Monto</span>
+                                      <span className="text-xs text-gray-400 uppercase tracking-wider">Monto</span>
                                       <span className="block text-xs font-bold" style={{ color: config.color }}>
                                         {tx.type === "income" ? "+" : "-"}
                                         {formatCurrency(Math.abs(tx.amount))}
                                       </span>
                                     </div>
                                     <div>
-                                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Categoría</span>
+                                      <span className="text-xs text-gray-400 uppercase tracking-wider">Categoría</span>
                                       <span className="block text-xs text-gray-700 dark:text-gray-300">
                                         {tx.category || "Sin categoría"}
                                       </span>
                                     </div>
                                     <div>
-                                      <span className="text-[10px] text-gray-400 uppercase tracking-wider">Fecha</span>
+                                      <span className="text-xs text-gray-400 uppercase tracking-wider">Fecha</span>
                                       <span className="block text-xs text-gray-700 dark:text-gray-300">
                                         {formatDate(tx.date)}
                                       </span>
                                     </div>
                                     {tx.subAccount && (
                                       <div>
-                                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Bolsillo</span>
+                                        <span className="text-xs text-gray-400 uppercase tracking-wider">Bolsillo</span>
                                         <span className="text-xs text-gray-700 dark:text-gray-300">
                                           {tx.subAccount.name}
                                         </span>
@@ -1456,7 +1456,7 @@ export function AccountDetail() {
                                     )}
                                     {tx.user && tx.user.name && tx.userId && tx.userId !== session?.user?.id && (
                                       <div>
-                                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Creado por</span>
+                                        <span className="text-xs text-gray-400 uppercase tracking-wider">Creado por</span>
                                         <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-1">
                                           <UserIcon className="size-3" />
                                           {tx.user.name}
@@ -1465,7 +1465,7 @@ export function AccountDetail() {
                                     )}
                                     {tx.type === "transfer" && tx.transferToAccount && (
                                       <div>
-                                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Hacia</span>
+                                        <span className="text-xs text-gray-400 uppercase tracking-wider">Hacia</span>
                                         <div className="flex items-center gap-1.5">
                                           <div className="size-2 rounded-full" style={{ backgroundColor: tx.transferToAccount.color }} />
                                           <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
@@ -1528,7 +1528,7 @@ export function AccountDetail() {
                                             setEditType(t);
                                             setEditCategory("");
                                           }}
-                                          className={`flex-1 py-2 rounded-lg text-[10px] font-medium flex items-center justify-center gap-1 transition-all ${
+                                          className={`flex-1 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-all ${
                                             isActive
                                               ? `${tConfig.badgeBg} ${tConfig.badgeText} border`
                                               : "bg-white dark:bg-gray-800 text-gray-400 border border-transparent"
@@ -1544,7 +1544,7 @@ export function AccountDetail() {
 
                                   {/* Amount */}
                                   <div className="space-y-1">
-                                    <Label className="text-[10px]">Monto</Label>
+                                    <Label className="text-xs">Monto</Label>
                                     <CurrencyInput
                                       value={editAmount}
                                       onChange={setEditAmount}
@@ -1556,7 +1556,7 @@ export function AccountDetail() {
 
                                   {/* Description */}
                                   <div className="space-y-1">
-                                    <Label className="text-[10px]">Descripción</Label>
+                                    <Label className="text-xs">Descripción</Label>
                                     <Input
                                       value={editDescription}
                                       onChange={(e) => setEditDescription(e.target.value)}
@@ -1567,7 +1567,7 @@ export function AccountDetail() {
                                   {/* Category */}
                                   {editType !== "transfer" && (
                                     <div className="space-y-1">
-                                      <Label className="text-[10px]">Categoría</Label>
+                                      <Label className="text-xs">Categoría</Label>
                                       <Select value={editCategory} onValueChange={(v) => { setEditCategory(v); setEditSubCategory(""); }}>
                                         <SelectTrigger className="rounded-lg h-9 text-sm">
                                           <SelectValue placeholder="Seleccionar" />
@@ -1586,14 +1586,14 @@ export function AccountDetail() {
                                   {/* SubCategory */}
                                   {editType !== "transfer" && editCategory && (
                                     <div className="space-y-1">
-                                      <Label className="text-[10px]">Subcategoría</Label>
+                                      <Label className="text-xs">Subcategoría</Label>
                                       {availableSubCategories.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mb-1">
                                           {availableSubCategories.map((sub) => (
                                             <button
                                               key={sub}
                                               onClick={() => setEditSubCategory(sub === editSubCategory ? "" : sub)}
-                                              className={`px-2 py-0.5 rounded-md text-[9px] font-medium transition-all ${
+                                              className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-all ${
                                                 sub === editSubCategory
                                                   ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
                                                   : "bg-gray-100 text-gray-500 border border-transparent hover:bg-gray-200"
@@ -1615,7 +1615,7 @@ export function AccountDetail() {
 
                                   {/* Date */}
                                   <div className="space-y-1">
-                                    <Label className="text-[10px]">Fecha</Label>
+                                    <Label className="text-xs">Fecha</Label>
                                     <Input
                                       type="date"
                                       value={editDate}
@@ -1626,7 +1626,7 @@ export function AccountDetail() {
 
                                   {/* Notes */}
                                   <div className="space-y-1">
-                                    <Label className="text-[10px]">Notas</Label>
+                                    <Label className="text-xs">Notas</Label>
                                     <Input
                                       value={editNotes}
                                       onChange={(e) => setEditNotes(e.target.value)}

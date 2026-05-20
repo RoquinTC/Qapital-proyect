@@ -98,7 +98,7 @@ export function FinanceMiniChart() {
               <p className="text-xs font-semibold text-gray-900 dark:text-white">
                 Tendencia Financiera
               </p>
-              <p className="text-[9px] text-gray-400">Últimos 6 periodos</p>
+              <p className="text-[11px] text-gray-400">Últimos 6 periodos</p>
             </div>
           </div>
           <div className="text-right">
@@ -112,7 +112,7 @@ export function FinanceMiniChart() {
               {isPositive ? "+" : ""}
               {formatCurrency(balance)}
             </p>
-            <p className="text-[9px] text-gray-400">Balance del periodo</p>
+            <p className="text-[11px] text-gray-400">Balance del periodo</p>
           </div>
         </div>
 
@@ -176,15 +176,15 @@ export function FinanceMiniChart() {
         <div className="flex items-center justify-center gap-4 mt-2">
           <div className="flex items-center gap-1">
             <div className="size-2 rounded-full bg-emerald-500" />
-            <span className="text-[9px] text-gray-500">Ingresos</span>
+            <span className="text-[11px] text-gray-500">Ingresos</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="size-2 rounded-full bg-rose-500" />
-            <span className="text-[9px] text-gray-500">Gastos</span>
+            <span className="text-[11px] text-gray-500">Gastos</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="size-2 rounded-full bg-purple-500" />
-            <span className="text-[9px] text-gray-500">Ahorros</span>
+            <span className="text-[11px] text-gray-500">Ahorros</span>
           </div>
         </div>
       </CardContent>

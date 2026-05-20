@@ -124,7 +124,7 @@ export function SavingsView() {
               {formatCurrency(totalSaved)}
             </p>
             {totalTarget > 0 && (
-              <p className="text-[10px] text-purple-200 mt-1">
+              <p className="text-xs text-purple-200 mt-1">
                 Meta total: {formatCurrency(totalTarget)}
               </p>
             )}

@@ -178,7 +178,7 @@ export function SavingsGoalCard({ goal, onContribute, onClick, onEdit, onDelete 
                   <motion.span
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded-full"
+                    className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded-full"
                   >
                     COMPLETADA
                   </motion.span>
@@ -211,7 +211,7 @@ export function SavingsGoalCard({ goal, onContribute, onClick, onEdit, onDelete 
                 )}
               </div>
 
-              <span className="text-[10px] text-gray-400">
+              <span className="text-xs text-gray-400">
                 {typeLabels[goal.type] || goal.type}
                 {goal.frequency && ` · ${frequencyLabels[goal.frequency] || goal.frequency}`}
               </span>
@@ -269,7 +269,7 @@ export function SavingsGoalCard({ goal, onContribute, onClick, onEdit, onDelete 
               {daysRemaining !== null && !isCompleted && (
                 <div className="flex items-center gap-1 mt-2">
                   <Calendar className="size-3 text-gray-400" />
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-xs text-gray-400">
                     {daysRemaining} día{daysRemaining !== 1 ? "s" : ""} restante{daysRemaining !== 1 ? "s" : ""}
                   </span>
                 </div>

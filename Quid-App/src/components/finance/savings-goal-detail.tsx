@@ -254,11 +254,11 @@ export function SavingsGoalDetail() {
             )}
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-[10px] text-white/60">Ahorrado</p>
+                <p className="text-xs text-white/60">Ahorrado</p>
                 <p className="text-2xl font-bold">{formatCurrency(goal.currentAmount)}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] text-white/60">Meta</p>
+                <p className="text-xs text-white/60">Meta</p>
                 <p className="text-sm font-medium text-white/80">
                   {formatCurrency(goal.targetAmount)}
                 </p>
@@ -271,7 +271,7 @@ export function SavingsGoalDetail() {
                   style={{ width: `${Math.min(percentage, 100)}%` }}
                 />
               </div>
-              <p className="text-[10px] text-white/60 mt-1 text-right">{percentage}%</p>
+              <p className="text-xs text-white/60 mt-1 text-right">{percentage}%</p>
             </div>
           </div>
         </div>
@@ -337,7 +337,7 @@ export function SavingsGoalDetail() {
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {cdt.bank}
                       </p>
-                      <p className="text-[10px] text-gray-400">
+                      <p className="text-xs text-gray-400">
                         CDT · {cdt.effectiveRate}% EA · {cdt.termDays}d
                       </p>
                     </div>
@@ -346,7 +346,7 @@ export function SavingsGoalDetail() {
                     <span className="text-sm font-bold text-teal-600 dark:text-teal-400">
                       {formatCurrency(cdt.amount)}
                     </span>
-                    <p className="text-[10px] text-gray-400">Valor invertido (provisional)</p>
+                    <p className="text-xs text-gray-400">Valor invertido (provisional)</p>
                   </div>
                 </div>
               </CardContent>
@@ -413,7 +413,7 @@ export function SavingsGoalDetail() {
                             ? `${link.subAccount.name}`
                             : `${link.account.name}`}
                         </p>
-                        <p className="text-[10px] text-gray-400">
+                        <p className="text-xs text-gray-400">
                           {link.subAccount
                             ? link.account.name
                             : link.account.type}
@@ -474,7 +474,7 @@ export function SavingsGoalDetail() {
                     <p className="text-sm text-gray-900 dark:text-white">
                       {c.description || "Aporte"}
                     </p>
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-xs text-gray-400">
                       {formatDate(c.date)}
                     </p>
                   </div>
@@ -543,7 +543,7 @@ export function SavingsGoalDetail() {
                       <p className="text-sm font-medium text-purple-700 dark:text-purple-400">
                         {selectedLinkInfo.name}
                       </p>
-                      <p className="text-[10px] text-purple-500">se sumará a la meta</p>
+                      <p className="text-xs text-purple-500">se sumará a la meta</p>
                     </div>
                     <span className="text-base font-bold text-purple-700 dark:text-purple-400">
                       {formatCurrency(selectedLinkInfo.balance)}

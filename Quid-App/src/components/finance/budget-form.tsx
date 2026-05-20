@@ -287,14 +287,14 @@ export function BudgetForm({ open, onOpenChange, budget, prefilledCategory, onSu
           {/* Preview bar */}
           {amount && (
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-              <p className="text-[10px] text-gray-400 mb-2">Vista previa</p>
+              <p className="text-xs text-gray-400 mb-2">Vista previa</p>
               <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
                   style={{ width: isEditing && budget ? `${Math.min(calcPercentage(budget.spent, parseFloat(amount) || 0), 100)}%` : "0%" }}
                 />
               </div>
-              <p className="text-[10px] text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 {isEditing ? formatCurrency(budget?.spent || 0) : formatCurrency(0)} / {formatCurrency(parseFloat(amount) || 0)}
               </p>
             </div>

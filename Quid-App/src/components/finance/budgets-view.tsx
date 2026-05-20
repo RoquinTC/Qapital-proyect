@@ -369,7 +369,7 @@ export function BudgetsView() {
           <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
             {movement.description}
           </p>
-          <p className="text-[10px] text-gray-400">
+          <p className="text-xs text-gray-400">
             {new Date(movement.date).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
             {isInstallment && movement.debtName && (
               <span style={{ color: movement.debtColor || "#8B5CF6" }}>
@@ -396,7 +396,7 @@ export function BudgetsView() {
             {isIncome ? "+" : "-"}{formatCurrency(movement.amount)}
           </p>
           {isInstallment && (
-            <p className="text-[8px] text-violet-500 dark:text-violet-400">
+            <p className="text-[11px] text-violet-500 dark:text-violet-400">
               TC {movement.isPaid ? "pagada" : "pend."}
             </p>
           )}
@@ -429,10 +429,10 @@ export function BudgetsView() {
               {budget.subCategory || budget.category}
             </p>
             <div className="flex items-center gap-1.5 shrink-0 ml-2">
-              <span className={`text-[10px] font-semibold ${getProgressText(pct)}`}>
+              <span className={`text-xs font-semibold ${getProgressText(pct)}`}>
                 {formatCurrency(budget.spent)}
               </span>
-              <span className="text-[10px] text-gray-400">/ {formatCurrency(budget.amount)}</span>
+              <span className="text-xs text-gray-400">/ {formatCurrency(budget.amount)}</span>
               <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => handleEdit(budget)}
@@ -550,13 +550,13 @@ export function BudgetsView() {
                     {category}
                   </p>
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                    <Badge variant="outline" className={`text-[8px] h-4 px-1 ${getProgressBg(totalPct)} border-0`}>
+                    <Badge variant="outline" className={`text-[11px] h-4 px-1 ${getProgressBg(totalPct)} border-0`}>
                       {totalPct}%
                     </Badge>
-                    <span className={`text-[10px] font-semibold ${getProgressText(totalPct)}`}>
+                    <span className={`text-xs font-semibold ${getProgressText(totalPct)}`}>
                       {formatCurrency(totalSpent)}
                     </span>
-                    <span className="text-[10px] text-gray-400">/ {formatCurrency(totalAmount)}</span>
+                    <span className="text-xs text-gray-400">/ {formatCurrency(totalAmount)}</span>
                     <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => { e.stopPropagation(); group.parent && handleEdit(group.parent); }}
@@ -598,7 +598,7 @@ export function BudgetsView() {
                     <CardContent className="p-2">
                       <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
                         <Eye className="size-3 text-gray-400" />
-                        <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
                           Movimientos del periodo
                         </p>
                       </div>
@@ -608,13 +608,13 @@ export function BudgetsView() {
                         </div>
                       ) : movements.length === 0 ? (
                         <div className="text-center py-3">
-                          <p className="text-[10px] text-gray-400">Sin movimientos en este periodo</p>
+                          <p className="text-xs text-gray-400">Sin movimientos en este periodo</p>
                         </div>
                       ) : (
                         <div className="space-y-0.5">
                           {movements.slice(0, 15).map(renderMovementItem)}
                           {movements.length > 15 && (
-                            <p className="text-[10px] text-center text-gray-400 py-1">
+                            <p className="text-xs text-center text-gray-400 py-1">
                               y {movements.length - 15} movimientos más...
                             </p>
                           )}
@@ -655,7 +655,7 @@ export function BudgetsView() {
                         {category}
                       </p>
                       {hasChildren && (
-                        <span className="text-[9px] text-gray-400 shrink-0">
+                        <span className="text-[11px] text-gray-400 shrink-0">
                           {group.children.length} subs
                         </span>
                       )}
@@ -663,12 +663,12 @@ export function BudgetsView() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-[10px] text-gray-500 tabular-nums">
+                  <span className="text-xs text-gray-500 tabular-nums">
                     {formatCurrency(totalSpent)} / {formatCurrency(totalAmount)}
                   </span>
                   <Badge
                     variant="outline"
-                    className={`text-[9px] px-1 py-0 ${getProgressBg(totalPct)} border-0`}
+                    className={`text-[11px] px-1 py-0 ${getProgressBg(totalPct)} border-0`}
                   >
                     {totalPct}%
                   </Badge>
@@ -727,13 +727,13 @@ export function BudgetsView() {
                                 <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
                                   {child.subCategory}
                                 </p>
-                                <p className="text-[9px] text-gray-400">
+                                <p className="text-[11px] text-gray-400">
                                   {formatCurrency(child.spent)} / {formatCurrency(child.amount)}
                                 </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Badge variant="outline" className={`text-[9px] ${getProgressBg(childPct)} border-0`}>
+                              <Badge variant="outline" className={`text-[11px] ${getProgressBg(childPct)} border-0`}>
                                 {childPct}%
                               </Badge>
                               <button onClick={(e) => { e.stopPropagation(); handleEdit(child); }} className="size-6 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors">
@@ -762,7 +762,7 @@ export function BudgetsView() {
                   <CardContent className="p-2">
                     <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
                       <Eye className="size-3 text-gray-400" />
-                      <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
                         Movimientos del periodo
                       </p>
                     </div>
@@ -772,13 +772,13 @@ export function BudgetsView() {
                       </div>
                     ) : movements.length === 0 ? (
                       <div className="text-center py-3">
-                        <p className="text-[10px] text-gray-400">Sin movimientos en este periodo</p>
+                        <p className="text-xs text-gray-400">Sin movimientos en este periodo</p>
                       </div>
                     ) : (
                       <div className="space-y-0.5">
                         {movements.slice(0, 15).map(renderMovementItem)}
                         {movements.length > 15 && (
-                          <p className="text-[10px] text-center text-gray-400 py-1">
+                          <p className="text-xs text-center text-gray-400 py-1">
                             y {movements.length - 15} movimientos más...
                           </p>
                         )}
@@ -809,7 +809,7 @@ export function BudgetsView() {
             <h3 className="text-xs font-semibold text-gray-900 dark:text-white">
               {typeLabel}
             </h3>
-            <Badge variant="secondary" className="text-[8px]">
+            <Badge variant="secondary" className="text-[11px]">
               {formatCurrency(totalSpent)}
             </Badge>
           </div>
@@ -858,14 +858,14 @@ export function BudgetsView() {
                     <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
                       {item.category}
                     </p>
-                    <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
                       Sin presupuesto · {formatCurrency(item.totalSpent)}
                     </p>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="rounded-xl text-[9px] gap-1 h-6 px-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/10 shrink-0"
+                    className="rounded-xl text-[11px] gap-1 h-6 px-2 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/10 shrink-0"
                     onClick={() => handleCreateBudgetFromUnbudgeted(item)}
                   >
                     <CirclePlus className="size-2.5" />
@@ -886,7 +886,7 @@ export function BudgetsView() {
                         <CardContent className="p-2">
                           <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
                             <Eye className="size-3 text-gray-400" />
-                            <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
                               Movimientos del periodo
                             </p>
                           </div>
@@ -896,13 +896,13 @@ export function BudgetsView() {
                             </div>
                           ) : movements.length === 0 ? (
                             <div className="text-center py-3">
-                              <p className="text-[10px] text-gray-400">Sin movimientos en este periodo</p>
+                              <p className="text-xs text-gray-400">Sin movimientos en este periodo</p>
                             </div>
                           ) : (
                             <div className="space-y-0.5">
                               {movements.slice(0, 10).map(renderMovementItem)}
                               {movements.length > 10 && (
-                                <p className="text-[10px] text-center text-gray-400 py-1">
+                                <p className="text-xs text-center text-gray-400 py-1">
                                   y {movements.length - 10} movimientos más...
                                 </p>
                               )}
@@ -954,10 +954,10 @@ export function BudgetsView() {
               <div>
                 <div className="flex items-center gap-1 mb-1">
                   <ArrowUpRight className="size-3 text-emerald-200" />
-                  <span className="text-[10px] text-emerald-200">Ingresos</span>
+                  <span className="text-xs text-emerald-200">Ingresos</span>
                 </div>
                 <p className="text-lg font-bold">{formatCurrency(totalIncomeSpent + totalUnbudgetedIncome)}</p>
-                <p className="text-[10px] text-emerald-200">
+                <p className="text-xs text-emerald-200">
                   de {formatCurrency(totalIncomeBudget)}
                   {totalUnbudgetedIncome > 0 && (
                     <span className="text-amber-200 ml-1">
@@ -969,10 +969,10 @@ export function BudgetsView() {
               <div>
                 <div className="flex items-center gap-1 mb-1">
                   <ArrowDownRight className="size-3 text-rose-200" />
-                  <span className="text-[10px] text-emerald-200">Gastos</span>
+                  <span className="text-xs text-emerald-200">Gastos</span>
                 </div>
                 <p className="text-lg font-bold">{formatCurrency(totalExpenseSpent + totalUnbudgetedExpense)}</p>
-                <p className="text-[10px] text-emerald-200">
+                <p className="text-xs text-emerald-200">
                   de {formatCurrency(totalExpenseBudget)}
                   {totalUnbudgetedExpense > 0 && (
                     <span className="text-amber-200 ml-1">
@@ -1004,7 +1004,7 @@ export function BudgetsView() {
           >
             <TrendingDown className="size-3.5" />
             Gastos
-            <Badge variant="secondary" className={`text-[8px] h-4 px-1 ${
+            <Badge variant="secondary" className={`text-[11px] h-4 px-1 ${
               activeTab === "expenses" ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" : ""
             }`}>
               {expensePct}%
@@ -1020,7 +1020,7 @@ export function BudgetsView() {
           >
             <TrendingUp className="size-3.5" />
             Ingresos
-            <Badge variant="secondary" className={`text-[8px] h-4 px-1 ${
+            <Badge variant="secondary" className={`text-[11px] h-4 px-1 ${
               activeTab === "income" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : ""
             }`}>
               {incomePct}%
@@ -1047,7 +1047,7 @@ export function BudgetsView() {
                 <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
                   <button
                     onClick={() => setBudgetFilter("all")}
-                    className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all ${
+                    className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
                       budgetFilter === "all"
                         ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
                         : "text-gray-500 dark:text-gray-400"
@@ -1057,7 +1057,7 @@ export function BudgetsView() {
                   </button>
                   <button
                     onClick={() => setBudgetFilter("risk")}
-                    className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-0.5 ${
+                    className={`px-2 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-0.5 ${
                       budgetFilter === "risk"
                         ? "bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm"
                         : "text-gray-500 dark:text-gray-400"
@@ -1068,7 +1068,7 @@ export function BudgetsView() {
                   </button>
                   <button
                     onClick={() => setBudgetFilter("ok")}
-                    className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all ${
+                    className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
                       budgetFilter === "ok"
                         ? "bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
                         : "text-gray-500 dark:text-gray-400"
@@ -1148,7 +1148,7 @@ export function BudgetsView() {
                 <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
                   <button
                     onClick={() => setBudgetFilter("all")}
-                    className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all ${
+                    className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
                       budgetFilter === "all"
                         ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
                         : "text-gray-500 dark:text-gray-400"
@@ -1158,7 +1158,7 @@ export function BudgetsView() {
                   </button>
                   <button
                     onClick={() => setBudgetFilter("risk")}
-                    className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-0.5 ${
+                    className={`px-2 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-0.5 ${
                       budgetFilter === "risk"
                         ? "bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm"
                         : "text-gray-500 dark:text-gray-400"
@@ -1169,7 +1169,7 @@ export function BudgetsView() {
                   </button>
                   <button
                     onClick={() => setBudgetFilter("ok")}
-                    className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all ${
+                    className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
                       budgetFilter === "ok"
                         ? "bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
                         : "text-gray-500 dark:text-gray-400"

@@ -336,7 +336,7 @@ export function CDTForm({ open, onOpenChange, onSuccess, editCDT }: CDTFormProps
                 ))}
               </div>
               {termDays > 0 && (
-                <p className="text-[10px] text-gray-400">
+                <p className="text-xs text-gray-400">
                   Plazo calculado: {termDays} días
                 </p>
               )}
@@ -355,7 +355,7 @@ export function CDTForm({ open, onOpenChange, onSuccess, editCDT }: CDTFormProps
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       Rendimientos
                     </span>
                     <span className="text-xs font-bold text-teal-600 dark:text-teal-400">
@@ -363,7 +363,7 @@ export function CDTForm({ open, onOpenChange, onSuccess, editCDT }: CDTFormProps
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       Retefuente (4%)
                     </span>
                     <span className="text-xs font-bold text-red-500">
@@ -371,7 +371,7 @@ export function CDTForm({ open, onOpenChange, onSuccess, editCDT }: CDTFormProps
                     </span>
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t border-teal-200/50 dark:border-teal-700/30">
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       Recibirás al vencer
                     </span>
                     <span className="text-xs font-bold text-gray-900 dark:text-white">
@@ -382,10 +382,10 @@ export function CDTForm({ open, onOpenChange, onSuccess, editCDT }: CDTFormProps
                 {isEditing && currentInterestEarned > 0 && (
                   <div className="mt-2 pt-2 border-t border-teal-200/50 dark:border-teal-700/30">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         Ganancia actual
                       </span>
-                      <span className="text-[10px] font-semibold text-teal-600 dark:text-teal-400">
+                      <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">
                         +{formatCurrency(currentInterestEarned)}
                       </span>
                     </div>
@@ -532,19 +532,19 @@ export function CDTForm({ open, onOpenChange, onSuccess, editCDT }: CDTFormProps
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">Valor invertido</span>
+                  <span className="text-xs text-gray-500">Valor invertido</span>
                   <span className="text-xs font-bold text-gray-900 dark:text-white">{formatCurrency(editCDT?.amount ?? 0)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">Rendimientos</span>
+                  <span className="text-xs text-gray-500">Rendimientos</span>
                   <span className="text-xs font-bold text-teal-600 dark:text-teal-400">+{formatCurrency(maturityBreakdown.grossInterest)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">Retefuente (4%)</span>
+                  <span className="text-xs text-gray-500">Retefuente (4%)</span>
                   <span className="text-xs font-bold text-red-500">-{formatCurrency(maturityBreakdown.retefuente)}</span>
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-teal-200/50 dark:border-teal-700/30">
-                  <span className="text-[10px] text-gray-500 font-medium">Total esperado</span>
+                  <span className="text-xs text-gray-500 font-medium">Total esperado</span>
                   <span className="text-xs font-bold text-gray-900 dark:text-white">{formatCurrency(maturityBreakdown.netTotal)}</span>
                 </div>
               </div>
@@ -555,7 +555,7 @@ export function CDTForm({ open, onOpenChange, onSuccess, editCDT }: CDTFormProps
           <div className="space-y-2">
             <Label>Valor recibido real</Label>
             <CurrencyInput value={finalizeAmount} onChange={setFinalizeAmount} showPrefix placeholder="0" className="rounded-xl" />
-            <p className="text-[10px] text-gray-400">Edita si el valor real difiere del esperado</p>
+            <p className="text-xs text-gray-400">Edita si el valor real difiere del esperado</p>
           </div>
 
           {/* Date of withdrawal */}

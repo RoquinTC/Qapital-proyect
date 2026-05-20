@@ -281,7 +281,7 @@ export function WaterfallChart({
               className="size-2 rounded-full"
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-[9px] text-gray-500 dark:text-gray-400">
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">
               {item.name}
             </span>
           </div>
@@ -289,7 +289,7 @@ export function WaterfallChart({
       </div>
       {/* Summary pill */}
       <div className="mt-2 bg-gray-50 dark:bg-gray-800/60 rounded-xl px-3 py-2 flex items-center justify-between">
-        <span className="text-[10px] text-gray-400 dark:text-gray-500">
+        <span className="text-xs text-gray-400 dark:text-gray-500">
           Resultado del mes
         </span>
         <span

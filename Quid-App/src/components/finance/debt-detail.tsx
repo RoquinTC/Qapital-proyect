@@ -660,7 +660,7 @@ export function DebtDetail() {
               <Percent className="size-3.5" />
               <span>Tasa: {debt.interestRate}% {isLoan ? `NMV anual (${((debt.interestRate ?? 0) / 12).toFixed(4)}% mensual)` : "mensual"}</span>
               {isLoanFixed && (
-                <span className="text-[10px] text-gray-400">(nominal mes vencido)</span>
+                <span className="text-xs text-gray-400">(nominal mes vencido)</span>
               )}
             </div>
           )}
@@ -691,7 +691,7 @@ export function DebtDetail() {
               <Wallet className="size-3.5" />
               <span>Cuota fija: {formatCurrency(debt.monthlyPayment ?? 0)}</span>
               {debt.remainingPayments && (
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="text-xs">
                   {debt.remainingPayments} cuotas restantes
                 </Badge>
               )}
@@ -700,7 +700,7 @@ export function DebtDetail() {
 
           {isLoanFixed && debt.otherCharges && debt.otherCharges > 0 && (
             <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <span className="text-[10px]">
+              <span className="text-xs">
                 Otros gastos fijos: {formatCurrency(debt.otherCharges)}/mes (seguro, papelería, IVA)
               </span>
             </div>
@@ -711,7 +711,7 @@ export function DebtDetail() {
               <Wallet className="size-3.5" />
               <span>Cuota: {formatCurrency(debt.monthlyPayment)}</span>
               {debt.remainingPayments && (
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="text-xs">
                   {debt.remainingPayments} restantes
                 </Badge>
               )}
@@ -799,7 +799,7 @@ export function DebtDetail() {
                   <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-400">
                     Desglose de la Cuota
                   </h4>
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="text-xs">
                     Cuota fija
                   </Badge>
                 </div>
@@ -835,7 +835,7 @@ export function DebtDetail() {
                         <span className="text-gray-900 dark:text-white font-bold">{formatCurrency(debt.monthlyPayment ?? 0)}</span>
                       </div>
                       {nextPayDate && (
-                        <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
                           <Calendar className="size-3" />
                           <span>Próximo pago: {nextPayDate}</span>
                         </div>
@@ -916,7 +916,7 @@ export function DebtDetail() {
               <h4 className="text-sm font-semibold text-amber-700 dark:text-amber-400">
                 Resumen de Pago
               </h4>
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" className="text-xs">
                 {selectedDueInstallments.length} de {dueInstallments.length}
               </Badge>
             </div>
@@ -934,11 +934,11 @@ export function DebtDetail() {
                       </span>
                     </div>
                     {group.subAccountName && (
-                      <span className="text-[10px] text-gray-400 ml-5">
+                      <span className="text-xs text-gray-400 ml-5">
                         🐷 {group.subAccountName}
                       </span>
                     )}
-                    <div className="text-[10px] text-gray-400 ml-5 mt-0.5">
+                    <div className="text-xs text-gray-400 ml-5 mt-0.5">
                       Compras: {group.purchases.join(", ")}
                     </div>
                   </div>
@@ -1074,17 +1074,17 @@ export function DebtDetail() {
                       <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
                         {inst.description}
                       </span>
-                      <Badge variant="secondary" className="text-[10px]">
+                      <Badge variant="secondary" className="text-xs">
                         Cuota {inst.currentInstallment}/{inst.totalInstallments}
                       </Badge>
                     </div>
-                    <div className="text-[10px] text-gray-500">
+                    <div className="text-xs text-gray-500">
                       Saldo pendiente: {formatCurrency(balance)}
                     </div>
 
                     {/* Monthly Rate Input (editable) */}
                     <div className="flex items-center gap-2">
-                      <label className="text-[10px] text-gray-500 w-16 flex-shrink-0">Tasa mensual:</label>
+                      <label className="text-xs text-gray-500 w-16 flex-shrink-0">Tasa mensual:</label>
                       <div className="relative flex-1">
                         <input
                           type="number"
@@ -1109,7 +1109,7 @@ export function DebtDetail() {
 
                     {/* Interest Input */}
                     <div className="flex items-center gap-2">
-                      <label className="text-[10px] text-gray-500 w-16 flex-shrink-0">Intereses:</label>
+                      <label className="text-xs text-gray-500 w-16 flex-shrink-0">Intereses:</label>
                       <div className="flex-1">
                         <CurrencyInput
                           value={intStr}
@@ -1129,7 +1129,7 @@ export function DebtDetail() {
 
                     {/* Other Charges Input */}
                     <div className="flex items-center gap-2">
-                      <label className="text-[10px] text-gray-500 w-16 flex-shrink-0">Otros:</label>
+                      <label className="text-xs text-gray-500 w-16 flex-shrink-0">Otros:</label>
                       <div className="flex-1">
                         <CurrencyInput
                           value={othStr}
@@ -1149,7 +1149,7 @@ export function DebtDetail() {
 
                     {/* Capital Input (auto-calculated but editable) */}
                     <div className="flex items-center gap-2">
-                      <label className="text-[10px] text-gray-500 w-16 flex-shrink-0">Capital:</label>
+                      <label className="text-xs text-gray-500 w-16 flex-shrink-0">Capital:</label>
                       <div className="flex-1">
                         <CurrencyInput
                           value={capStr}
@@ -1161,7 +1161,7 @@ export function DebtDetail() {
                       </div>
                     </div>
 
-                    <p className="text-[9px] text-gray-400">
+                    <p className="text-[11px] text-gray-400">
                       Al editar intereses u otros, el capital se ajusta automáticamente: capital = cuota - intereses - otros
                     </p>
 
@@ -1184,12 +1184,12 @@ export function DebtDetail() {
                         <span className="text-emerald-600">{formatCurrency(totalForThis)}</span>
                       </div>
                       {Math.abs(diff) > 1 && (
-                        <div className={`flex justify-between text-[10px] mt-1 ${diff > 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                        <div className={`flex justify-between text-xs mt-1 ${diff > 0 ? 'text-amber-600' : 'text-red-600'}`}>
                           <span>Diferencia con cuota fija:</span>
                           <span>{diff > 0 ? '+' : ''}{formatCurrency(diff)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                      <div className="flex justify-between text-xs text-gray-400 mt-0.5">
                         <span>Cuota fija del préstamo:</span>
                         <span>{formatCurrency(fixedCuota)}</span>
                       </div>
@@ -1255,17 +1255,17 @@ export function DebtDetail() {
                         <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
                           {inst.description}
                         </span>
-                        <Badge variant="secondary" className="text-[10px]">
+                        <Badge variant="secondary" className="text-xs">
                           Cuota {inst.currentInstallment}/{inst.totalInstallments}
                         </Badge>
                       </div>
-                      <div className="text-[10px] text-gray-500">
+                      <div className="text-xs text-gray-500">
                         Capital fijo: {formatCurrency(inst.installmentAmount)} • Saldo pendiente: {formatCurrency(balance)}
                       </div>
 
                       {/* Interest Rate Input */}
                       <div className="flex items-center gap-2">
-                        <label className="text-[10px] text-gray-500 w-12 flex-shrink-0">Tasa:</label>
+                        <label className="text-xs text-gray-500 w-12 flex-shrink-0">Tasa:</label>
                         <div className="relative flex-1">
                           <input
                             type="number"
@@ -1377,11 +1377,11 @@ export function DebtDetail() {
                             {inst.description}
                           </span>
                         </div>
-                        <Badge variant="secondary" className="text-[10px]">
+                        <Badge variant="secondary" className="text-xs">
                           Cuota {inst.currentInstallment}/{inst.totalInstallments}
                         </Badge>
                       </div>
-                      <div className="text-[10px] text-gray-500 ml-7">
+                      <div className="text-xs text-gray-500 ml-7">
                         Saldo pendiente: {formatCurrency(balance)} • Capital: {formatCurrency(inst.installmentAmount)}
                       </div>
 
@@ -1389,7 +1389,7 @@ export function DebtDetail() {
                       {sel.selected && (
                         <div className="ml-7 space-y-2">
                           <div className="flex items-center gap-2">
-                            <label className="text-[10px] text-gray-500 w-12 flex-shrink-0">Abono:</label>
+                            <label className="text-xs text-gray-500 w-12 flex-shrink-0">Abono:</label>
                             <div className="flex-1">
                               <CurrencyInput
                                 value={sel.amount}
@@ -1495,7 +1495,7 @@ export function DebtDetail() {
                     )}
                   </span>
                 </div>
-                <div className="text-[10px] text-gray-500">
+                <div className="text-xs text-gray-500">
                   Se registrará como gasto en la categoría Deudas
                 </div>
               </div>
@@ -1580,18 +1580,18 @@ export function DebtDetail() {
                             {formatCurrency(abono.totalAmount)}
                           </span>
                           {abono.isReversed && (
-                            <Badge variant="secondary" className="text-[10px] bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                            <Badge variant="secondary" className="text-xs bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
                               Reversado
                             </Badge>
                           )}
                         </div>
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-xs text-gray-400">
                           {formatDate(abono.date)}
                         </span>
                       </div>
 
                       {/* Account info */}
-                      <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
                         <Wallet className="size-3" />
                         <span>{accountName}{subAccountName ? ` / ${subAccountName}` : ""}</span>
                       </div>
@@ -1601,7 +1601,7 @@ export function DebtDetail() {
                         {abono.details.map((detail) => {
                           const inst = debt.installments.find(i => i.id === detail.installmentId);
                           return (
-                            <div key={detail.id} className="text-[10px] text-gray-500 flex items-center justify-between bg-white dark:bg-gray-900 rounded-lg px-2 py-1">
+                            <div key={detail.id} className="text-xs text-gray-500 flex items-center justify-between bg-white dark:bg-gray-900 rounded-lg px-2 py-1">
                               <span className="truncate max-w-[60%]">
                                 {inst?.description || "Cuota"} (cuota {inst?.currentInstallment || "?"}/{inst?.totalInstallments || "?"})
                               </span>
