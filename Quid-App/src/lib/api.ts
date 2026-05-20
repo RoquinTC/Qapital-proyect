@@ -354,15 +354,27 @@ async function cacheGetResponse(url: string, data: unknown): Promise<void> {
     if (!table) return;
 
     if (isCollection && Array.isArray(data)) {
-      // Replace all records for this table with server data
-      const now = Date.now();
-      const enriched = data.map((record: any) => ({
-        ...record,
-        _syncStatus: "synced",
-        _version: 1,
-        _lastModified: now,
-      }));
-      await table.bulkPut(enriched);
+      // Replace all records for this table with server data.
+      // We must delete stale records that no longer exist on the server,
+      // so we use replaceAllInTable instead of bulkPut.
+      // However, replaceAllInTable requires a userId — extract it from
+      // the data if available, otherwise fall back to bulkPut.
+      const userId = (data as any[])?.[0]?.userId;
+      if (userId) {
+        const { replaceAllInTable } = await import("./local/db");
+        await replaceAllInTable(tableName, userId, data as any[]);
+      } else {
+        // No userId available — fall back to bulkPut (best effort)
+        // This may leave stale records but is better than nothing
+        const now = Date.now();
+        const enriched = (data as any[]).map((record: any) => ({
+          ...record,
+          _syncStatus: "synced",
+          _version: 1,
+          _lastModified: now,
+        }));
+        await table.bulkPut(enriched);
+      }
     }
     // Single record caching is handled by the sync engine
   } catch (err) {
@@ -420,37 +432,65 @@ async function updateLocalAfterMutation(url: string, options: RequestInit, data:
     // `updatedBalances` with the new balance for each affected account.
     // We must update the IndexedDB accounts/subAccounts tables so the
     // liveQuery subscriptions emit the new data immediately.
+    //
+    // The server now includes the `id` field in updatedBalances, allowing
+    // direct lookup by primary key (O(1) and doesn't require an index on `name`).
+    // For backward compatibility with older server responses that lack `id`,
+    // we fall back to a full table scan filtered by name.
     if (data?.updatedBalances && Array.isArray(data.updatedBalances)) {
       for (const ub of data.updatedBalances) {
         if (ub.isSubAccount) {
           // Update subAccount balance in IndexedDB
           const subAccountsTable = (_localDB as any).subAccounts;
           if (subAccountsTable) {
-            // Find by name since we may not have the subAccount ID
-            const matching = await subAccountsTable
-              .where("name")
-              .equals(ub.name)
-              .toArray();
-            for (const sub of matching) {
-              await subAccountsTable.update(sub.id, {
-                balance: ub.balance,
-                _lastModified: now,
-              });
+            if (ub.id) {
+              // Direct lookup by primary key — fast and reliable
+              try {
+                await subAccountsTable.update(ub.id, {
+                  balance: ub.balance,
+                  _lastModified: now,
+                });
+              } catch {
+                // Record might not exist in local DB yet — that's OK
+              }
+            } else {
+              // Fallback: scan by name (slower, but works with old server)
+              const allSubs = await subAccountsTable.toArray();
+              for (const sub of allSubs) {
+                if (sub.name === ub.name || `${sub.accountName || ''} → ${sub.name}` === ub.name) {
+                  await subAccountsTable.update(sub.id, {
+                    balance: ub.balance,
+                    _lastModified: now,
+                  });
+                }
+              }
             }
           }
         } else {
           // Update account balance in IndexedDB
           const accountsTable = (_localDB as any).accounts;
           if (accountsTable) {
-            const matching = await accountsTable
-              .where("name")
-              .equals(ub.name)
-              .toArray();
-            for (const acc of matching) {
-              await accountsTable.update(acc.id, {
-                balance: ub.balance,
-                _lastModified: now,
-              });
+            if (ub.id) {
+              // Direct lookup by primary key — fast and reliable
+              try {
+                await accountsTable.update(ub.id, {
+                  balance: ub.balance,
+                  _lastModified: now,
+                });
+              } catch {
+                // Record might not exist in local DB yet — that's OK
+              }
+            } else {
+              // Fallback: scan by name (slower, but works with old server)
+              const allAccs = await accountsTable.toArray();
+              for (const acc of allAccs) {
+                if (acc.name === ub.name) {
+                  await accountsTable.update(acc.id, {
+                    balance: ub.balance,
+                    _lastModified: now,
+                  });
+                }
+              }
             }
           }
         }
