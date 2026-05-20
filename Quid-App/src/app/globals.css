@@ -234,6 +234,11 @@ button, a {
   transition-timing-function: ease;
 }
 
+/* No transition on scroll containers to prevent repaint jank */
+.overflow-y-auto, .overflow-x-auto, .overflow-auto {
+  transition: none;
+}
+
 /* Disable transition for initial load and specific properties */
 html.disable-transitions *,
 html.disable-transitions *::before,
