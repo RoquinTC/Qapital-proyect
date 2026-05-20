@@ -79,6 +79,7 @@ export function AppShell() {
       const wasFreshLogin = sessionStorage.getItem("quid-just-logged-in") === "true";
       if (wasFreshLogin) {
         sessionStorage.removeItem("quid-just-logged-in");
+        sessionStorage.removeItem("quid-just-logged-out"); // Clear logout flag on fresh login
         setJustLoggedIn(true);
         setManuallyUnlocked(true);
       }
@@ -249,7 +250,7 @@ export function AppShell() {
   // Loading state — only show when we're actually loading AND have no offline fallback
   if (status === "loading" && !session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
         <div className="text-center">
           <img
             src="/icon-192.png"
@@ -300,7 +301,7 @@ export function AppShell() {
 
   // Authenticated and onboarded - show main app
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
+    <div className="h-dvh flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
       <Header />
       <ModuleContent />
       <BottomNav />

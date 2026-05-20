@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export function TransportPlaceholder() {
   return (
-    <div className="p-4 space-y-4 pb-24">
+    <div className="p-4 space-y-4 pb-safe">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Transporte</h2>

@@ -59,6 +59,7 @@ import {
   Smartphone,
   Send,
   MessageSquare,
+  Share2,
 } from "lucide-react";
 import { AccountManager } from "@/components/finance/account-manager";
 import { CategoriesManager } from "@/components/finance/categories-manager";
@@ -74,9 +75,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { signOut } from "next-auth/react";
+import { performLogout } from "@/lib/logout";
 import type { UserSettings } from "@/lib/types";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
+import { ShareInvite } from "@/components/pwa/share-invite";
 
 type AppSettings = UserSettings & {
   userId: string;
@@ -154,6 +156,9 @@ export function SettingsPage() {
   const [resettingAll, setResettingAll] = useState(false);
   const [resettingTransport, setResettingTransport] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+
+  // Share state
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Aura AI state
   const [auraPairingCode, setAuraPairingCode] = useState("");
@@ -289,8 +294,7 @@ export function SettingsPage() {
     try {
       await apiFetch("/api/settings/delete-account", { method: "POST" });
       setShowDeleteAccountDialog(false);
-      await signOut({ redirect: false });
-      window.location.href = window.location.origin + "/";
+      await performLogout();
     } catch (error) {
       console.error("Error deleting account:", error);
       setResetResult("Error al eliminar la cuenta");
@@ -402,7 +406,7 @@ export function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="p-4 space-y-3 pb-24">
+      <div className="p-4 space-y-3 pb-safe">
         {[1, 2, 3].map((i) => (
           <div key={i} className="h-24 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
         ))}
@@ -412,7 +416,7 @@ export function SettingsPage() {
 
   if (!settings) {
     return (
-      <div className="p-4 space-y-4 pb-24">
+      <div className="p-4 space-y-4 pb-safe">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="rounded-xl shrink-0" onClick={() => setActiveModule("dashboard")}>
             <ArrowLeft className="size-5" />
@@ -442,7 +446,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="p-4 space-y-3 pb-24">
+    <div className="p-4 space-y-3 pb-safe">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="rounded-xl shrink-0" onClick={() => setActiveModule("dashboard")}>
@@ -616,6 +620,25 @@ export function SettingsPage() {
                       </p>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Share / Invite */}
+              <Card className="border border-gray-100 dark:border-gray-700/50 shadow-none rounded-xl">
+                <CardContent className="p-3">
+                  <button
+                    onClick={() => setShareOpen(true)}
+                    className="w-full flex items-center gap-3 text-left"
+                  >
+                    <div className="size-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                      <Share2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-gray-900 dark:text-white">Invitar a Quid</p>
+                      <p className="text-[10px] text-gray-400">Comparte la app con amigos y familiares</p>
+                    </div>
+                    <ChevronDown className="size-3.5 text-gray-300 dark:text-gray-600 -rotate-90" />
+                  </button>
                 </CardContent>
               </Card>
             </AccordionContent>
@@ -1230,6 +1253,7 @@ export function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+      <ShareInvite open={shareOpen} onOpenChange={setShareOpen} />
     </div>
   );
 }
