@@ -99,7 +99,7 @@ export function ShoppingListForm({ open, onOpenChange, onSuccess }: ShoppingList
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[10px] text-gray-400">
+            <p className="text-xs text-gray-400">
               Considerar restricciones alimentarias al generar la lista
             </p>
           </div>

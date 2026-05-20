@@ -117,14 +117,14 @@ export function PantryItemCard({ item, onEdit, onDelete, categoryColor }: Pantry
                 </span>
 
                 {item.expirationDate && (
-                  <span className={`text-[10px] flex items-center gap-0.5 ${expStatus.color}`}>
+                  <span className={`text-xs flex items-center gap-0.5 ${expStatus.color}`}>
                     <expStatus.icon className="size-3" />
                     {expStatus.label}
                   </span>
                 )}
 
                 {item.purchasePrice && (
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-xs text-gray-400">
                     {formatCurrency(item.purchasePrice)}
                   </span>
                 )}
@@ -176,7 +176,7 @@ export function PantryItemCard({ item, onEdit, onDelete, categoryColor }: Pantry
           {isLowStock && (
             <div className="mt-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-900/20">
               <AlertTriangle className="size-3 text-amber-500" />
-              <span className="text-[10px] text-amber-600 dark:text-amber-400">
+              <span className="text-xs text-amber-600 dark:text-amber-400">
                 Stock bajo (mín: {item.minStock} {unitLabels[item.unit] || item.unit})
               </span>
             </div>

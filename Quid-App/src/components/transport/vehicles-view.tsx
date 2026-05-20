@@ -151,7 +151,7 @@ export function VehiclesView({ onSelectVehicle }: VehiclesViewProps) {
                     Nivel de Combustible
                   </span>
                   {vehiclesWithTank.length > 1 && (
-                    <span className="text-[10px] bg-white/20 text-white rounded-full px-2 py-0.5 ml-auto">
+                    <span className="text-xs bg-white/20 text-white rounded-full px-2 py-0.5 ml-auto">
                       {vehiclesWithTank.length} vehículos
                     </span>
                   )}

@@ -570,7 +570,7 @@ export function DebtSimulator() {
                               <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                                 {debt.name}
                               </span>
-                              <Badge variant="secondary" className="text-[9px] shrink-0">
+                              <Badge variant="secondary" className="text-[11px] shrink-0">
                                 {isCreditCard ? "TC" : isLoan ? "Préstamo" : "Otra"}
                               </Badge>
                             </div>
@@ -589,7 +589,7 @@ export function DebtSimulator() {
                               {formatCurrency(debt.currentBalance)}
                             </p>
                             {debt.interestRate && (
-                              <p className="text-[10px] text-gray-400">
+                              <p className="text-xs text-gray-400">
                                 {isLoan ? `${debt.interestRate}% NMV` : `${debt.interestRate}% mensual`}
                               </p>
                             )}
@@ -689,7 +689,7 @@ export function DebtSimulator() {
                   Saldo Actual
                 </span>
                 {isLoanFixed && (
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-xs text-gray-400">
                     Cuota: {formatCurrency(selectedDebt.monthlyPayment ?? 0)}/mes
                     {selectedDebt.otherCharges && selectedDebt.otherCharges > 0 &&
                       ` (+${formatCurrency(selectedDebt.otherCharges)} otros)`}
@@ -702,7 +702,7 @@ export function DebtSimulator() {
                 {formatCurrency(selectedDebt.currentBalance)}
               </p>
               {selectedDebt.interestRate && (
-                <p className="text-[10px] text-gray-400">
+                <p className="text-xs text-gray-400">
                   {isLoan
                     ? `${selectedDebt.interestRate}% NMV anual`
                     : `${selectedDebt.interestRate}% mensual`}
@@ -712,9 +712,9 @@ export function DebtSimulator() {
           </div>
 
           {/* Quick stats */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="text-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-              <p className="text-[10px] text-gray-400">
+          <div className="grid grid-cols-3 gap-1">
+            <div className="text-center p-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <p className="text-xs text-gray-400">
                 {isCreditCard ? "Compras activas" : "Cuotas restantes"}
               </p>
               <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
@@ -723,14 +723,14 @@ export function DebtSimulator() {
                   : selectedDebt.remainingPayments ?? "—"}
               </p>
             </div>
-            <div className="text-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-              <p className="text-[10px] text-gray-400">Sin abonos extra</p>
+            <div className="text-center p-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <p className="text-xs text-gray-400">Sin abonos extra</p>
               <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                 {projection.originalMonths > 0 ? `${projection.originalMonths} meses` : "—"}
               </p>
             </div>
-            <div className="text-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-              <p className="text-[10px] text-gray-400">Tasa mensual</p>
+            <div className="text-center p-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <p className="text-xs text-gray-400">Tasa mensual</p>
               <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                 {isLoan
                   ? `${((selectedDebt.interestRate ?? 0) / 12).toFixed(4)}%`
@@ -788,7 +788,7 @@ export function DebtSimulator() {
                     <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
                       {ep.type === "recurring" ? "Cada mes" : "Pago único"}
                     </p>
-                    <p className="text-[10px] text-gray-400 truncate">
+                    <p className="text-xs text-gray-400 truncate">
                       {formatCurrency(ep.amount)}
                       {ep.type === "one-time" && ` · ${formatDate(ep.date)}`}
                     </p>
@@ -915,14 +915,14 @@ export function DebtSimulator() {
               {/* Hero stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-                  <p className="text-[10px] text-gray-400 mb-1">Tiempo total</p>
+                  <p className="text-xs text-gray-400 mb-1">Tiempo total</p>
                   <p className="text-lg font-bold text-gray-900 dark:text-white">
                     {projection.projectedMonths}
                   </p>
-                  <p className="text-[10px] text-gray-400">meses</p>
+                  <p className="text-xs text-gray-400">meses</p>
                 </div>
                 <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-                  <p className="text-[10px] text-gray-400 mb-1">Total a pagar</p>
+                  <p className="text-xs text-gray-400 mb-1">Total a pagar</p>
                   <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">
                     {formatCurrency(projection.totalOverall)}
                   </p>
@@ -985,7 +985,7 @@ export function DebtSimulator() {
               {projection.totalOverall > 0 && (
                 <div className="space-y-2 pt-1">
                   <div>
-                    <div className="flex items-center justify-between text-[10px] mb-1">
+                    <div className="flex items-center justify-between text-xs mb-1">
                       <span className="text-emerald-600 dark:text-emerald-400">Capital</span>
                       <span className="text-gray-500">
                         {formatCurrency(selectedDebt.currentBalance)} ({((selectedDebt.currentBalance / projection.totalOverall) * 100).toFixed(1)}%)
@@ -999,7 +999,7 @@ export function DebtSimulator() {
                     </div>
                   </div>
                   <div>
-                    <div className="flex items-center justify-between text-[10px] mb-1">
+                    <div className="flex items-center justify-between text-xs mb-1">
                       <span className="text-rose-500 dark:text-rose-400">Intereses</span>
                       <span className="text-gray-500">
                         {formatCurrency(projection.totalInterest)} ({((projection.totalInterest / projection.totalOverall) * 100).toFixed(1)}%)
@@ -1014,7 +1014,7 @@ export function DebtSimulator() {
                   </div>
                   {projection.totalExtraPayments > 0 && (
                     <div>
-                      <div className="flex items-center justify-between text-[10px] mb-1">
+                      <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-blue-500 dark:text-blue-400">Abonos extra</span>
                         <span className="text-gray-500">
                           {formatCurrency(projection.totalExtraPayments)} ({((projection.totalExtraPayments / projection.totalOverall) * 100).toFixed(1)}%)
@@ -1103,7 +1103,7 @@ export function DebtSimulator() {
                     </div>
                   ))}
                   {projection.rows.length > 5 && (
-                    <div className="text-center text-[10px] text-gray-400 py-1">
+                    <div className="text-center text-xs text-gray-400 py-1">
                       ··· {projection.rows.length - 5} meses más ···
                     </div>
                   )}
@@ -1223,11 +1223,11 @@ export function DebtSimulator() {
                             <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex-1">
                               {inst.description}
                             </span>
-                            <span className="text-[10px] text-gray-400 shrink-0 ml-2">
+                            <span className="text-xs text-gray-400 shrink-0 ml-2">
                               Cuota {inst.currentInstallment}/{inst.totalInstallments}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-[10px]">
+                          <div className="flex items-center justify-between text-xs">
                             <span className="text-gray-400">
                               Saldo: {formatCurrency(inst.remainingBalance ?? inst.totalAmount)}
                             </span>
@@ -1251,7 +1251,7 @@ export function DebtSimulator() {
 
           {/* Disclaimer */}
           <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">
-            <p className="text-[10px] text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-400 leading-relaxed">
               Esta proyección es una simulación referencial basada en los datos actuales de tu deuda.
               Los valores reales pueden variar según cambios en la tasa de interés, pagos parciales,
               seguros asociados y otros factores. Para préstamos con cuota fija, se asume que la cuota

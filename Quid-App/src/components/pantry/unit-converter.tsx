@@ -91,7 +91,7 @@ export function UnitConverter({ unit: initialUnit = "kg", quantity: initialQuant
 
         <div className="grid grid-cols-3 gap-2 items-end">
           <div className="space-y-1">
-            <Label className="text-[10px]">Cantidad</Label>
+            <Label className="text-xs">Cantidad</Label>
             <Input
               type="number"
               step="0.1"
@@ -101,7 +101,7 @@ export function UnitConverter({ unit: initialUnit = "kg", quantity: initialQuant
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-[10px]">De</Label>
+            <Label className="text-xs">De</Label>
             <Select value={fromUnit} onValueChange={setFromUnit}>
               <SelectTrigger className="rounded-lg h-8 text-xs">
                 <SelectValue />
@@ -116,7 +116,7 @@ export function UnitConverter({ unit: initialUnit = "kg", quantity: initialQuant
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-[10px]">A</Label>
+            <Label className="text-xs">A</Label>
             <Select value={toUnit} onValueChange={setToUnit}>
               <SelectTrigger className="rounded-lg h-8 text-xs">
                 <SelectValue placeholder="—" />

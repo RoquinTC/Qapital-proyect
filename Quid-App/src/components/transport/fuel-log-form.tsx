@@ -307,7 +307,7 @@ export function FuelLogForm({
                       style={{ width: `${Math.min(fuelProjection.currentLvl, 100)}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-[9px] text-gray-400">
+                  <div className="flex justify-between text-[11px] text-gray-400">
                     <span>0 gal</span>
                     <span>{fuelProjection.tankCapacity} gal</span>
                   </div>
@@ -316,7 +316,7 @@ export function FuelLogForm({
                   <span className={`text-sm font-bold ${getFuelTextColor(fuelProjection.currentLvl)}`}>
                     {Math.round(fuelProjection.currentLvl)}%
                   </span>
-                  <p className="text-[9px] text-gray-400">
+                  <p className="text-[11px] text-gray-400">
                     {fuelProjection.currentFuelGal.toFixed(1)} gal
                   </p>
                 </div>
@@ -325,7 +325,7 @@ export function FuelLogForm({
               {estimatedRange && estimatedRange > 0 && (
                 <div className="flex items-center gap-1 mt-1.5">
                   <Gauge className="size-3 text-cyan-500" />
-                  <span className="text-[10px] text-cyan-600 dark:text-cyan-400">
+                  <span className="text-xs text-cyan-600 dark:text-cyan-400">
                     Autonomía: ~{estimatedRange} km
                   </span>
                 </div>
@@ -343,7 +343,7 @@ export function FuelLogForm({
                   {selectedVehicle?.name || vehicles[0]?.name || "Vehículo"}
                 </span>
                 {vehicleTankCapacity > 0 && (
-                  <span className="text-[10px] text-gray-400 ml-auto">Tanque: {vehicleTankCapacity} gal</span>
+                  <span className="text-xs text-gray-400 ml-auto">Tanque: {vehicleTankCapacity} gal</span>
                 )}
               </div>
             ) : (
@@ -436,7 +436,7 @@ export function FuelLogForm({
               {/* Before → After comparison */}
               <div className="flex items-center gap-2 mb-2">
                 <div className="flex-1">
-                  <p className="text-[9px] text-gray-400 mb-0.5">Antes</p>
+                  <p className="text-[11px] text-gray-400 mb-0.5">Antes</p>
                   <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${getFuelColor(fuelProjection.currentLvl)} transition-all`}
@@ -444,9 +444,9 @@ export function FuelLogForm({
                     />
                   </div>
                 </div>
-                <span className="text-[10px] text-gray-400">→</span>
+                <span className="text-xs text-gray-400">→</span>
                 <div className="flex-1">
-                  <p className="text-[9px] text-gray-400 mb-0.5">Después</p>
+                  <p className="text-[11px] text-gray-400 mb-0.5">Después</p>
                   <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${getFuelColor(fuelProjection.projectedLevel)} transition-all`}
@@ -461,14 +461,14 @@ export function FuelLogForm({
                   <span className={`text-sm font-bold ${getFuelTextColor(fuelProjection.projectedLevel)}`}>
                     {Math.round(fuelProjection.projectedLevel)}%
                   </span>
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-xs text-gray-400">
                     ({fuelProjection.projectedFuel.toFixed(1)} gal)
                   </span>
                 </div>
                 {fuelProjection.projectedRange > 0 && (
                   <div className="flex items-center gap-1">
                     <Gauge className="size-3 text-emerald-500" />
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400">
                       ~{fuelProjection.projectedRange} km
                     </span>
                   </div>
@@ -479,7 +479,7 @@ export function FuelLogForm({
               {fuelProjection.willOverflow && (
                 <div className="flex items-center gap-1.5 mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                   <AlertTriangle className="size-3 text-amber-500 flex-shrink-0" />
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
                     Los galones añadidos superarían la capacidad del tanque ({fuelProjection.tankCapacity} gal)
                   </span>
                 </div>
@@ -507,7 +507,7 @@ export function FuelLogForm({
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <div>
               <Label className="text-sm">Tanque lleno</Label>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Marca si llenaste el tanque completo
               </p>
             </div>
@@ -548,7 +548,7 @@ export function FuelLogForm({
               placeholder="Notas opcionales..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="rounded-xl min-h-[60px]"
+              className="rounded-xl min-h-[80px]"
             />
           </div>
 

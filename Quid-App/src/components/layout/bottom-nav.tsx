@@ -49,7 +49,7 @@ export function BottomNav() {
                 }`}
               />
               <span
-                className={`text-[10px] mt-0.5 relative z-10 font-medium transition-colors duration-200 ${
+                className={`text-xs mt-0.5 relative z-10 font-medium transition-colors duration-200 ${
                   isActive ? "text-white" : "text-gray-400 dark:text-gray-500"
                 }`}
               >

@@ -158,7 +158,7 @@ export function BudgetDetail({ budgetId, onBack }: BudgetDetailProps) {
             </div>
             <Badge
               variant={isOverBudget ? "destructive" : "secondary"}
-              className="text-[10px]"
+              className="text-xs"
             >
               {budget.type === "income" ? "Ingreso" : "Gasto"}
             </Badge>
@@ -242,7 +242,7 @@ export function BudgetDetail({ budgetId, onBack }: BudgetDetailProps) {
                       <p className="text-sm font-medium truncate">
                         {movement.description}
                       </p>
-                      <p className="text-[10px] text-gray-400">
+                      <p className="text-xs text-gray-400">
                         {new Date(movement.date).toLocaleDateString("es-CO", {
                           day: "numeric",
                           month: "short",
@@ -284,7 +284,7 @@ export function BudgetDetail({ budgetId, onBack }: BudgetDetailProps) {
                       {formatCurrency(movement.amount)}
                     </span>
                     {isInstallment && (
-                      <p className="text-[8px] text-violet-500">
+                      <p className="text-[11px] text-violet-500">
                         TC {movement.isPaid ? "✓" : "pend."}
                       </p>
                     )}

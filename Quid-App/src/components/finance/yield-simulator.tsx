@@ -321,11 +321,11 @@ export function YieldSimulator() {
             className="rounded-xl text-2xl font-bold h-14 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
           />
           <div className="flex items-center justify-between mt-2">
-            <span className="text-[10px] text-emerald-200">
+            <span className="text-xs text-emerald-200">
               Días restantes del mes: {daysRemaining} de {daysInMonth}
             </span>
             {amount > 0 && (
-              <span className="text-[10px] text-emerald-200">
+              <span className="text-xs text-emerald-200">
                 Cálculo proporcional a {daysRemaining} días
               </span>
             )}
@@ -379,7 +379,7 @@ export function YieldSimulator() {
                         {item.name}
                       </span>
                       {item.isSubAccount && item.parentName && (
-                        <span className="text-[10px] text-gray-400 truncate block">
+                        <span className="text-xs text-gray-400 truncate block">
                           Bolsillo de {item.parentName}
                         </span>
                       )}
@@ -387,7 +387,7 @@ export function YieldSimulator() {
                   </div>
                   <Badge
                     variant="secondary"
-                    className="text-[10px] font-bold shrink-0"
+                    className="text-xs font-bold shrink-0"
                     style={{
                       backgroundColor: `${item.color}20`,
                       color: item.color,
@@ -525,7 +525,7 @@ export function YieldSimulator() {
                 <div className="flex items-center gap-2">
                   <Badge
                     variant="secondary"
-                    className="text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                    className="text-xs font-bold bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                   >
                     {hyp.ea}% EA
                   </Badge>
@@ -628,7 +628,7 @@ export function YieldSimulator() {
                     <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
                       En saldo conjunto
                     </span>
-                    <p className="text-[10px] text-amber-600/70 dark:text-amber-500/70 truncate">
+                    <p className="text-xs text-amber-600/70 dark:text-amber-500/70 truncate">
                       {bestCombined.name}{bestCombined.isSubAccount ? ` (bolsillo)` : ""} ({bestCombined.ea}% EA) — sumando a su saldo
                     </p>
                   </div>
@@ -643,7 +643,7 @@ export function YieldSimulator() {
                     <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
                       En cuenta independiente
                     </span>
-                    <p className="text-[10px] text-amber-600/70 dark:text-amber-500/70 truncate">
+                    <p className="text-xs text-amber-600/70 dark:text-amber-500/70 truncate">
                       {bestStandalone.name}{bestStandalone.isSubAccount ? ` (bolsillo)` : ""} ({bestStandalone.ea}% EA) — solo tu monto
                     </p>
                   </div>
@@ -668,7 +668,7 @@ export function YieldSimulator() {
 
       {/* Info note */}
       <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">
-        <p className="text-[10px] text-gray-400 leading-relaxed">
+        <p className="text-xs text-gray-400 leading-relaxed">
           Los cálculos usan interés compuesto proporcional a los días restantes
           del mes ({daysRemaining} de {daysInMonth}). Febrero con 28/29 días se
           calcula correctamente. El rendimiento real puede variar según las

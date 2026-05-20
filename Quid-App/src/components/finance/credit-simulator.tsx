@@ -226,7 +226,7 @@ export function CreditSimulator() {
                     <span className="text-sm font-semibold text-gray-900 dark:text-white block">
                       Cuota Fija
                     </span>
-                    <span className="text-[10px] text-gray-400">Amortización francesa</span>
+                    <span className="text-xs text-gray-400">Amortización francesa</span>
                   </div>
                 </div>
                 <Tooltip>
@@ -250,19 +250,19 @@ export function CreditSimulator() {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <div className="text-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                  <p className="text-[10px] text-gray-400">Total a pagar</p>
+                  <p className="text-xs text-gray-400">Total a pagar</p>
                   <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                     {formatCurrency(fixedResults.totalPaid)}
                   </p>
                 </div>
                 <div className="text-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                  <p className="text-[10px] text-gray-400">Total intereses</p>
+                  <p className="text-xs text-gray-400">Total intereses</p>
                   <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
                     {formatCurrency(fixedResults.totalInterest)}
                   </p>
                 </div>
                 <div className="text-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                  <p className="text-[10px] text-gray-400">% en intereses</p>
+                  <p className="text-xs text-gray-400">% en intereses</p>
                   <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
                     {fixedResults.interestPct.toFixed(1)}%
                   </p>
@@ -343,7 +343,7 @@ export function CreditSimulator() {
                     <span className="text-sm font-semibold text-gray-900 dark:text-white block">
                       Cuota Variable
                     </span>
-                    <span className="text-[10px] text-gray-400">Amortización decreciente</span>
+                    <span className="text-xs text-gray-400">Amortización decreciente</span>
                   </div>
                 </div>
                 <Tooltip>
@@ -362,7 +362,7 @@ export function CreditSimulator() {
                 <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
                   {formatCurrency(variableResults.firstPayment)}
                 </p>
-                <p className="text-[10px] text-gray-400 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   Última cuota: {formatCurrency(variableResults.lastPayment)}
                 </p>
               </div>
@@ -370,19 +370,19 @@ export function CreditSimulator() {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <div className="text-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                  <p className="text-[10px] text-gray-400">Total a pagar</p>
+                  <p className="text-xs text-gray-400">Total a pagar</p>
                   <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                     {formatCurrency(variableResults.totalPaid)}
                   </p>
                 </div>
                 <div className="text-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                  <p className="text-[10px] text-gray-400">Total intereses</p>
+                  <p className="text-xs text-gray-400">Total intereses</p>
                   <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
                     {formatCurrency(variableResults.totalInterest)}
                   </p>
                 </div>
                 <div className="text-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                  <p className="text-[10px] text-gray-400">% en intereses</p>
+                  <p className="text-xs text-gray-400">% en intereses</p>
                   <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">
                     {variableResults.interestPct.toFixed(1)}%
                   </p>
@@ -515,7 +515,7 @@ export function CreditSimulator() {
                 <p className="text-[11px] text-gray-400 mb-2 font-medium">Distribución del pago (cuota fija)</p>
                 <div className="space-y-2">
                   <div>
-                    <div className="flex items-center justify-between text-[10px] mb-1">
+                    <div className="flex items-center justify-between text-xs mb-1">
                       <span className="text-emerald-600 dark:text-emerald-400">Capital</span>
                       <span className="text-gray-500">{formatCurrency(principal)} ({((principal / fixedResults.totalPaid) * 100).toFixed(1)}%)</span>
                     </div>
@@ -527,7 +527,7 @@ export function CreditSimulator() {
                     </div>
                   </div>
                   <div>
-                    <div className="flex items-center justify-between text-[10px] mb-1">
+                    <div className="flex items-center justify-between text-xs mb-1">
                       <span className="text-rose-500 dark:text-rose-400">Intereses</span>
                       <span className="text-gray-500">{formatCurrency(fixedResults.totalInterest)} ({((fixedResults.totalInterest / fixedResults.totalPaid) * 100).toFixed(1)}%)</span>
                     </div>
@@ -545,7 +545,7 @@ export function CreditSimulator() {
 
           {/* Disclaimer */}
           <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3">
-            <p className="text-[10px] text-gray-400 leading-relaxed">
+            <p className="text-xs text-gray-400 leading-relaxed">
               Cálculos basados en tasa efectiva anual (EA) con conversión a tasa mensual compuesta.
               Los valores reales pueden variar según la entidad financiera, seguros asociados,
               comisiones y otros cargos. Consulta siempre la tabla de amortización oficial.

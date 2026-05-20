@@ -34,7 +34,7 @@ function getStatusBadge(status: string) {
     renewed: { label: "Renovado", className: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" },
   };
   const c = config[status] || config.active;
-  return <Badge className={`text-[10px] px-2 py-0.5 border-0 font-semibold ${c.className}`}>{c.label}</Badge>;
+  return <Badge className={`text-xs px-2 py-0.5 border-0 font-semibold ${c.className}`}>{c.label}</Badge>;
 }
 
 // All CDT calculations now use compound interest (correct for Tasa Efectiva Anual)
@@ -114,7 +114,7 @@ export function CDTView() {
             {totalInterestEarned > 0 && (
               <div className="flex items-center gap-1.5 mt-1">
                 <TrendingUp className="size-3.5 text-teal-200" />
-                <span className="text-[10px] text-teal-200">
+                <span className="text-xs text-teal-200">
                   Intereses generados: {formatCurrency(totalInterestEarned)}
                 </span>
               </div>
@@ -181,7 +181,7 @@ export function CDTView() {
                           <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                             {cdt.bank}
                           </h3>
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-xs text-gray-400">
                             {cdt.termDays} días
                           </span>
                         </div>
@@ -190,7 +190,7 @@ export function CDTView() {
                         <p className="text-base font-bold text-gray-900 dark:text-white">
                           {formatCurrency(cdtAmount)}
                         </p>
-                        <Badge className="text-[10px] px-1.5 py-0 border-0 font-bold bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
+                        <Badge className="text-xs px-1.5 py-0 border-0 font-bold bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
                           {cdtRate}% EA
                         </Badge>
                       </div>
@@ -199,8 +199,8 @@ export function CDTView() {
                     {/* Time Progress Bar */}
                     <div className="mb-3">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] text-gray-400">Tiempo transcurrido</span>
-                        <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300">
+                        <span className="text-xs text-gray-400">Tiempo transcurrido</span>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
                           {timeProgress}%
                         </span>
                       </div>
@@ -221,7 +221,7 @@ export function CDTView() {
                         {/* Interest earned */}
                         <div className="flex items-center gap-1">
                           <TrendingUp className="size-3 text-teal-500" />
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             Ganancia actual: <span className="font-semibold text-teal-600 dark:text-teal-400">+{formatCurrency(interest)}</span>
                           </span>
                         </div>
@@ -230,13 +230,13 @@ export function CDTView() {
                       <div className="flex items-center gap-2">
                         {/* Days to maturity or Vencido badge */}
                         {isMatured ? (
-                          <Badge className="text-[10px] px-1.5 py-0 border-0 font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                          <Badge className="text-xs px-1.5 py-0 border-0 font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                             Vencido
                           </Badge>
                         ) : (
                           <div className="flex items-center gap-1">
                             <Clock className="size-3 text-gray-400" />
-                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
                               {daysToMaturity}d restantes
                             </span>
                           </div>
@@ -250,16 +250,16 @@ export function CDTView() {
                     {/* Breakdown row: Rendimientos / ReteFuente / Total al vencer */}
                     <div className="mt-2 pt-2 border-t border-gray-50 dark:border-gray-700/50 space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-400">Rendimientos estimados</span>
-                        <span className="text-[10px] font-semibold text-teal-600 dark:text-teal-400">+{formatCurrency(maturityBreakdown.grossInterest)}</span>
+                        <span className="text-xs text-gray-400">Rendimientos estimados</span>
+                        <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">+{formatCurrency(maturityBreakdown.grossInterest)}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-400">Retefuente (4%)</span>
-                        <span className="text-[10px] font-semibold text-red-500">-{formatCurrency(maturityBreakdown.retefuente)}</span>
+                        <span className="text-xs text-gray-400">Retefuente (4%)</span>
+                        <span className="text-xs font-semibold text-red-500">-{formatCurrency(maturityBreakdown.retefuente)}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-400">Recibirás al vencer</span>
-                        <span className="text-[10px] font-bold text-gray-900 dark:text-white">{formatCurrency(maturityBreakdown.netTotal)}</span>
+                        <span className="text-xs text-gray-400">Recibirás al vencer</span>
+                        <span className="text-xs font-bold text-gray-900 dark:text-white">{formatCurrency(maturityBreakdown.netTotal)}</span>
                       </div>
                     </div>
 
@@ -267,12 +267,12 @@ export function CDTView() {
                     <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-50 dark:border-gray-700/50">
                       <div className="flex items-center gap-1">
                         <Calendar className="size-3 text-gray-300" />
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-xs text-gray-400">
                           {formatDate(cdt.startDate)} — {formatDate(cdt.endDate)}
                         </span>
                       </div>
                       {cdt.goal && (
-                        <span className="text-[10px] text-gray-400 truncate">
+                        <span className="text-xs text-gray-400 truncate">
                           🎯 {cdt.goal.name}
                         </span>
                       )}

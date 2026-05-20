@@ -159,7 +159,7 @@ function DayDetailPopover({
           <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 capitalize">
             {dateLabel}
           </p>
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
             Total: <span className="font-semibold text-rose-600 dark:text-rose-400">{formatCurrency(totalAmount)}</span>
           </p>
         </div>
@@ -300,13 +300,13 @@ export function ExpenseHeatmap({ transactions, year, month }: ExpenseHeatmapProp
               <Flame className="size-4 text-orange-500" />
               Mapa de Gastos
             </CardTitle>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
               {monthName} {year}
             </p>
           </div>
           <Badge
             variant="secondary"
-            className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-[10px] px-2"
+            className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-xs px-2"
           >
             {formatCurrency(totalSpent)}
           </Badge>
@@ -318,7 +318,7 @@ export function ExpenseHeatmap({ transactions, year, month }: ExpenseHeatmapProp
           {WEEKDAY_LABELS.map((label) => (
             <div
               key={label}
-              className="text-center text-[9px] font-medium text-gray-400 dark:text-gray-500 py-0.5"
+              className="text-center text-[11px] font-medium text-gray-400 dark:text-gray-500 py-0.5"
             >
               {label}
             </div>
@@ -351,7 +351,7 @@ export function ExpenseHeatmap({ transactions, year, month }: ExpenseHeatmapProp
                 whileHover={hasExpenses ? { scale: 1.08 } : {}}
                 whileTap={hasExpenses ? { scale: 0.95 } : {}}
               >
-                <span className={`text-[9px] leading-none ${colorClass.text}`}>
+                <span className={`text-[11px] leading-none ${colorClass.text}`}>
                   {cell.day}
                 </span>
                 {cell.amount > 0 && (
@@ -385,32 +385,32 @@ export function ExpenseHeatmap({ transactions, year, month }: ExpenseHeatmapProp
 
         {/* Legend */}
         <div className="mt-3 flex items-center justify-center gap-1.5">
-          <span className="text-[9px] text-gray-400 dark:text-gray-500">Menos</span>
+          <span className="text-[11px] text-gray-400 dark:text-gray-500">Menos</span>
           {LEGEND_COLORS.map((colorClass, i) => (
             <div
               key={`legend-${i}`}
               className={`size-3.5 rounded-sm ${colorClass}`}
             />
           ))}
-          <span className="text-[9px] text-gray-400 dark:text-gray-500">Más</span>
+          <span className="text-[11px] text-gray-400 dark:text-gray-500">Más</span>
         </div>
 
         {/* Legend amounts */}
         {legendLabels && (
           <div className="mt-1 flex items-center justify-center gap-2">
-            <span className="text-[8px] text-gray-300 dark:text-gray-600">
+            <span className="text-[11px] text-gray-300 dark:text-gray-600">
               0
             </span>
-            <span className="text-[8px] text-gray-300 dark:text-gray-600">
+            <span className="text-[11px] text-gray-300 dark:text-gray-600">
               ≤{legendLabels.p25}
             </span>
-            <span className="text-[8px] text-gray-300 dark:text-gray-600">
+            <span className="text-[11px] text-gray-300 dark:text-gray-600">
               ≤{legendLabels.p50}
             </span>
-            <span className="text-[8px] text-gray-300 dark:text-gray-600">
+            <span className="text-[11px] text-gray-300 dark:text-gray-600">
               ≤{legendLabels.p75}
             </span>
-            <span className="text-[8px] text-gray-300 dark:text-gray-600">
+            <span className="text-[11px] text-gray-300 dark:text-gray-600">
               &gt;{legendLabels.p75}
             </span>
           </div>

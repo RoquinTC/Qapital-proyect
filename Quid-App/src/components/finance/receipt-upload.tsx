@@ -232,7 +232,7 @@ export function ReceiptUpload({ value, onChange, compact }: ReceiptUploadProps) 
               Cámara
             </button>
           </div>
-          <p className="text-[10px] text-gray-400 mt-2">
+          <p className="text-xs text-gray-400 mt-2">
             JPG, PNG, WEBP · Máximo 5MB
           </p>
         </div>

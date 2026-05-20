@@ -257,7 +257,7 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
                   <p className={`text-xs font-bold ${frequency === opt.value ? "text-emerald-700 dark:text-emerald-400" : "text-gray-600 dark:text-gray-400"}`}>
                     {opt.label}
                   </p>
-                  <p className="text-[9px] text-gray-400 mt-0.5">{opt.desc}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{opt.desc}</p>
                 </button>
               ))}
             </div>
@@ -299,7 +299,7 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
                 { label: "Segunda quincena", day: biweeklyDay2, setDay: setBiweeklyDay2, amount: biweeklyAmount2, setAmount: setBiweeklyAmount2 },
               ].map((item, idx) => (
                 <div key={idx} className="space-y-1">
-                  <p className="text-[10px] text-gray-500 font-medium">{item.label}</p>
+                  <p className="text-xs text-gray-500 font-medium">{item.label}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <DaySelect
                       value={item.day}
@@ -424,7 +424,7 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm">Ajustar a día hábil</Label>
-                <p className="text-[10px] text-gray-400">Si el día de pago cae fin de semana o festivo</p>
+                <p className="text-xs text-gray-400">Si el día de pago cae fin de semana o festivo</p>
               </div>
               <Switch
                 checked={adjustToBusinessDay}
@@ -445,8 +445,8 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
                     }`}
                   >
                     <Calendar className="size-4 mx-auto mb-1 text-emerald-600" />
-                    <p className="text-[10px] font-medium">Anterior</p>
-                    <p className="text-[8px] text-gray-400">Lunes si es domingo</p>
+                    <p className="text-xs font-medium">Anterior</p>
+                    <p className="text-[11px] text-gray-400">Lunes si es domingo</p>
                   </button>
                   <button
                     onClick={() => setBusinessDayDirection("after")}
@@ -457,8 +457,8 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
                     }`}
                   >
                     <Calendar className="size-4 mx-auto mb-1 text-emerald-600" />
-                    <p className="text-[10px] font-medium">Siguiente</p>
-                    <p className="text-[8px] text-gray-400">Lunes si es sábado</p>
+                    <p className="text-xs font-medium">Siguiente</p>
+                    <p className="text-[11px] text-gray-400">Lunes si es sábado</p>
                   </button>
                 </div>
               </div>
@@ -479,7 +479,7 @@ export function PayrollForm({ open, onOpenChange, onSuccess, editingGroup }: Pay
                   {formatCurrency(getTotalAmount())}
                   <span className="text-xs font-normal text-emerald-500 ml-1">/mes</span>
                 </p>
-                <div className="mt-2 space-y-1 text-[10px] text-gray-500">
+                <div className="mt-2 space-y-1 text-xs text-gray-500">
                   <p>Frecuencia: {frequencyOptions.find((f) => f.value === frequency)?.label}</p>
                   {frequency === "monthly" && <p>Día {monthlyDay} de cada mes</p>}
                   {frequency === "biweekly" && <p>Días {biweeklyDay1} y {biweeklyDay2} de cada mes</p>}

@@ -141,7 +141,7 @@ export function ShareInvite({ open, onOpenChange }: ShareInviteProps) {
               <div className="size-10 rounded-xl bg-[#25D366] flex items-center justify-center shadow-sm">
                 <MessageCircle className="size-5 text-white" />
               </div>
-              <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">WhatsApp</span>
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">WhatsApp</span>
             </button>
 
             <button
@@ -151,7 +151,7 @@ export function ShareInvite({ open, onOpenChange }: ShareInviteProps) {
               <div className="size-10 rounded-xl bg-[#0088cc] flex items-center justify-center shadow-sm">
                 <Send className="size-5 text-white" />
               </div>
-              <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">Telegram</span>
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Telegram</span>
             </button>
 
             <button
@@ -161,7 +161,7 @@ export function ShareInvite({ open, onOpenChange }: ShareInviteProps) {
               <div className="size-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-sm">
                 <Mail className="size-5 text-white" />
               </div>
-              <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400">Email</span>
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Email</span>
             </button>
           </div>
 
@@ -185,7 +185,7 @@ export function ShareInvite({ open, onOpenChange }: ShareInviteProps) {
           </div>
 
           {/* Info text */}
-          <p className="text-[10px] text-center text-gray-400 dark:text-gray-500 px-2">
+          <p className="text-xs text-center text-gray-400 dark:text-gray-500 px-2">
             Quid es gratis. Tus amigos pueden registrarse con su email y empezar a gestionar sus finanzas, transporte y más.
           </p>
         </div>

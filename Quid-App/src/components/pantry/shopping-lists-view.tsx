@@ -121,7 +121,7 @@ export function ShoppingListsView() {
               </div>
               <div className="text-right">
                 <p className="text-lg font-bold">{completedLists.length}</p>
-                <span className="text-[10px] text-amber-200">completadas</span>
+                <span className="text-xs text-amber-200">completadas</span>
               </div>
             </div>
           </CardContent>
@@ -197,11 +197,11 @@ export function ShoppingListsView() {
                             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                               {list.name}
                             </h3>
-                            <span className="text-[10px] text-gray-400">
+                            <span className="text-xs text-gray-400">
                               {list.items.length} items
                             </span>
                           </div>
-                          <Badge className={`text-[10px] ${status.color}`}>
+                          <Badge className={`text-xs ${status.color}`}>
                             <StatusIcon className="size-3 mr-1" />
                             {status.label}
                           </Badge>
@@ -215,7 +215,7 @@ export function ShoppingListsView() {
                             {list.items.slice(0, 5).map((item, idx) => (
                               <div
                                 key={item.id}
-                                className={`size-5 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-[8px] font-bold ${
+                                className={`size-5 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-[11px] font-bold ${
                                   item.isPurchased
                                     ? "bg-green-500 text-white"
                                     : "bg-gray-200 dark:bg-gray-600 text-gray-500"
@@ -226,7 +226,7 @@ export function ShoppingListsView() {
                               </div>
                             ))}
                             {list.items.length > 5 && (
-                              <div className="size-5 rounded-full border-2 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-[8px] text-gray-500">
+                              <div className="size-5 rounded-full border-2 border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-[11px] text-gray-500">
                                 +{list.items.length - 5}
                               </div>
                             )}
@@ -261,7 +261,7 @@ export function ShoppingListsView() {
                             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 line-through">
                               {list.name}
                             </h3>
-                            <span className="text-[10px] text-gray-400">
+                            <span className="text-xs text-gray-400">
                               {list.items.length} items · {formatCurrency(totalActual)}
                             </span>
                           </div>

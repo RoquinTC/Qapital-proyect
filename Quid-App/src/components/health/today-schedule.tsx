@@ -81,7 +81,7 @@ export function TodaySchedule({ medications }: TodayScheduleProps) {
             <Clock className="size-4 text-rose-500" />
             <span className="text-sm font-semibold text-gray-900 dark:text-white">Hoy</span>
           </div>
-          <Badge variant="secondary" className="text-[10px] bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
+          <Badge variant="secondary" className="text-xs bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
             {takenCount}/{totalDoses} tomados
           </Badge>
         </div>
@@ -119,7 +119,7 @@ export function TodaySchedule({ medications }: TodayScheduleProps) {
                   <span className={`text-sm ${isTaken ? "line-through text-gray-400" : "text-gray-900 dark:text-white"}`}>
                     {item.medication.name}
                   </span>
-                  <span className="text-[10px] text-gray-400 ml-1.5">{item.medication.dosage}</span>
+                  <span className="text-xs text-gray-400 ml-1.5">{item.medication.dosage}</span>
                 </div>
 
                 {/* Check */}

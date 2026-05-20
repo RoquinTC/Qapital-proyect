@@ -179,10 +179,10 @@ export function OnboardingFlow() {
         {/* Progress bar */}
         <div className="relative mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-gray-400 font-medium">
+            <span className="text-xs text-gray-400 font-medium">
               Paso {step + 1} de {steps.length}
             </span>
-            <span className="text-[10px] text-gray-400 font-medium">
+            <span className="text-xs text-gray-400 font-medium">
               {Math.round(((step + 1) / steps.length) * 100)}%
             </span>
           </div>
@@ -268,7 +268,7 @@ export function OnboardingFlow() {
                         <p className="text-sm font-medium text-gray-900">
                           Notificaciones
                         </p>
-                        <p className="text-[10px] text-gray-500">
+                        <p className="text-xs text-gray-500">
                           Recordatorios de medicamentos y citas
                         </p>
                       </div>

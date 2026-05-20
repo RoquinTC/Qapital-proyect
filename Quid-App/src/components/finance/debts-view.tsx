@@ -156,7 +156,7 @@ export function DebtsView() {
                     </ResponsiveContainer>
                     {/* Center label */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-[9px] text-rose-200 leading-none">Deuda Total</span>
+                      <span className="text-[11px] text-rose-200 leading-none">Deuda Total</span>
                       <span className="text-xs font-bold leading-tight mt-0.5">
                         {formatCurrency(totalDebt)}
                       </span>
@@ -171,8 +171,8 @@ export function DebtsView() {
                           className="size-2.5 rounded-full shrink-0 border border-white/30"
                           style={{ backgroundColor: entry.color }}
                         />
-                        <span className="text-[9px] text-rose-100 leading-none truncate flex-1">{entry.name}</span>
-                        <span className="text-[9px] text-rose-200/80 leading-none font-medium shrink-0">{formatCurrency(entry.value)}</span>
+                        <span className="text-[11px] text-rose-100 leading-none truncate flex-1">{entry.name}</span>
+                        <span className="text-[11px] text-rose-200/80 leading-none font-medium shrink-0">{formatCurrency(entry.value)}</span>
                       </div>
                     ))}
                   </div>

@@ -208,7 +208,7 @@ export function DashboardPage() {
                   <ArrowUpRight className="size-3.5 text-emerald-200" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-emerald-200">Ingresos</p>
+                  <p className="text-xs text-emerald-200">Ingresos</p>
                   <p className="text-sm font-semibold">
                     {formatCurrency(monthlyIncome)}
                   </p>
@@ -219,7 +219,7 @@ export function DashboardPage() {
                   <ArrowDownRight className="size-3.5 text-rose-200" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-emerald-200">Gastos</p>
+                  <p className="text-xs text-emerald-200">Gastos</p>
                   <p className="text-sm font-semibold">
                     {formatCurrency(monthlyExpenses)}
                   </p>
@@ -246,7 +246,7 @@ export function DashboardPage() {
             <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
               {budgetPercentage}%
             </p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Presupuesto</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Presupuesto</p>
           </CardContent>
         </Card>
         <Card
@@ -261,7 +261,7 @@ export function DashboardPage() {
             <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
               {debtPercentage}%
             </p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Deudas</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Deudas</p>
           </CardContent>
         </Card>
         <Card
@@ -276,7 +276,7 @@ export function DashboardPage() {
             <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
               {savingsPercentage}%
             </p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">Ahorros</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Ahorros</p>
           </CardContent>
         </Card>
       </motion.div>
@@ -307,7 +307,7 @@ export function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-white">Combustible</span>
                     {hasLowFuel && (
-                      <span className="text-[9px] bg-white/30 text-white rounded-full px-1.5 py-0.5 animate-pulse">
+                      <span className="text-[11px] bg-white/30 text-white rounded-full px-1.5 py-0.5 animate-pulse">
                         Bajo
                       </span>
                     )}
@@ -401,7 +401,7 @@ export function DashboardPage() {
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {bill.name}
                         </p>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
                           Vence: {bill.dueDate}
                         </p>
                       </div>

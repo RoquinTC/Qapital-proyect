@@ -309,11 +309,11 @@ export function BackupManager() {
             <p className="text-xs font-semibold text-gray-900 dark:text-white">
               Respaldo y Recuperación
             </p>
-            <p className="text-[10px] text-gray-400">
+            <p className="text-xs text-gray-400">
               Exporta, restaura o guarda en el servidor
             </p>
           </div>
-          <Badge variant="secondary" className="text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 shrink-0">
+          <Badge variant="secondary" className="text-[11px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 shrink-0">
             Nuevo
           </Badge>
         </div>
@@ -327,10 +327,10 @@ export function BackupManager() {
               <Clock className="size-3.5 text-blue-500 shrink-0" />
             )}
             <div className="flex-1 min-w-0">
-              <p className={`text-[10px] font-medium ${isTodayBackup ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"}`}>
+              <p className={`text-xs font-medium ${isTodayBackup ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"}`}>
                 {isTodayBackup ? "Backup del día de hoy" : "Último backup del servidor"}
               </p>
-              <p className="text-[9px] text-gray-500 dark:text-gray-400 truncate">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
                 {formatBackupDate(serverBackupInfo.createdAt!)} · {serverBackupInfo.recordCount} registros
               </p>
             </div>
@@ -341,7 +341,7 @@ export function BackupManager() {
         {!serverBackupInfo?.hasBackup && (
           <div className="bg-amber-50 dark:bg-amber-900/10 rounded-xl p-2.5 flex items-center gap-2">
             <Cloud className="size-3.5 text-amber-500 shrink-0" />
-            <p className="text-[10px] text-amber-600 dark:text-amber-400">
+            <p className="text-xs text-amber-600 dark:text-amber-400">
               No hay respaldo en el servidor. Guarda uno para proteger tus datos.
             </p>
           </div>
@@ -351,7 +351,7 @@ export function BackupManager() {
         <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-2.5 space-y-1.5">
           <div className="flex items-start gap-1.5">
             <Info className="size-3 text-blue-500 shrink-0 mt-0.5" />
-            <p className="text-[10px] text-blue-600 dark:text-blue-400">
+            <p className="text-xs text-blue-600 dark:text-blue-400">
               El respaldo en servidor se guarda dentro del volumen Docker, así persiste aunque cambies de dispositivo.
               Se crea automáticamente al primer inicio del día.
             </p>
@@ -360,7 +360,7 @@ export function BackupManager() {
 
         {/* Action buttons - Server backup */}
         <div className="space-y-2">
-          <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Servidor
           </p>
           <div className="flex gap-2">
@@ -388,7 +388,7 @@ export function BackupManager() {
 
         {/* Action buttons - File */}
         <div className="space-y-2">
-          <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Archivo local
           </p>
           <div className="flex gap-2">
@@ -432,7 +432,7 @@ export function BackupManager() {
             ) : (
               <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
             )}
-            <p className={`text-[10px] ${serverSaveResult.includes("Error") ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+            <p className={`text-xs ${serverSaveResult.includes("Error") ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
               {serverSaveResult}
             </p>
           </div>
@@ -448,7 +448,7 @@ export function BackupManager() {
             ) : (
               <AlertTriangle className="size-3.5 text-red-500 shrink-0" />
             )}
-            <p className={`text-[10px] ${serverRestoreResult.success ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+            <p className={`text-xs ${serverRestoreResult.success ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
               {serverRestoreResult.message}
               {serverRestoreResult.success && " · Recargando..."}
             </p>
@@ -459,7 +459,7 @@ export function BackupManager() {
         {restoringFromServer && (
           <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-2.5 flex items-center gap-2">
             <Loader2 className="size-3.5 text-blue-500 animate-spin shrink-0" />
-            <p className="text-[10px] text-blue-600 dark:text-blue-400">
+            <p className="text-xs text-blue-600 dark:text-blue-400">
               Restaurando desde el servidor... Esto puede tardar unos segundos.
             </p>
           </div>
@@ -469,7 +469,7 @@ export function BackupManager() {
         {exportResult && (
           <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-2.5 flex items-center gap-2">
             <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">
               {exportResult}
             </p>
           </div>
@@ -495,7 +495,7 @@ export function BackupManager() {
               </p>
             </div>
 
-            <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 text-[10px] space-y-1">
+            <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-2 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-gray-500">Usuario:</span>
                 <span className="font-medium text-gray-900 dark:text-white">{validation.metadata.userName}</span>
@@ -515,7 +515,7 @@ export function BackupManager() {
             </div>
 
             {validation.sections.length > 0 && (
-              <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9px] text-gray-600 dark:text-gray-400 pl-1">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-gray-600 dark:text-gray-400 pl-1">
                 {validation.sections.map((s) => (
                   <span key={s.name}>{s.count} {s.label.toLowerCase()}</span>
                 ))}
@@ -527,7 +527,7 @@ export function BackupManager() {
                 {validation.issues.map((issue, i) => (
                   <div key={i} className="flex items-start gap-1.5">
                     <AlertTriangle className="size-3 text-red-500 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-red-600 dark:text-red-400">{issue}</p>
+                    <p className="text-xs text-red-600 dark:text-red-400">{issue}</p>
                   </div>
                 ))}
               </div>
@@ -538,7 +538,7 @@ export function BackupManager() {
                 {validation.warnings.map((warning, i) => (
                   <div key={i} className="flex items-start gap-1.5">
                     <Info className="size-3 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-amber-600 dark:text-amber-400">{warning}</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">{warning}</p>
                   </div>
                 ))}
               </div>
@@ -559,12 +559,12 @@ export function BackupManager() {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                     Respaldo restaurado exitosamente
                   </p>
                 </div>
                 {importResult.stats && (
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9px] text-emerald-600/70 dark:text-emerald-400/70 pl-5">
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-emerald-600/70 dark:text-emerald-400/70 pl-5">
                     {importResult.stats.accounts > 0 && <span>{importResult.stats.accounts} cuentas</span>}
                     {importResult.stats.transactions > 0 && <span>{importResult.stats.transactions} transacciones</span>}
                     {importResult.stats.budgets > 0 && <span>{importResult.stats.budgets} presupuestos</span>}
@@ -577,14 +577,14 @@ export function BackupManager() {
                     {importResult.stats.categories > 0 && <span>{importResult.stats.categories} categorías</span>}
                   </div>
                 )}
-                <p className="text-[9px] text-amber-600 dark:text-amber-400 pl-5">
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 pl-5">
                   Recarga la página para ver los datos actualizados.
                 </p>
               </div>
             ) : (
               <div className="flex items-start gap-2">
                 <AlertTriangle className="size-3.5 text-red-500 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-red-600 dark:text-red-400">
+                <p className="text-xs text-red-600 dark:text-red-400">
                   {importResult.error || "Error al importar el respaldo"}
                 </p>
               </div>
@@ -596,7 +596,7 @@ export function BackupManager() {
         {importing && (
           <div className="bg-amber-50 dark:bg-amber-900/10 rounded-xl p-2.5 flex items-center gap-2">
             <Loader2 className="size-3.5 text-amber-500 animate-spin shrink-0" />
-            <p className="text-[10px] text-amber-600 dark:text-amber-400">
+            <p className="text-xs text-amber-600 dark:text-amber-400">
               Restaurando respaldo... Esto puede tardar unos segundos.
             </p>
           </div>
@@ -621,11 +621,11 @@ export function BackupManager() {
                   <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-3 space-y-1.5">
                     <div className="flex items-center gap-1.5 mb-1">
                       <CheckCircle2 className="size-3.5 text-emerald-500" />
-                      <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                         Respaldo validado — {validation.totalRecords} registros
                       </span>
                     </div>
-                    <div className="text-[10px] space-y-1 text-gray-700 dark:text-gray-300">
+                    <div className="text-xs space-y-1 text-gray-700 dark:text-gray-300">
                       <div className="flex justify-between">
                         <span className="text-gray-500">Usuario:</span>
                         <span className="font-medium">{validation.metadata.userName}</span>
@@ -640,17 +640,17 @@ export function BackupManager() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">Versión:</span>
-                        <Badge variant="secondary" className="text-[9px]">v{validation.metadata.version}</Badge>
+                        <Badge variant="secondary" className="text-[11px]">v{validation.metadata.version}</Badge>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1 pt-1">
                       {validation.sections.slice(0, 6).map((s) => (
-                        <span key={s.name} className="text-[8px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                        <span key={s.name} className="text-[11px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
                           {s.count} {s.label.toLowerCase()}
                         </span>
                       ))}
                       {validation.sections.length > 6 && (
-                        <span className="text-[8px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                        <span className="text-[11px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
                           +{validation.sections.length - 6} más
                         </span>
                       )}
@@ -660,7 +660,7 @@ export function BackupManager() {
                         {validation.warnings.map((w, i) => (
                           <div key={i} className="flex items-start gap-1">
                             <Info className="size-2.5 text-amber-500 shrink-0 mt-0.5" />
-                            <p className="text-[9px] text-amber-600 dark:text-amber-400">{w}</p>
+                            <p className="text-[11px] text-amber-600 dark:text-amber-400">{w}</p>
                           </div>
                         ))}
                       </div>
@@ -705,7 +705,7 @@ export function BackupManager() {
 
                 {serverBackupInfo?.hasBackup && (
                   <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-3 space-y-1.5">
-                    <div className="text-[10px] space-y-1 text-gray-700 dark:text-gray-300">
+                    <div className="text-xs space-y-1 text-gray-700 dark:text-gray-300">
                       <div className="flex justify-between">
                         <span className="text-gray-500">Fecha:</span>
                         <span className="font-medium">{formatBackupDate(serverBackupInfo.createdAt!)}</span>
@@ -716,7 +716,7 @@ export function BackupManager() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">Versión:</span>
-                        <Badge variant="secondary" className="text-[9px]">v{serverBackupInfo.version}</Badge>
+                        <Badge variant="secondary" className="text-[11px]">v{serverBackupInfo.version}</Badge>
                       </div>
                     </div>
                   </div>

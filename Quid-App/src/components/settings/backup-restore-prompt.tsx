@@ -193,7 +193,7 @@ export function BackupRestorePrompt() {
               </div>
               <div>
                 <h3 className="font-bold text-sm">Restaurar Respaldo</h3>
-                <p className="text-[10px] text-white/80">Detectamos que no tienes datos</p>
+                <p className="text-xs text-white/80">Detectamos que no tienes datos</p>
               </div>
             </div>
           </div>
@@ -253,7 +253,7 @@ export function BackupRestorePrompt() {
                     <AlertTriangle className="size-3.5 text-red-500" />
                   )}
                   <span
-                    className={`text-[10px] font-medium ${
+                    className={`text-xs font-medium ${
                       validation.valid
                         ? "text-emerald-600 dark:text-emerald-400"
                         : "text-red-600 dark:text-red-400"
@@ -267,7 +267,7 @@ export function BackupRestorePrompt() {
                 {validation.issues.length > 0 && (
                   <div className="space-y-0.5">
                     {validation.issues.map((issue, i) => (
-                      <p key={i} className="text-[9px] text-red-600 dark:text-red-400">
+                      <p key={i} className="text-[11px] text-red-600 dark:text-red-400">
                         {issue}
                       </p>
                     ))}
@@ -289,10 +289,10 @@ export function BackupRestorePrompt() {
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
                     <div>
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                         ¡Respaldo restaurado exitosamente!
                       </p>
-                      <p className="text-[9px] text-emerald-600/70 dark:text-emerald-400/70">
+                      <p className="text-[11px] text-emerald-600/70 dark:text-emerald-400/70">
                         Recargando página...
                       </p>
                     </div>
@@ -300,7 +300,7 @@ export function BackupRestorePrompt() {
                 ) : (
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="size-3.5 text-red-500 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-red-600 dark:text-red-400">
+                    <p className="text-xs text-red-600 dark:text-red-400">
                       {importResult.error || "Error al importar"}
                     </p>
                   </div>
@@ -312,7 +312,7 @@ export function BackupRestorePrompt() {
             {importing && (
               <div className="bg-amber-50 dark:bg-amber-900/10 rounded-xl p-2.5 flex items-center gap-2">
                 <Loader2 className="size-3.5 text-amber-500 animate-spin shrink-0" />
-                <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                <p className="text-xs text-amber-600 dark:text-amber-400">
                   Restaurando respaldo...
                 </p>
               </div>
@@ -338,7 +338,7 @@ export function BackupRestorePrompt() {
 
                 {validation && (
                   <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-3 space-y-1.5">
-                    <div className="text-[10px] space-y-1 text-gray-700 dark:text-gray-300">
+                    <div className="text-xs space-y-1 text-gray-700 dark:text-gray-300">
                       <div className="flex justify-between">
                         <span className="text-gray-500">Usuario:</span>
                         <span className="font-medium">{validation.metadata.userName}</span>
@@ -349,12 +349,12 @@ export function BackupRestorePrompt() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">Versión:</span>
-                        <Badge variant="secondary" className="text-[9px]">v{validation.metadata.version}</Badge>
+                        <Badge variant="secondary" className="text-[11px]">v{validation.metadata.version}</Badge>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1 pt-1">
                       {validation.sections.slice(0, 6).map((s) => (
-                        <span key={s.name} className="text-[8px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                        <span key={s.name} className="text-[11px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
                           {s.count} {s.label.toLowerCase()}
                         </span>
                       ))}

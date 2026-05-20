@@ -94,20 +94,20 @@ export function RecipeCard({ recipe, onCook, onFavorite, isFavorite }: RecipeCar
         {/* Badges */}
         <div className="flex items-center gap-2 flex-wrap mb-3">
           <Badge
-            className={`text-[10px] ${
+            className={`text-xs ${
               difficultyColors[recipe.difficulty] || difficultyColors.fácil
             }`}
           >
             {recipe.difficulty}
           </Badge>
           {recipe.compatible && (
-            <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+            <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
               <Check className="size-3 mr-0.5" />
               Compatible
             </Badge>
           )}
           {!recipe.compatible && (
-            <Badge className="text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+            <Badge className="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
               <AlertCircle className="size-3 mr-0.5" />
               Restringido
             </Badge>
@@ -119,7 +119,7 @@ export function RecipeCard({ recipe, onCook, onFavorite, isFavorite }: RecipeCar
           {recipe.ingredients.map((ingredient) => (
             <span
               key={ingredient.name}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                 ingredient.inPantry
                   ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
                   : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
@@ -137,11 +137,11 @@ export function RecipeCard({ recipe, onCook, onFavorite, isFavorite }: RecipeCar
 
         {/* Summary */}
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[10px] text-green-600 font-medium">
+          <span className="text-xs text-green-600 font-medium">
             {inPantryCount} en despensa
           </span>
           {missingCount > 0 && (
-            <span className="text-[10px] text-red-500 font-medium">
+            <span className="text-xs text-red-500 font-medium">
               {missingCount} faltante{missingCount > 1 ? "s" : ""}
             </span>
           )}
@@ -209,7 +209,7 @@ export function RecipeCard({ recipe, onCook, onFavorite, isFavorite }: RecipeCar
                         key={idx}
                         className="text-xs text-gray-600 dark:text-gray-400 flex gap-2"
                       >
-                        <span className="size-4 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[9px] font-bold shrink-0">
+                        <span className="size-4 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[11px] font-bold shrink-0">
                           {idx + 1}
                         </span>
                         {step}

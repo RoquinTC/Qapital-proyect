@@ -254,7 +254,7 @@ export function SecuritySettings() {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-900 dark:text-white">Bloqueo con PIN</p>
-                <p className="text-[10px] text-gray-400">Solicitar un PIN de 4 dígitos al abrir la app</p>
+                <p className="text-xs text-gray-400">Solicitar un PIN de 4 dígitos al abrir la app</p>
               </div>
             </div>
             <Switch
@@ -291,7 +291,7 @@ export function SecuritySettings() {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-900 dark:text-white">Autenticación biométrica</p>
-                <p className="text-[10px] text-gray-400">Usar huella o rostro para desbloquear</p>
+                <p className="text-xs text-gray-400">Usar huella o rostro para desbloquear</p>
               </div>
             </div>
             <Switch
@@ -304,7 +304,7 @@ export function SecuritySettings() {
           {/* Registered credentials */}
           {status.credentials.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[10px] text-gray-500 font-medium">Dispositivos registrados</p>
+              <p className="text-xs text-gray-500 font-medium">Dispositivos registrados</p>
               {status.credentials.map((cred) => (
                 <div
                   key={cred.id}
@@ -316,7 +316,7 @@ export function SecuritySettings() {
                       <p className="text-[11px] font-medium text-gray-900 dark:text-white">
                         {cred.name || "Sin nombre"}
                       </p>
-                      <p className="text-[9px] text-gray-400">
+                      <p className="text-[11px] text-gray-400">
                         {cred.deviceType === "platform" ? "Huella/Rostro" : "Llave de seguridad"}
                         {cred.lastUsedAt && ` · Último uso: ${new Date(cred.lastUsedAt).toLocaleDateString("es-CO")}`}
                       </p>
@@ -360,7 +360,7 @@ export function SecuritySettings() {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-900 dark:text-white">Bloquear al volver a la app</p>
-                <p className="text-[10px] text-gray-400">Pedir autenticación cuando vuelves de otra app</p>
+                <p className="text-xs text-gray-400">Pedir autenticación cuando vuelves de otra app</p>
               </div>
             </div>
             <Switch
@@ -378,10 +378,10 @@ export function SecuritySettings() {
           <div className="flex items-start gap-2">
             <ShieldCheck className="size-4 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                 Protege tu información
               </p>
-              <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70">
+              <p className="text-xs text-amber-600/70 dark:text-amber-400/70">
                 Activa el PIN o la autenticación biométrica para que nadie más pueda acceder a tus datos financieros.
               </p>
             </div>

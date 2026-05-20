@@ -265,7 +265,7 @@ export function HealthProfileForm({ open, onOpenChange, profile, onSuccess }: He
                 {diseases.map((d) => (
                   <Badge
                     key={d}
-                    className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 cursor-pointer"
+                    className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 cursor-pointer"
                     onClick={() => toggleDisease(d)}
                   >
                     {d}
@@ -311,10 +311,10 @@ export function HealthProfileForm({ open, onOpenChange, profile, onSuccess }: He
                       {r.food}
                     </span>
                     {r.reason && (
-                      <p className="text-[10px] text-gray-500">{r.reason}</p>
+                      <p className="text-xs text-gray-500">{r.reason}</p>
                     )}
                     {r.level && (
-                      <Badge className="text-[9px] h-4 mt-0.5 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                      <Badge className="text-[11px] h-4 mt-0.5 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
                         {r.level}
                       </Badge>
                     )}

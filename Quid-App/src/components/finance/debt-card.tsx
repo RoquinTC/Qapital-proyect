@@ -77,7 +77,7 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-bold truncate">{debt.name}</h3>
               {debt.bank && (
-                <p className="text-[10px] text-white/70 truncate">{debt.bank}</p>
+                <p className="text-xs text-white/70 truncate">{debt.bank}</p>
               )}
             </div>
             {/* Type icon */}
@@ -88,7 +88,7 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
 
           {/* Utilization bar */}
           <div className="mb-3">
-            <div className="flex items-center justify-between text-[10px] text-white/70 mb-1">
+            <div className="flex items-center justify-between text-xs text-white/70 mb-1">
               <span>{isCreditCard ? "Utilizado" : "Progreso"}</span>
               <span>{utilization}%</span>
             </div>
@@ -105,7 +105,7 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
           {/* Amounts row */}
           <div className="flex items-end justify-between mb-3 min-w-0 gap-2">
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] text-white/60">
+              <p className="text-xs text-white/60">
                 {isCreditCard ? "Saldo en Deuda" : "Saldo Actual"}
               </p>
               <p className="text-xl font-bold tracking-tight break-all">
@@ -113,7 +113,7 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
               </p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-[10px] text-white/60">
+              <p className="text-xs text-white/60">
                 {isCreditCard ? "Cupo Total" : "Monto Total"}
               </p>
               <p className="text-sm font-medium text-white/80">
@@ -126,7 +126,7 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
           {isCreditCard && (
             <div className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
               <Wallet className="size-3.5 text-emerald-300" />
-              <span className="text-[10px] text-white/70">Cupo:</span>
+              <span className="text-xs text-white/70">Cupo:</span>
               <span className="text-sm font-bold text-emerald-300">
                 {formatCurrency(cupo)}
               </span>
@@ -139,7 +139,7 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
               {debt.cutoffDate && (
                 <div className="flex items-center gap-1">
                   <Calendar className="size-3 text-white/50" />
-                  <span className="text-[10px] text-white/60">
+                  <span className="text-xs text-white/60">
                     Corte: {debt.cutoffDate}
                   </span>
                 </div>
@@ -147,7 +147,7 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
               {debt.paymentDate && (
                 <div className="flex items-center gap-1">
                   <Calendar className="size-3 text-white/50" />
-                  <span className="text-[10px] text-white/60">
+                  <span className="text-xs text-white/60">
                     Pago: {debt.paymentDate}
                   </span>
                 </div>
@@ -158,11 +158,11 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
           {/* Loan info */}
           {isLoan && debt.monthlyPayment && (
             <div className="flex items-center gap-2 mt-2 min-w-0">
-              <span className="text-[10px] text-white/60 truncate">
+              <span className="text-xs text-white/60 truncate">
                 {isLoanFixed ? "Cuota fija" : "Cuota mensual"}: {formatCurrency(debt.monthlyPayment)}
               </span>
               {debt.remainingPayments && (
-                <span className="text-[10px] text-white/50">
+                <span className="text-xs text-white/50">
                   ({debt.remainingPayments} restantes)
                 </span>
               )}
@@ -172,7 +172,7 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
           {/* Loan interest rate */}
           {isLoan && debt.interestRate && (
             <div className="flex items-center gap-1 mt-1">
-              <span className="text-[10px] text-white/50">
+              <span className="text-xs text-white/50">
                 Tasa: {debt.interestRate}% NMV
               </span>
             </div>
@@ -182,7 +182,7 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
           {isLoan && debt.paymentDate && (
             <div className="flex items-center gap-1 mt-1">
               <Calendar className="size-2.5 text-white/40" />
-              <span className="text-[10px] text-white/50">
+              <span className="text-xs text-white/50">
                 Pago: día {debt.paymentDate}
               </span>
             </div>

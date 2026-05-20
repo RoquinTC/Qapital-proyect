@@ -392,7 +392,7 @@ export function TransactionForm({
             <button
               key={qa}
               onClick={() => setAmount(qa.toString())}
-              className="flex-1 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-[10px] font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               {formatCurrency(qa)}
             </button>
@@ -523,7 +523,7 @@ export function TransactionForm({
         <div className="flex items-center justify-between py-2">
           <div>
             <Label className="text-xs">Excluir del presupuesto</Label>
-            <p className="text-[10px] text-gray-400">Este movimiento no afectará tu presupuesto</p>
+            <p className="text-xs text-gray-400">Este movimiento no afectará tu presupuesto</p>
           </div>
           <Switch
             checked={excludeFromBudget}

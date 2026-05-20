@@ -476,7 +476,7 @@ export function RecurringView() {
                   {payment.description}
                 </h4>
                 <Badge
-                  className={`${payType.bgClass} ${payType.color} text-[9px] border-0 px-1.5 py-0`}
+                  className={`${payType.bgClass} ${payType.color} text-[11px] border-0 px-1.5 py-0`}
                 >
                   <TypeIcon className="size-2.5 mr-0.5" />
                   {payType.label}
@@ -537,7 +537,7 @@ export function RecurringView() {
                   </>
                 )}
               </div>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 block">
+              <span className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 block">
                 Programado: {formatDate(payment.scheduledDate)}
               </span>
             </div>
@@ -548,7 +548,7 @@ export function RecurringView() {
                 {formatCurrency(payment.actualAmount ?? payment.amount)}
               </span>
               {hasDiff && (
-                <span className="text-[9px] text-gray-400 line-through">
+                <span className="text-[11px] text-gray-400 line-through">
                   {formatCurrency(payment.amount)}
                 </span>
               )}
@@ -605,12 +605,12 @@ export function RecurringView() {
             <CardContent className="p-3 relative z-10">
               <div className="flex items-center gap-1 mb-0.5">
                 <TrendingUp className="size-3 text-emerald-200" />
-                <span className="text-[10px] text-emerald-100">Ingresos</span>
+                <span className="text-xs text-emerald-100">Ingresos</span>
               </div>
               <p className="text-base font-bold tracking-tight">
                 {formatCurrency(totalPendingAmounts.income)}
               </p>
-              <span className="text-[9px] text-emerald-200">
+              <span className="text-[11px] text-emerald-200">
                 {totalPendingByType.income.length} pendiente{totalPendingByType.income.length !== 1 ? "s" : ""}
               </span>
             </CardContent>
@@ -622,12 +622,12 @@ export function RecurringView() {
             <CardContent className="p-3 relative z-10">
               <div className="flex items-center gap-1 mb-0.5">
                 <CreditCard className="size-3 text-rose-200" />
-                <span className="text-[10px] text-rose-100">Gastos</span>
+                <span className="text-xs text-rose-100">Gastos</span>
               </div>
               <p className="text-base font-bold tracking-tight">
                 {formatCurrency(totalPendingAmounts.expense)}
               </p>
-              <span className="text-[9px] text-rose-200">
+              <span className="text-[11px] text-rose-200">
                 {totalPendingByType.expense.length} pendiente{totalPendingByType.expense.length !== 1 ? "s" : ""}
               </span>
             </CardContent>
@@ -639,12 +639,12 @@ export function RecurringView() {
             <CardContent className="p-3 relative z-10">
               <div className="flex items-center gap-1 mb-0.5">
                 <ArrowLeftRight className="size-3 text-blue-200" />
-                <span className="text-[10px] text-blue-100">Transfer.</span>
+                <span className="text-xs text-blue-100">Transfer.</span>
               </div>
               <p className="text-base font-bold tracking-tight">
                 {formatCurrency(totalPendingAmounts.transfer)}
               </p>
-              <span className="text-[9px] text-blue-200">
+              <span className="text-[11px] text-blue-200">
                 {totalPendingByType.transfer.length} pendiente{totalPendingByType.transfer.length !== 1 ? "s" : ""}
               </span>
             </CardContent>
@@ -686,7 +686,7 @@ export function RecurringView() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-sm text-emerald-800 dark:text-emerald-300">{pg.description}</h3>
-                          <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[9px] border-0 px-1.5 py-0">
+                          <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[11px] border-0 px-1.5 py-0">
                             {freqLabels[pg.frequency] || pg.frequency}
                           </Badge>
                         </div>
@@ -704,7 +704,7 @@ export function RecurringView() {
                             <p>Próximo pago: {formatDate(nextPayment.scheduledDate)}</p>
                           )}
                           {pg.adjustToBusinessDay && (
-                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400">
                               Ajuste: día hábil {pg.businessDayDirection === "before" ? "anterior" : "siguiente"} (Ley Emiliani)
                             </p>
                           )}
@@ -713,7 +713,7 @@ export function RecurringView() {
                       <div className="flex flex-col items-end gap-2">
                         <span className="text-lg font-bold text-emerald-600">
                           {formatCurrency(pg.totalAmount)}
-                          <span className="text-[10px] font-normal text-emerald-500 ml-0.5">/mes</span>
+                          <span className="text-xs font-normal text-emerald-500 ml-0.5">/mes</span>
                         </span>
                         <div className="flex items-center gap-1">
                           <Button
@@ -769,7 +769,7 @@ export function RecurringView() {
             </h2>
             <Badge
               variant="secondary"
-              className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+              className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
             >
               {pendingPayments.length}
             </Badge>
@@ -779,7 +779,7 @@ export function RecurringView() {
               <Button
                 variant={viewMode === "list" ? "default" : "ghost"}
                 size="sm"
-                className={`h-6 px-2 text-[10px] rounded-lg ${viewMode === "list" ? "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-400" : "text-gray-400"}`}
+                className={`h-6 px-2 text-xs rounded-lg ${viewMode === "list" ? "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-400" : "text-gray-400"}`}
                 onClick={() => setViewMode("list")}
               >
                 <LayoutList className="size-3 mr-0.5" />
@@ -788,7 +788,7 @@ export function RecurringView() {
               <Button
                 variant={viewMode === "calendar" ? "default" : "ghost"}
                 size="sm"
-                className={`h-6 px-2 text-[10px] rounded-lg ${viewMode === "calendar" ? "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-400" : "text-gray-400"}`}
+                className={`h-6 px-2 text-xs rounded-lg ${viewMode === "calendar" ? "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-400" : "text-gray-400"}`}
                 onClick={() => setViewMode("calendar")}
               >
                 <CalendarDays className="size-3 mr-0.5" />
@@ -801,7 +801,7 @@ export function RecurringView() {
               <Button
                 variant={multiSelectMode ? "default" : "ghost"}
                 size="sm"
-                className={`h-6 px-2 text-[10px] rounded-lg ${
+                className={`h-6 px-2 text-xs rounded-lg ${
                   multiSelectMode
                     ? "bg-amber-500 text-white hover:bg-amber-600"
                     : "text-gray-400 hover:text-amber-600"
@@ -856,21 +856,21 @@ export function RecurringView() {
                 )}
               </div>
               <div className="flex items-center justify-between mt-1.5">
-                <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {formatCurrency(totalConfirmedAmount)} de {formatCurrency(totalAllAmount)} confirmados ({confirmedPercent}%)
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="flex items-center gap-0.5">
                     <span className="inline-block size-2 rounded-full" style={{ background: "#10b981" }} />
-                    <span className="text-[8px] text-gray-400">Ingreso</span>
+                    <span className="text-[11px] text-gray-400">Ingreso</span>
                   </span>
                   <span className="flex items-center gap-0.5">
                     <span className="inline-block size-2 rounded-full" style={{ background: "#e11d48" }} />
-                    <span className="text-[8px] text-gray-400">Gasto</span>
+                    <span className="text-[11px] text-gray-400">Gasto</span>
                   </span>
                   <span className="flex items-center gap-0.5">
                     <span className="inline-block size-2 rounded-full" style={{ background: "#3b82f6" }} />
-                    <span className="text-[8px] text-gray-400">Transf.</span>
+                    <span className="text-[11px] text-gray-400">Transf.</span>
                   </span>
                 </div>
               </div>
@@ -897,7 +897,7 @@ export function RecurringView() {
               <div className="grid grid-cols-7 gap-0.5">
                 {/* Week day headers */}
                 {calendarWeekDays.map((wd) => (
-                  <div key={wd} className="text-center text-[9px] font-medium text-gray-400 dark:text-gray-500 py-1">
+                  <div key={wd} className="text-center text-[11px] font-medium text-gray-400 dark:text-gray-500 py-1">
                     {wd}
                   </div>
                 ))}
@@ -979,7 +979,7 @@ export function RecurringView() {
                           <CardContent className="p-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 min-w-0">
-                                <Badge className={`${payType.bgClass} ${payType.color} text-[9px] border-0 px-1.5 py-0`}>
+                                <Badge className={`${payType.bgClass} ${payType.color} text-[11px] border-0 px-1.5 py-0`}>
                                   <TypeIcon className="size-2.5 mr-0.5" />
                                   {payType.label}
                                 </Badge>
@@ -1058,13 +1058,13 @@ export function RecurringView() {
                                   {payment.description}
                                 </h3>
                                 <Badge
-                                  className={`${payType.bgClass} ${payType.color} text-[10px] border-0 px-1.5 py-0`}
+                                  className={`${payType.bgClass} ${payType.color} text-xs border-0 px-1.5 py-0`}
                                 >
                                   <TypeIcon className="size-2.5 mr-0.5" />
                                   {payType.label}
                                 </Badge>
                                 <Badge
-                                  className={`${freq.bgClass} ${freq.color} text-[10px] border-0 px-1.5 py-0`}
+                                  className={`${freq.bgClass} ${freq.color} text-xs border-0 px-1.5 py-0`}
                                 >
                                   {freq.label}
                                 </Badge>
@@ -1129,7 +1129,7 @@ export function RecurringView() {
                                   {formatDate(payment.scheduledDate)}
                                 </span>
                                 <span
-                                  className={`text-[10px] font-medium ${
+                                  className={`text-xs font-medium ${
                                     isOverdue
                                       ? "text-red-500"
                                       : daysUntil <= 3
@@ -1263,7 +1263,7 @@ export function RecurringView() {
             </h2>
             <Badge
               variant="secondary"
-              className="ml-auto text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+              className="ml-auto text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
             >
               {confirmedPayments.length}
             </Badge>
@@ -1302,7 +1302,7 @@ export function RecurringView() {
                             <p className="text-sm font-semibold text-gray-900 dark:text-white capitalize">
                               {getMonthLabel(monthKey)}
                             </p>
-                            <p className="text-[10px] text-gray-500">
+                            <p className="text-xs text-gray-500">
                               {monthPayments.length} pago{monthPayments.length !== 1 ? "s" : ""} confirmado{monthPayments.length !== 1 ? "s" : ""}
                             </p>
                           </div>
@@ -1442,7 +1442,7 @@ export function RecurringView() {
                   >
                     <div className="text-left">
                       <p className="font-medium text-sm">Solo este evento</p>
-                      <p className="text-[10px] text-gray-400">Elimina solo este pago pendiente</p>
+                      <p className="text-xs text-gray-400">Elimina solo este pago pendiente</p>
                     </div>
                   </Button>
                   <Button
@@ -1458,7 +1458,7 @@ export function RecurringView() {
                   >
                     <div className="text-left">
                       <p className="font-medium text-sm text-red-600 dark:text-red-400">Toda la serie futura</p>
-                      <p className="text-[10px] text-gray-400">Elimina este y todos los pagos futuros de esta nómina</p>
+                      <p className="text-xs text-gray-400">Elimina este y todos los pagos futuros de esta nómina</p>
                     </div>
                   </Button>
                 </>
@@ -1475,7 +1475,7 @@ export function RecurringView() {
                   >
                     <div className="text-left">
                       <p className="font-medium text-sm">Solo este evento</p>
-                      <p className="text-[10px] text-gray-400">Edita solo este pago, los demás no cambian</p>
+                      <p className="text-xs text-gray-400">Edita solo este pago, los demás no cambian</p>
                     </div>
                   </Button>
                   <Button
@@ -1489,7 +1489,7 @@ export function RecurringView() {
                   >
                     <div className="text-left">
                       <p className="font-medium text-sm text-blue-600 dark:text-blue-400">Toda la serie futura</p>
-                      <p className="text-[10px] text-gray-400">Aplica los cambios a todos los pagos futuros de esta nómina</p>
+                      <p className="text-xs text-gray-400">Aplica los cambios a todos los pagos futuros de esta nómina</p>
                     </div>
                   </Button>
                 </>
@@ -1565,7 +1565,7 @@ export function RecurringView() {
                 placeholder="Monto real del pago"
                 className="rounded-xl"
               />
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Si el monto real difiere del esperado, ingrésalo aquí
               </p>
             </div>

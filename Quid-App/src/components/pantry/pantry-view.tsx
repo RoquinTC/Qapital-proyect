@@ -129,13 +129,13 @@ export function PantryView() {
                 {lowStockItems.length > 0 && (
                   <div className="text-center">
                     <p className="text-lg font-bold">{lowStockItems.length}</p>
-                    <span className="text-[10px] text-amber-200">Stock bajo</span>
+                    <span className="text-xs text-amber-200">Stock bajo</span>
                   </div>
                 )}
                 {expiredItems.length > 0 && (
                   <div className="text-center">
                     <p className="text-lg font-bold">{expiredItems.length}</p>
-                    <span className="text-[10px] text-amber-200">Vencidos</span>
+                    <span className="text-xs text-amber-200">Vencidos</span>
                   </div>
                 )}
               </div>
@@ -197,7 +197,7 @@ export function PantryView() {
                 className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 cursor-pointer"
               >
                 <span className="text-sm font-medium text-gray-900 dark:text-white">{item.name}</span>
-                <Badge variant="outline" className="text-[10px] h-5 bg-amber-100 text-amber-700 border-amber-300">
+                <Badge variant="outline" className="text-xs h-5 bg-amber-100 text-amber-700 border-amber-300">
                   {item.quantity} {item.unit}
                 </Badge>
               </div>
@@ -248,7 +248,7 @@ export function PantryView() {
                 <CollapsibleTrigger className="w-full">
                   <div className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-2">
-                      <Badge className={`text-[10px] ${group.color}`}>{group.label}</Badge>
+                      <Badge className={`text-xs ${group.color}`}>{group.label}</Badge>
                       <span className="text-xs text-gray-500">{group.items.length} items</span>
                     </div>
                     <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>

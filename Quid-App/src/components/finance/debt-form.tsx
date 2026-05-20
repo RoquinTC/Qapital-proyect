@@ -373,7 +373,7 @@ export function DebtForm({ open, onOpenChange, onSuccess, editDebt }: DebtFormPr
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {pt.label}
                     </div>
-                    <div className="text-[10px] text-gray-500 mt-0.5">
+                    <div className="text-xs text-gray-500 mt-0.5">
                       {pt.description}
                     </div>
                   </button>
@@ -564,7 +564,7 @@ export function DebtForm({ open, onOpenChange, onSuccess, editDebt }: DebtFormPr
                           <span>{formatCurrency(monthlyPaymentNum)}</span>
                         </div>
                       </div>
-                      <p className="text-[10px] text-blue-500 dark:text-blue-400 mt-1">
+                      <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
                         Al pagar podrás confirmar los valores exactos del extracto bancario
                       </p>
                     </div>
@@ -613,7 +613,7 @@ export function DebtForm({ open, onOpenChange, onSuccess, editDebt }: DebtFormPr
               {/* ── Category / SubCategory for Budget ── */}
               <div className="space-y-2">
                 <Label>Categoría de Presupuesto</Label>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   La cuota se registrará como gasto en esta categoría del presupuesto
                 </p>
                 {!useCustom ? (
@@ -723,7 +723,7 @@ export function DebtForm({ open, onOpenChange, onSuccess, editDebt }: DebtFormPr
               {/* ── Account from which cuotas are paid ── */}
               <div className="space-y-2">
                 <Label>Cuenta de Pago</Label>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   La cuenta desde donde se debitará el pago de cada cuota
                 </p>
                 <Select value={loanAccountId} onValueChange={(val) => { setLoanAccountId(val); setLoanSubAccountId(""); }}>
@@ -796,7 +796,7 @@ export function DebtForm({ open, onOpenChange, onSuccess, editDebt }: DebtFormPr
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-[10px]"
+                className="h-7 px-2 text-xs"
                 onClick={() => setShowCustomColor(!showCustomColor)}
               >
                 <Pipette className="size-3 mr-1" />
@@ -831,7 +831,7 @@ export function DebtForm({ open, onOpenChange, onSuccess, editDebt }: DebtFormPr
                   className="size-10 rounded-lg cursor-pointer border-0 p-0"
                 />
                 <div className="flex-1">
-                  <Label className="text-[10px]">Código Hex</Label>
+                  <Label className="text-xs">Código Hex</Label>
                   <Input
                     value={customColorHex}
                     onChange={(e) => handleCustomColorChange(e.target.value)}

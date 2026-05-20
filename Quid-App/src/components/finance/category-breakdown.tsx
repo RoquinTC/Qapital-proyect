@@ -163,13 +163,13 @@ export function CategoryBreakdown({ transactions }: CategoryBreakdownProps) {
       {/* Summary */}
       <div className="grid grid-cols-2 gap-2">
         <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3">
-          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Ingresos</p>
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Ingresos</p>
           <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
             +{formatCurrency(totalIncome)}
           </p>
         </div>
         <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-3">
-          <p className="text-[10px] text-rose-600 dark:text-rose-400 font-medium">Gastos</p>
+          <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">Gastos</p>
           <p className="text-sm font-bold text-rose-700 dark:text-rose-300">
             -{formatCurrency(totalExpenses)}
           </p>
@@ -220,9 +220,9 @@ export function CategoryBreakdown({ transactions }: CategoryBreakdownProps) {
                         }}
                       />
                     </div>
-                    <span className="text-[10px] text-gray-400 shrink-0">{percentage}%</span>
-                    <span className="text-[10px] text-gray-300 shrink-0">·</span>
-                    <span className="text-[10px] text-gray-400 shrink-0">{cat.count} tx</span>
+                    <span className="text-xs text-gray-400 shrink-0">{percentage}%</span>
+                    <span className="text-xs text-gray-300 shrink-0">·</span>
+                    <span className="text-xs text-gray-400 shrink-0">{cat.count} tx</span>
                   </div>
                 </div>
                 <motion.div
@@ -259,7 +259,7 @@ export function CategoryBreakdown({ transactions }: CategoryBreakdownProps) {
                               </span>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 ml-2">
-                              <span className="text-[10px] text-gray-400">{subPercentage}%</span>
+                              <span className="text-xs text-gray-400">{subPercentage}%</span>
                               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                                 -{formatCurrency(sub.amount)}
                               </span>

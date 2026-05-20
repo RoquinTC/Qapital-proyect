@@ -317,7 +317,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-white">{vehicle.name}</h3>
                 {vehicle.plate && (
-                  <span className="text-[10px] font-bold bg-white text-gray-800 border border-gray-300 rounded px-1.5 py-0 leading-4 tracking-wider uppercase">
+                  <span className="text-xs font-bold bg-white text-gray-800 border border-gray-300 rounded px-1.5 py-0 leading-4 tracking-wider uppercase">
                     {vehicle.plate}
                   </span>
                 )}
@@ -330,12 +330,12 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
               </p>
               <div className="flex items-center gap-2 mt-1">
                 {vehicle.fuelType && (
-                  <span className="text-[10px] bg-white/20 backdrop-blur-sm text-white rounded-full px-2 py-0.5">
+                  <span className="text-xs bg-white/20 backdrop-blur-sm text-white rounded-full px-2 py-0.5">
                     {fuelTypeLabels[vehicle.fuelType] || vehicle.fuelType}
                   </span>
                 )}
                 {vehicle.color && (
-                  <span className="text-[10px] bg-white/20 backdrop-blur-sm text-white rounded-full px-2 py-0.5">
+                  <span className="text-xs bg-white/20 backdrop-blur-sm text-white rounded-full px-2 py-0.5">
                     {vehicle.color}
                   </span>
                 )}
@@ -379,7 +379,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                   <p className="text-sm font-bold text-gray-900 dark:text-white">
                     {fuelLevelData.avgKmPerGallon > 0 ? `${fuelLevelData.avgKmPerGallon}` : "—"}
                   </p>
-                  <p className="text-[9px] text-gray-400">km/gal</p>
+                  <p className="text-[11px] text-gray-400">km/gal</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
                   <div className="flex items-center gap-1 text-gray-500 mb-1">
@@ -389,7 +389,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                   <p className="text-sm font-bold text-gray-900 dark:text-white">
                     {fuelLevelData.estimatedRange > 0 ? `${fuelLevelData.estimatedRange}` : "—"}
                   </p>
-                  <p className="text-[9px] text-gray-400">km</p>
+                  <p className="text-[11px] text-gray-400">km</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
                   <div className="flex items-center gap-1 text-gray-500 mb-1">
@@ -399,7 +399,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                   <p className="text-sm font-bold text-gray-900 dark:text-white">
                     {avgKmPerDay > 0 ? `~${avgKmPerDay.toFixed(0)}` : "—"}
                   </p>
-                  <p className="text-[9px] text-gray-400">km/día</p>
+                  <p className="text-[11px] text-gray-400">km/día</p>
                 </div>
               </div>
 
@@ -423,7 +423,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                           <p className={`text-xs font-semibold ${isLowFuel ? "text-red-700 dark:text-red-300" : "text-cyan-700 dark:text-cyan-300"}`}>
                             Para llenar: {formatCurrency(costToFillData.costToFill)}
                           </p>
-                          <p className={`text-[10px] mt-0.5 ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-600 dark:text-cyan-400"}`}>
+                          <p className={`text-xs mt-0.5 ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-600 dark:text-cyan-400"}`}>
                             {costToFillData.gallonsNeeded.toFixed(1)} gal × {formatCurrency(costToFillData.pricePerGallon)}/gal
                           </p>
                         </>
@@ -432,13 +432,13 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                           <p className={`text-xs font-semibold ${isLowFuel ? "text-red-700 dark:text-red-300" : "text-cyan-700 dark:text-cyan-300"}`}>
                             {costToFillData.gallonsNeeded.toFixed(1)} gal para llenar el tanque
                           </p>
-                          <p className={`text-[9px] mt-0.5 ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
+                          <p className={`text-[11px] mt-0.5 ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
                             Registra un precio por galón para ver el costo estimado
                           </p>
                         </>
                       )}
                       {isLearning && (
-                        <p className="text-[8px] text-amber-600 dark:text-amber-400 mt-1">
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
                           Rendimiento estimado — se ajustará con más registros
                         </p>
                       )}
@@ -454,11 +454,11 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                       <span className={`text-[11px] font-semibold ${isLowFuel ? "text-red-700 dark:text-red-300" : "text-cyan-700 dark:text-cyan-300"}`}>
                         {daysUntilRefuel <= 0 ? "¡Tanquea hoy!" : daysUntilRefuel === 1 ? "¡Tanquea mañana!" : `Tanquea en ~${daysUntilRefuel} días`}
                       </span>
-                      <span className={`text-[9px] ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
+                      <span className={`text-[11px] ${isLowFuel ? "text-red-500 dark:text-red-400" : "text-cyan-500 dark:text-cyan-400"}`}>
                         {refuelDateText}
                       </span>
                       {avgKmPerDay > 0 && (
-                        <span className={`text-[8px] ml-auto ${isLowFuel ? "text-red-400 dark:text-red-500" : "text-cyan-400 dark:text-cyan-500"}`}>
+                        <span className={`text-[11px] ml-auto ${isLowFuel ? "text-red-400 dark:text-red-500" : "text-cyan-400 dark:text-cyan-500"}`}>
                           ~{avgKmPerDay.toFixed(0)} km/día
                         </span>
                       )}
@@ -480,7 +480,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                       <p className="text-xs font-semibold text-red-700 dark:text-red-300">
                         Consumo Anormal Detectado
                       </p>
-                      <p className="text-[10px] text-red-600 dark:text-red-400 mt-0.5">
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
                         El consumo real ({(fuelLevelData.actualConsumption ?? 0).toFixed(2)} gal) excede el esperado ({(fuelLevelData.expectedConsumption ?? 0).toFixed(2)} gal).
                         Puede indicar problemas mecánicos o fugas.
                       </p>
@@ -498,7 +498,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         <Card className="border-0 shadow-sm rounded-xl">
           <CardContent className="p-3 text-center">
             <Fuel className="size-4 text-cyan-500 mx-auto mb-1" />
-            <p className="text-[10px] text-gray-500">Combustible</p>
+            <p className="text-xs text-gray-500">Combustible</p>
             <p className="text-xs font-bold text-gray-900 dark:text-white">
               {formatCurrency(totalFuelSpent)}
             </p>
@@ -507,7 +507,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         <Card className="border-0 shadow-sm rounded-xl">
           <CardContent className="p-3 text-center">
             <Wrench className="size-4 text-amber-500 mx-auto mb-1" />
-            <p className="text-[10px] text-gray-500">Mantenimiento</p>
+            <p className="text-xs text-gray-500">Mantenimiento</p>
             <p className="text-xs font-bold text-gray-900 dark:text-white">
               {formatCurrency(totalMaintenanceSpent)}
             </p>
@@ -516,7 +516,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
         <Card className="border-0 shadow-sm rounded-xl">
           <CardContent className="p-3 text-center">
             <TrendingDown className="size-4 text-blue-500 mx-auto mb-1" />
-            <p className="text-[10px] text-gray-500">Rendimiento</p>
+            <p className="text-xs text-gray-500">Rendimiento</p>
             <p className="text-xs font-bold text-gray-900 dark:text-white">
               {avgKmPerGallon > 0 ? `${avgKmPerGallon} km/g` : "—"}
             </p>
@@ -564,12 +564,12 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                           {formatShortDate(log.date)}
                         </span>
                         {log.isFullTank && (
-                          <Badge variant="secondary" className="text-[8px] h-3.5 px-1 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+                          <Badge variant="secondary" className="text-[11px] h-3.5 px-1 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
                             Lleno
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
+                      <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
                         <span>{(log.km ?? 0).toLocaleString("es-CO")} km</span>
                         <span>•</span>
                         <span>{(log.gallons ?? 0).toFixed(2)} gal</span>
@@ -660,17 +660,17 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
                             </DropdownMenu>
                           </div>
                         </div>
-                        <p className="text-[10px] text-gray-500 truncate">
+                        <p className="text-xs text-gray-500 truncate">
                           {record.description}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-xs text-gray-400">
                             {formatShortDate(record.date)} • {(record.km ?? 0).toLocaleString("es-CO")} km
                           </span>
                           {record.nextDueKm && (
                             <Badge
                               variant="secondary"
-                              className={`text-[8px] h-3.5 px-1 ${isUpcoming
+                              className={`text-[11px] h-3.5 px-1 ${isUpcoming
                                   ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
                                   : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
                                 }`}

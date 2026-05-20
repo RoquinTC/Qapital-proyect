@@ -116,12 +116,12 @@ export function MedicationCard({ medication, onClick }: MedicationCardProps) {
             {medication.isActive ? (
               <div className="flex items-center gap-1">
                 <CheckCircle2 className="size-4 text-emerald-500" />
-                <span className="text-[10px] font-medium text-emerald-600">Activo</span>
+                <span className="text-xs font-medium text-emerald-600">Activo</span>
               </div>
             ) : (
               <div className="flex items-center gap-1">
                 <XCircle className="size-4 text-gray-400" />
-                <span className="text-[10px] font-medium text-gray-400">Inactivo</span>
+                <span className="text-xs font-medium text-gray-400">Inactivo</span>
               </div>
             )}
             {expanded ? (
@@ -135,12 +135,12 @@ export function MedicationCard({ medication, onClick }: MedicationCardProps) {
         {/* Disease badge + How to take */}
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           {medication.disease && (
-            <Badge variant="secondary" className={`${colors.bg} ${colors.text} text-[10px] border-0`}>
+            <Badge variant="secondary" className={`${colors.bg} ${colors.text} text-xs border-0`}>
               {medication.disease}
             </Badge>
           )}
           {medication.howToTake && (
-            <Badge variant="outline" className="text-[10px] gap-1">
+            <Badge variant="outline" className="text-xs gap-1">
               <Utensils className="size-3" />
               {howToTakeLabels[medication.howToTake] || medication.howToTake}
             </Badge>
@@ -151,7 +151,7 @@ export function MedicationCard({ medication, onClick }: MedicationCardProps) {
         {nextReminder && medication.isActive && (
           <div className="flex items-center gap-1.5 mt-2">
             <Clock className="size-3 text-gray-400" />
-            <span className="text-[10px] text-gray-500">
+            <span className="text-xs text-gray-500">
               Próxima toma: <span className="font-medium text-gray-700 dark:text-gray-300">{nextReminder}</span>
             </span>
           </div>
@@ -175,7 +175,7 @@ export function MedicationCard({ medication, onClick }: MedicationCardProps) {
                     <span className="text-xs text-gray-500">Horarios:</span>
                     <div className="flex gap-1 flex-wrap">
                       {reminderTimesList.map((time: string) => (
-                        <Badge key={time} variant="secondary" className="text-[10px] bg-gray-100 dark:bg-gray-700">
+                        <Badge key={time} variant="secondary" className="text-xs bg-gray-100 dark:bg-gray-700">
                           {time}
                         </Badge>
                       ))}
@@ -185,7 +185,7 @@ export function MedicationCard({ medication, onClick }: MedicationCardProps) {
 
                 {/* Dates */}
                 {medication.startDate && (
-                  <div className="text-[10px] text-gray-400">
+                  <div className="text-xs text-gray-400">
                     Inicio: {new Date(medication.startDate).toLocaleDateString("es-CO")}
                     {medication.endDate && ` · Fin: ${new Date(medication.endDate).toLocaleDateString("es-CO")}`}
                   </div>
@@ -194,7 +194,7 @@ export function MedicationCard({ medication, onClick }: MedicationCardProps) {
                 {/* Reminder enabled */}
                 <div className="flex items-center gap-1.5">
                   <AlertCircle className="size-3.5 text-gray-400" />
-                  <span className="text-[10px] text-gray-500">
+                  <span className="text-xs text-gray-500">
                     Recordatorio {medication.reminderEnabled ? "activado" : "desactivado"}
                   </span>
                 </div>

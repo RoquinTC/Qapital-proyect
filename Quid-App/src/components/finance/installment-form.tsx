@@ -205,7 +205,7 @@ export function InstallmentForm({ open, onOpenChange, debtId, editInstallment, o
             <Label>Monto Total</Label>
             <CurrencyInput value={totalAmount} onChange={setTotalAmount} showPrefix placeholder="0" className="rounded-xl" disabled={hasPayments} />
             {hasPayments && (
-              <p className="text-[10px] text-amber-500 flex items-center gap-1">
+              <p className="text-xs text-amber-500 flex items-center gap-1">
                 <AlertTriangle className="size-3" />
                 No se puede modificar: ya hay pagos registrados
               </p>
@@ -225,7 +225,7 @@ export function InstallmentForm({ open, onOpenChange, debtId, editInstallment, o
               disabled={hasPayments}
             />
             {hasPayments && (
-              <p className="text-[10px] text-amber-500 flex items-center gap-1">
+              <p className="text-xs text-amber-500 flex items-center gap-1">
                 <AlertTriangle className="size-3" />
                 No se puede modificar: ya hay pagos registrados
               </p>
@@ -247,10 +247,10 @@ export function InstallmentForm({ open, onOpenChange, debtId, editInstallment, o
           {/* CATEGORY & SUBCATEGORY */}
           {/* ============================================ */}
           <div className="space-y-3 p-3 bg-rose-50 dark:bg-rose-900/20 rounded-xl border border-rose-200 dark:border-rose-800">
-            <p className="text-[10px] font-medium text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+            <p className="text-xs font-medium text-rose-600 dark:text-rose-400 uppercase tracking-wider">
               Categoría de presupuesto
             </p>
-            <p className="text-[10px] text-rose-500/70 dark:text-rose-400/70">
+            <p className="text-xs text-rose-500/70 dark:text-rose-400/70">
               Selecciona la categoría para que las cuotas afecten tu presupuesto de gastos
             </p>
 

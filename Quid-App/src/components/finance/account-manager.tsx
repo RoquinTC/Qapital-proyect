@@ -137,7 +137,7 @@ export function AccountManager() {
             <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
               Cuentas duplicadas detectadas
             </p>
-            <p className="text-[10px] text-amber-500/70 mt-0.5">
+            <p className="text-xs text-amber-500/70 mt-0.5">
               Las siguientes cuentas tienen nombres similares y podrían ser duplicados. Revisa y elimina las que no necesites.
             </p>
           </div>
@@ -178,27 +178,27 @@ export function AccountManager() {
                         {account.name}
                       </p>
                       {hasTrailingSpace && (
-                        <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-amber-300 text-amber-600">
+                        <Badge variant="outline" className="text-[11px] px-1 py-0 h-4 border-amber-300 text-amber-600">
                           espacio extra
                         </Badge>
                       )}
                       {isDuplicate && (
-                        <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-amber-300 text-amber-600">
+                        <Badge variant="outline" className="text-[11px] px-1 py-0 h-4 border-amber-300 text-amber-600">
                           posible duplicado
                         </Badge>
                       )}
                       {account.excludeFromAvailable && (
-                        <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-gray-300 text-gray-500">
+                        <Badge variant="outline" className="text-[11px] px-1 py-0 h-4 border-gray-300 text-gray-500">
                           excluida
                         </Badge>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-xs text-gray-400">
                         {typeLabels[account.type] || "Cuenta"}
                       </span>
                       {account.subAccounts.length > 0 && (
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-xs text-gray-400">
                           · {account.subAccounts.length} bolsillo{account.subAccounts.length > 1 ? "s" : ""}
                         </span>
                       )}
@@ -211,7 +211,7 @@ export function AccountManager() {
                       {formatCurrency(totalWithSubs)}
                     </p>
                     {account.subAccounts.length > 0 && (
-                      <p className="text-[9px] text-gray-400">
+                      <p className="text-[11px] text-gray-400">
                         Cuenta: {formatCurrency(account.balance)}
                       </p>
                     )}

@@ -253,19 +253,19 @@ export function MedicationForm({ open, onOpenChange, medication, onSuccess }: Me
               >
                 <div className="flex items-center gap-1">
                   <Sparkles className="size-3 text-rose-500" />
-                  <span className="text-[10px] font-medium text-rose-600">Sugerencias IA</span>
+                  <span className="text-xs font-medium text-rose-600">Sugerencias IA</span>
                 </div>
 
                 {/* AI diseases */}
                 {aiInfo.diseases.length > 0 && (
                   <div>
-                    <span className="text-[10px] text-gray-500">Enfermedades que trata:</span>
+                    <span className="text-xs text-gray-500">Enfermedades que trata:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {aiInfo.diseases.map((d) => (
                         <Badge
                           key={d}
                           variant="secondary"
-                          className="text-[10px] cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-900/30 bg-rose-50 text-rose-700 dark:text-rose-300"
+                          className="text-xs cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-900/30 bg-rose-50 text-rose-700 dark:text-rose-300"
                           onClick={() => applyAiDisease(d)}
                         >
                           {d}
@@ -278,7 +278,7 @@ export function MedicationForm({ open, onOpenChange, medication, onSuccess }: Me
                 {/* AI dosage */}
                 {aiInfo.recommendedDosage && (
                   <div>
-                    <span className="text-[10px] text-gray-500">Dosis recomendada:</span>
+                    <span className="text-xs text-gray-500">Dosis recomendada:</span>
                     <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5">{aiInfo.recommendedDosage}</p>
                   </div>
                 )}
@@ -289,7 +289,7 @@ export function MedicationForm({ open, onOpenChange, medication, onSuccess }: Me
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-[10px] h-auto p-0 text-rose-600 hover:text-rose-700"
+                      className="text-xs h-auto p-0 text-rose-600 hover:text-rose-700"
                       onClick={() => applyAiHowToTake(aiInfo.howToTake)}
                     >
                       <Pill className="size-3 mr-1" />
@@ -301,8 +301,8 @@ export function MedicationForm({ open, onOpenChange, medication, onSuccess }: Me
                 {/* Side effects */}
                 {aiInfo.sideEffects.length > 0 && (
                   <div>
-                    <span className="text-[10px] text-gray-500">Efectos secundarios:</span>
-                    <p className="text-[10px] text-gray-500 mt-0.5">{aiInfo.sideEffects.join(", ")}</p>
+                    <span className="text-xs text-gray-500">Efectos secundarios:</span>
+                    <p className="text-xs text-gray-500 mt-0.5">{aiInfo.sideEffects.join(", ")}</p>
                   </div>
                 )}
               </motion.div>
@@ -395,7 +395,7 @@ export function MedicationForm({ open, onOpenChange, medication, onSuccess }: Me
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <div>
               <Label className="text-sm">Medicamento activo</Label>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Desactiva si ya no lo tomas
               </p>
             </div>
@@ -406,7 +406,7 @@ export function MedicationForm({ open, onOpenChange, medication, onSuccess }: Me
           <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <div>
               <Label className="text-sm">Recordatorio</Label>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 Recibe notificaciones para tomarlo
               </p>
             </div>

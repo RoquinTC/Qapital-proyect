@@ -176,7 +176,7 @@ export function HealthProfilesView() {
                             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                               {profile.name}
                             </h3>
-                            <Badge className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            <Badge className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                               Propietario
                             </Badge>
                           </div>
@@ -204,10 +204,10 @@ export function HealthProfilesView() {
                         {/* Diseases */}
                         {diseases.length > 0 && (
                           <div className="mb-2">
-                            <span className="text-[10px] text-gray-400">Condiciones:</span>
+                            <span className="text-xs text-gray-400">Condiciones:</span>
                             <div className="flex gap-1 flex-wrap mt-1">
                               {diseases.map((d: string) => (
-                                <Badge key={d} variant="outline" className="text-[10px] h-5">
+                                <Badge key={d} variant="outline" className="text-xs h-5">
                                   {d}
                                 </Badge>
                               ))}
@@ -218,7 +218,7 @@ export function HealthProfilesView() {
                         {/* Restrictions */}
                         {allRestrictions.length > 0 && (
                           <div className="mt-2 space-y-1">
-                            <span className="text-[10px] text-gray-400">Restricciones:</span>
+                            <span className="text-xs text-gray-400">Restricciones:</span>
                             {allRestrictions.slice(0, 5).map((r: FoodRestriction | string, idx: number) => {
                               const restriction = typeof r === "string" ? { food: r, reason: "", level: "", relatedDisease: "" } : r;
                               return (
@@ -231,7 +231,7 @@ export function HealthProfilesView() {
                                     {restriction.food}
                                   </span>
                                   {restriction.reason && (
-                                    <span className="text-[10px] text-red-500 truncate">
+                                    <span className="text-xs text-red-500 truncate">
                                       — {restriction.reason}
                                     </span>
                                   )}
@@ -239,7 +239,7 @@ export function HealthProfilesView() {
                               );
                             })}
                             {allRestrictions.length > 5 && (
-                              <span className="text-[10px] text-gray-400">
+                              <span className="text-xs text-gray-400">
                                 +{allRestrictions.length - 5} más
                               </span>
                             )}
@@ -274,7 +274,7 @@ export function HealthProfilesView() {
                             <h3 className="text-sm font-medium text-gray-900 dark:text-white">
                               {profile.name}
                             </h3>
-                            <Badge className="text-[10px] bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                            <Badge className="text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                               Invitado
                             </Badge>
                           </div>
@@ -299,13 +299,13 @@ export function HealthProfilesView() {
                             {allRestrictions.slice(0, 4).map((r: FoodRestriction | string, idx: number) => {
                               const food = typeof r === "string" ? r : r.food;
                               return (
-                                <Badge key={idx} variant="outline" className="text-[10px] h-5 text-red-600 border-red-200">
+                                <Badge key={idx} variant="outline" className="text-xs h-5 text-red-600 border-red-200">
                                   {food}
                                 </Badge>
                               );
                             })}
                             {allRestrictions.length > 4 && (
-                              <Badge variant="outline" className="text-[10px] h-5 text-gray-400">
+                              <Badge variant="outline" className="text-xs h-5 text-gray-400">
                                 +{allRestrictions.length - 4}
                               </Badge>
                             )}

@@ -231,13 +231,13 @@ export function SharedAccountManager({
                       </span>
                       <Badge
                         variant="outline"
-                        className="text-[9px] px-1.5 py-0 h-4 border-emerald-300 text-emerald-600 dark:border-emerald-700 dark:text-emerald-400"
+                        className="text-[11px] px-1.5 py-0 h-4 border-emerald-300 text-emerald-600 dark:border-emerald-700 dark:text-emerald-400"
                       >
                         {memberCount} miembro{memberCount !== 1 ? "s" : ""}
                       </Badge>
                     </div>
                     {memberNames && (
-                      <p className="text-[10px] text-gray-400 truncate">
+                      <p className="text-xs text-gray-400 truncate">
                         {memberNames}
                       </p>
                     )}
@@ -270,12 +270,12 @@ export function SharedAccountManager({
                     <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
                       {accountName}
                     </p>
-                    <span className="text-[8px] text-amber-600 dark:text-amber-400 font-medium">
+                    <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
                       (propietario)
                     </span>
                   </div>
                 </div>
-                <Badge className="text-[8px] px-1.5 py-0 h-4 rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-800/40 dark:text-amber-300 border-0">
+                <Badge className="text-[11px] px-1.5 py-0 h-4 rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-800/40 dark:text-amber-300 border-0">
                   Admin
                 </Badge>
               </div>
@@ -306,7 +306,7 @@ export function SharedAccountManager({
                       <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
                         {su.user.name}
                       </p>
-                      <p className="text-[9px] text-gray-400 truncate">
+                      <p className="text-[11px] text-gray-400 truncate">
                         {su.user.email}
                       </p>
                     </div>
@@ -322,7 +322,7 @@ export function SharedAccountManager({
                           }
                           disabled={isBusy}
                         >
-                          <SelectTrigger className="w-[85px] h-6 text-[10px] rounded-lg border-0 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 p-0 pl-1.5 pr-5">
+                          <SelectTrigger className="w-[85px] h-6 text-xs rounded-lg border-0 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 p-0 pl-1.5 pr-5">
                             {isChangingRole ? (
                               <Loader2 className="size-2.5 animate-spin text-emerald-500" />
                             ) : (
@@ -333,13 +333,13 @@ export function SharedAccountManager({
                             )}
                           </SelectTrigger>
                           <SelectContent className="rounded-xl">
-                            <SelectItem value="editor" className="text-[10px]">
+                            <SelectItem value="editor" className="text-xs">
                               <div className="flex items-center gap-1">
                                 <Pencil className="size-2.5 text-blue-500" />
                                 <span>Editor</span>
                               </div>
                             </SelectItem>
-                            <SelectItem value="viewer" className="text-[10px]">
+                            <SelectItem value="viewer" className="text-xs">
                               <div className="flex items-center gap-1">
                                 <Eye className="size-2.5 text-gray-500" />
                                 <span>Viewer</span>
@@ -371,7 +371,7 @@ export function SharedAccountManager({
                     ) : (
                       /* Read-only role badge for non-owners */
                       <Badge
-                        className={`text-[8px] px-1.5 py-0 h-4 rounded-lg border-0 ${getRoleBadgeClass(su.role)}`}
+                        className={`text-[11px] px-1.5 py-0 h-4 rounded-lg border-0 ${getRoleBadgeClass(su.role)}`}
                       >
                         <RoleIcon className="size-2 mr-0.5" />
                         {getRoleLabel(su.role)}
@@ -459,7 +459,7 @@ export function SharedAccountManager({
                   </div>
 
                   {/* Role descriptions */}
-                  <div className="flex gap-3 text-[9px] text-gray-500 dark:text-gray-400">
+                  <div className="flex gap-3 text-[11px] text-gray-500 dark:text-gray-400">
                     <div className="flex items-center gap-0.5">
                       <Pencil className="size-2 text-blue-400" />
                       <span>Editor: agregar/borrar</span>
@@ -474,7 +474,7 @@ export function SharedAccountManager({
                   {inviteError && (
                     <div className="flex items-start gap-1.5 bg-red-50 dark:bg-red-900/15 rounded-xl p-2">
                       <X className="size-3 text-red-500 shrink-0 mt-0.5" />
-                      <p className="text-[10px] text-red-600 dark:text-red-400">{inviteError}</p>
+                      <p className="text-xs text-red-600 dark:text-red-400">{inviteError}</p>
                     </div>
                   )}
                 </div>
@@ -484,7 +484,7 @@ export function SharedAccountManager({
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
                       <Clock className="size-3 text-amber-500" />
-                      <span className="text-[10px] font-medium text-gray-500">
+                      <span className="text-xs font-medium text-gray-500">
                         Pendientes ({pendingInvitations.length})
                       </span>
                     </div>
@@ -500,17 +500,17 @@ export function SharedAccountManager({
                               <Mail className="size-2.5 text-amber-600 dark:text-amber-400" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[10px] font-medium text-gray-900 dark:text-white truncate">
+                              <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
                                 {inv.inviteeEmail}
                               </p>
                               <div className="flex items-center gap-1">
                                 <InvRoleIcon className="size-2 text-gray-400" />
-                                <span className="text-[9px] text-gray-400">
+                                <span className="text-[11px] text-gray-400">
                                   {getRoleLabel(inv.role)}
                                 </span>
                               </div>
                             </div>
-                            <Badge className="text-[8px] px-1 py-0 h-3.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-800/40 dark:text-amber-300 border-0">
+                            <Badge className="text-[11px] px-1 py-0 h-3.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-800/40 dark:text-amber-300 border-0">
                               Pendiente
                             </Badge>
                           </div>

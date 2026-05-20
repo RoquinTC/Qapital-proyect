@@ -212,7 +212,7 @@ export function ShoppingListDetail({ listId, onBack }: ShoppingListDetailProps) 
         <div className="flex-1">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">{list.name}</h2>
           <div className="flex items-center gap-2">
-            <Badge className={`text-[10px] ${statusColor[list.status]}`}>
+            <Badge className={`text-xs ${statusColor[list.status]}`}>
               {statusLabel[list.status]}
             </Badge>
             <span className="text-xs text-gray-400">
@@ -320,7 +320,7 @@ export function ShoppingListDetail({ listId, onBack }: ShoppingListDetailProps) 
                 <div className="text-right shrink-0">
                   {list.status === "verified" ? (
                     <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-gray-400">$</span>
+                      <span className="text-xs text-gray-400">$</span>
                       <Input
                         type="number"
                         step="0.01"

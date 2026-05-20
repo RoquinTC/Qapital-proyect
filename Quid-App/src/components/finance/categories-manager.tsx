@@ -323,7 +323,7 @@ export function CategoriesManager() {
         <Card className="border border-emerald-200 dark:border-emerald-800/50 shadow-none rounded-xl overflow-hidden">
           <CardContent className="p-3 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                 Nueva Categoría
               </span>
               <button
@@ -343,7 +343,7 @@ export function CategoriesManager() {
             <div className="flex gap-1.5">
               <button
                 onClick={() => setNewType("expense")}
-                className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   newType === "expense"
                     ? "bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-700"
                     : "bg-gray-50 dark:bg-gray-800 text-gray-400 border border-transparent"
@@ -353,7 +353,7 @@ export function CategoriesManager() {
               </button>
               <button
                 onClick={() => setNewType("income")}
-                className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   newType === "income"
                     ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700"
                     : "bg-gray-50 dark:bg-gray-800 text-gray-400 border border-transparent"
@@ -365,7 +365,7 @@ export function CategoriesManager() {
 
             {/* Name */}
             <div className="space-y-1">
-              <Label className="text-[10px]">Nombre</Label>
+              <Label className="text-xs">Nombre</Label>
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -379,7 +379,7 @@ export function CategoriesManager() {
 
             {/* Icon selector */}
             <div className="space-y-1">
-              <Label className="text-[10px]">Icono (opcional)</Label>
+              <Label className="text-xs">Icono (opcional)</Label>
               <Select value={newIcon || "none"} onValueChange={(v) => setNewIcon(v === "none" ? null : v)}>
                 <SelectTrigger className="rounded-lg h-8 text-xs">
                   <SelectValue placeholder="Sin icono" />
@@ -397,7 +397,7 @@ export function CategoriesManager() {
 
             {/* Color picker */}
             <div className="space-y-1">
-              <Label className="text-[10px] flex items-center gap-1">
+              <Label className="text-xs flex items-center gap-1">
                 <Palette className="size-3" /> Color (opcional)
               </Label>
               <div className="flex flex-wrap gap-1.5">
@@ -505,7 +505,7 @@ export function CategoriesManager() {
                             {cat.name}
                           </span>
                           {cat.subcategories.length > 0 && (
-                            <Badge variant="secondary" className="text-[9px] shrink-0 bg-gray-100 dark:bg-gray-700">
+                            <Badge variant="secondary" className="text-[11px] shrink-0 bg-gray-100 dark:bg-gray-700">
                               {cat.subcategories.length}
                             </Badge>
                           )}
@@ -648,10 +648,10 @@ export function CategoriesManager() {
 
       {/* Info */}
       <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-2.5">
-        <p className="text-[10px] text-blue-600 dark:text-blue-400 font-medium mb-0.5">
+        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-0.5">
           Edición de categorías
         </p>
-        <p className="text-[10px] text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           Al editar o eliminar una categoría, se actualizan automáticamente todas las transacciones,
           presupuestos y cuotas de TC que la usen.
         </p>
