@@ -128,6 +128,7 @@ function getTableFromUrl(url: string): string | null {
   // Sub-resource mapping
   if (cleanUrl.includes("/fuel-logs")) return "fuelLogs";
   if (cleanUrl.includes("/maintenance")) return "maintenanceRecords";
+  if (cleanUrl.includes("/documents")) return "vehicles"; // Documents are embedded in vehicles
   if (cleanUrl.includes("/sub-accounts")) return "subAccounts";
   if (cleanUrl.includes("/installments")) return "installments";
   if (cleanUrl.includes("/items")) return "shoppingListItems";

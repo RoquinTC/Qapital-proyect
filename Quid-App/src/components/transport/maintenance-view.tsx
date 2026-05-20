@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiFetch, formatCurrency, formatShortDate, formatDate } from "@/lib/api";
 import { MaintenanceForm } from "./maintenance-form";
+import { useDataEvent } from "@/hooks/use-data-event";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -131,6 +132,13 @@ export function MaintenanceView({ onSelectVehicle }: MaintenanceViewProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ─── Reactive data event subscription ────────────────────────────
+  const fetchDataRef = useRef(fetchData);
+  fetchDataRef.current = fetchData;
+  const handleDataRefresh = useCallback(() => { fetchDataRef.current(); }, []);
+  useDataEvent("maintenanceRecords", handleDataRefresh);
+  useDataEvent("vehicles", handleDataRefresh);
 
   const filteredRecords = records.filter((r) => {
     if (filterVehicle !== "all" && r.vehicleId !== filterVehicle) return false;

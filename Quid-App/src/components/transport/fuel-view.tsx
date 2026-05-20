@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiFetch, formatCurrency, formatShortDate } from "@/lib/api";
 import { useLocalQuery } from "@/lib/local/hooks/queries";
+import { useDataEvent } from "@/hooks/use-data-event";
 import { FuelPriceWidget } from "./fuel-price-widget";
 import { FuelLogForm } from "./fuel-log-form";
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,13 @@ export function FuelView({ onSelectVehicle }: FuelViewProps) {
   useEffect(() => {
     fetchFuelLogs();
   }, [fetchFuelLogs]);
+
+  // ─── Reactive data event subscription ────────────────────────────
+  const fetchFuelLogsRef = useRef(fetchFuelLogs);
+  fetchFuelLogsRef.current = fetchFuelLogs;
+  const handleDataRefresh = useCallback(() => { fetchFuelLogsRef.current(); }, []);
+  useDataEvent("fuelLogs", handleDataRefresh);
+  useDataEvent("vehicles", handleDataRefresh);
 
   const loading = vehiclesLoading || loadingLogs;
 
