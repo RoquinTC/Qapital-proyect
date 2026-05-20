@@ -227,7 +227,11 @@ export function AppShell() {
   }, [setOfflineSession]);
 
   // Cache session for offline access whenever it's available
+  // BUT: skip if user just logged out (prevents re-caching during logout)
   useEffect(() => {
+    try {
+      if (typeof sessionStorage !== "undefined" && sessionStorage.getItem("quid-just-logged-out") === "true") return;
+    } catch {}
     if (session?.user?.id && !isOffline) {
       cacheOfflineSession(session as any);
     }
