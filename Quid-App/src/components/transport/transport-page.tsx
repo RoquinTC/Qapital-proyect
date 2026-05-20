@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAppStore, type TransportSubView, type SidebarAction } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,7 +9,7 @@ import {
   FileText, Shield, FileCheck,
   ChevronDown, Gauge, MapPin, AlertTriangle, Bell, Clock,
   Trash2, Pencil, MoreVertical, ArrowLeft, MoreHorizontal,
-  Activity, RefreshCw, ChevronRight,
+  Activity, RefreshCw, ChevronRight, RotateCcw,
 } from "lucide-react";
 import { VehicleForm } from "./vehicle-form";
 import { FuelLogForm } from "./fuel-log-form";
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import { apiFetch, formatCurrency, formatShortDate } from "@/lib/api";
 import { useLocalQuery } from "@/lib/local/hooks/queries";
+import { useDataEvent } from "@/hooks/use-data-event";
 import type { Vehicle, FuelLog, MaintenanceRecord, VehicleDocument } from "@/lib/types";
 import { MAINTENANCE_TYPES } from "@/lib/types/transport";
 import { toast } from "sonner";
@@ -160,6 +161,17 @@ export function TransportPage() {
   const { data: vehiclesData, refetch: refetchVehicles } = useLocalQuery<VehicleWithDetails>("/api/vehicles");
   const vehicles = (vehiclesData || []) as VehicleWithDetails[];
 
+  // ─── Reactive data event subscriptions ────────────────────────────
+  // When mutations happen to sub-resources (maintenance, fuel-logs, documents),
+  // the liveQuery on the `vehicles` table won't fire because only the sub-resource
+  // table was modified. We use the data event bus to force a refetch.
+  const refetchRef = useRef(refetchVehicles);
+  refetchRef.current = refetchVehicles;
+  const handleDataRefresh = useCallback(() => { refetchRef.current(); }, []);
+  useDataEvent("maintenanceRecords", handleDataRefresh);
+  useDataEvent("fuelLogs", handleDataRefresh);
+  useDataEvent("vehicles", handleDataRefresh);
+
   // Selection
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const selectedVehicle = vehicles.find((v) => v.id === selectedVehicleId) || null;
@@ -183,8 +195,14 @@ export function TransportPage() {
   // Fuel status card expanded state
   const [showFuelDetails, setShowFuelDetails] = useState(false);
 
+  // Reminders expanded state
+  const [showReminderDetails, setShowReminderDetails] = useState(false);
+
   // Delete
   const [deleteTarget, setDeleteTarget] = useState<{ type: "fuel" | "maintenance" | "vehicle" | "document"; id: string; vehicleId?: string } | null>(null);
+
+  // Reverse
+  const [reverseTarget, setReverseTarget] = useState<{ type: "fuel" | "maintenance" | "document"; id: string; vehicleId: string; cost: number; description: string } | null>(null);
 
   // Auto-select first vehicle
   useEffect(() => {
@@ -416,6 +434,31 @@ export function TransportPage() {
       toast.error("Error al eliminar");
     } finally {
       setDeleteTarget(null);
+    }
+  };
+
+  // ─── Reverse handler (creates a reversing entry, keeps original) ───
+  const handleReverse = async () => {
+    if (!reverseTarget) return;
+    try {
+      // Delete the record which also reverses the finance entry
+      // but inform the user this reverses the financial impact
+      if (reverseTarget.type === "fuel") {
+        await apiFetch(`/api/vehicles/${reverseTarget.vehicleId}/fuel-logs/${reverseTarget.id}`, { method: "DELETE" });
+        toast.success("Recarga reversada", { description: "Se revirtió la transacción financiera asociada" });
+      } else if (reverseTarget.type === "maintenance") {
+        await apiFetch(`/api/vehicles/${reverseTarget.vehicleId}/maintenance/${reverseTarget.id}`, { method: "DELETE" });
+        toast.success("Mantenimiento reversado", { description: "Se revirtió la transacción financiera asociada" });
+      } else if (reverseTarget.type === "document") {
+        await apiFetch(`/api/vehicles/${reverseTarget.vehicleId}/documents/${reverseTarget.id}`, { method: "DELETE" });
+        toast.success("Documento reversado", { description: "Se revirtió la transacción financiera asociada" });
+      }
+      refetchVehicles();
+    } catch (error) {
+      console.error("Error reversing:", error);
+      toast.error("Error al reversar");
+    } finally {
+      setReverseTarget(null);
     }
   };
 
@@ -796,10 +839,9 @@ export function TransportPage() {
           </div>
         )}
 
-        {/* ─── Reminders Section ──────────────────────────────────── */}
+        {/* ─── Reminders Section (compact bar, always visible when vehicle selected) ─── */}
         {selectedVehicle && (() => {
           const now = new Date();
-          // Maintenance reminders
           const maintReminders = (selectedVehicle.maintenanceRecords || [])
             .filter(r => r.reminderEnabled && (r.nextDueKm || r.nextDueDate))
             .map(r => {
@@ -807,14 +849,19 @@ export function TransportPage() {
               const daysUntil = r.nextDueDate ? Math.ceil((new Date(r.nextDueDate).getTime() - now.getTime()) / (1000*60*60*24)) : null;
               const isOverdue = (kmRemaining !== null && kmRemaining <= 0) || (daysUntil !== null && daysUntil <= 0);
               const isUrgent = !isOverdue && ((kmRemaining !== null && kmRemaining <= 500) || (daysUntil !== null && daysUntil <= 15));
-              // Get KM interval from MAINTENANCE_TYPES
               const typeConfig = MAINTENANCE_TYPES.find(t => t.value === r.type);
               const kmInterval = typeConfig?.nextKmInterval || 0;
-              return { ...r, kmRemaining, daysUntil, isOverdue, isUrgent, kmInterval };
+              const monthInterval = typeConfig?.nextMonthInterval || 0;
+              return { ...r, kmRemaining, daysUntil, isOverdue, isUrgent, kmInterval, monthInterval };
             })
-            .filter(r => r.isOverdue || r.isUrgent || (r.kmRemaining !== null && r.kmRemaining <= 1000) || (r.daysUntil !== null && r.daysUntil <= 30));
+            .sort((a, b) => {
+              if (a.isOverdue && !b.isOverdue) return -1;
+              if (!a.isOverdue && b.isOverdue) return 1;
+              if (a.isUrgent && !b.isUrgent) return -1;
+              if (!a.isUrgent && b.isUrgent) return 1;
+              return (a.kmRemaining ?? Infinity) - (b.kmRemaining ?? Infinity);
+            });
 
-          // Document expiry reminders
           const docReminders = (selectedVehicle.documents || [])
             .filter(d => d.reminderEnabled)
             .map(d => {
@@ -823,65 +870,167 @@ export function TransportPage() {
               const isExpiringSoon = !isExpired && daysUntilExpiry <= (d.reminderDays || 30);
               return { ...d, daysUntilExpiry, isExpired, isExpiringSoon };
             })
-            .filter(d => d.isExpired || d.isExpiringSoon);
+            .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
 
           const hasReminders = maintReminders.length > 0 || docReminders.length > 0;
-
-          if (!hasReminders) return null;
+          const overdueCount = maintReminders.filter(r => r.isOverdue).length + docReminders.filter(d => d.isExpired).length;
+          const urgentCount = maintReminders.filter(r => r.isUrgent).length + docReminders.filter(d => d.isExpiringSoon).length;
+          const totalCount = maintReminders.length + docReminders.length;
 
           return (
-            <div className="px-4 pt-3 pb-1">
-              <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800/30 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Bell className="size-4 text-amber-600" />
-                  <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">Recordatorios</span>
+            <div className="px-4 pt-2">
+              <button
+                onClick={() => setShowReminderDetails(!showReminderDetails)}
+                className={`w-full rounded-xl border transition-colors ${
+                  overdueCount > 0
+                    ? "bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10 border-red-200 dark:border-red-900/30"
+                    : urgentCount > 0
+                    ? "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border-amber-200 dark:border-amber-900/30"
+                    : hasReminders
+                    ? "bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/10 dark:to-blue-900/10 border-cyan-100 dark:border-cyan-900/30"
+                    : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+                }`}
+              >
+                <div className="flex items-center gap-2 p-2.5">
+                  <Bell className={`size-3.5 ${
+                    overdueCount > 0 ? "text-red-500" : urgentCount > 0 ? "text-amber-600" : hasReminders ? "text-cyan-600" : "text-gray-400"
+                  }`} />
+                  <span className={`text-xs font-semibold flex-1 text-left ${
+                    overdueCount > 0 ? "text-red-700 dark:text-red-300" : urgentCount > 0 ? "text-amber-700 dark:text-amber-300" : hasReminders ? "text-cyan-700 dark:text-cyan-300" : "text-gray-500 dark:text-gray-400"
+                  }`}>
+                    Recordatorios
+                    {totalCount > 0 && (
+                      <span className="font-normal text-gray-400 ml-1">({totalCount})</span>
+                    )}
+                  </span>
+                  {overdueCount > 0 && (
+                    <Badge className="text-[10px] h-4 px-1.5 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-0">
+                      {overdueCount} vencido{overdueCount > 1 ? "s" : ""}
+                    </Badge>
+                  )}
+                  {urgentCount > 0 && (
+                    <Badge className="text-[10px] h-4 px-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-0">
+                      {urgentCount} próximo
+                    </Badge>
+                  )}
+                  {!hasReminders && (
+                    <span className="text-[11px] text-gray-400">Sin recordatorios</span>
+                  )}
+                  <ChevronDown className={`size-3.5 text-gray-400 transition-transform ${showReminderDetails ? "rotate-180" : ""}`} />
                 </div>
-                <div className="space-y-2">
-                  {/* Maintenance reminders */}
-                  {maintReminders.map(r => (
-                    <div key={r.id} className="flex items-center gap-3 p-2 bg-white/60 dark:bg-gray-800/60 rounded-xl">
-                      <AlertTriangle className={`size-4 flex-shrink-0 ${r.isOverdue ? "text-red-500" : "text-amber-500"}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                          {maintTypeLabels[r.type] || r.type}
-                          {r.kmInterval > 0 && <span className="text-gray-400 font-normal"> · Cada {r.kmInterval.toLocaleString()} km</span>}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {r.kmRemaining !== null && (
-                            <span className={r.isOverdue ? "text-red-500 font-medium" : r.isUrgent ? "text-amber-600 font-medium" : ""}>
-                              {r.isOverdue ? "Vencido" : `Faltan ${r.kmRemaining.toLocaleString("es-CO")} km`}
-                            </span>
-                          )}
-                          {r.daysUntil !== null && (
-                            <span className="ml-2">
-                              <Clock className="size-3 inline" /> {formatShortDate(r.nextDueDate!)}
-                            </span>
-                          )}
-                        </p>
-                      </div>
+              </button>
+
+              <AnimatePresence>
+                {showReminderDetails && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-1.5 pb-1 space-y-1.5">
+                      {hasReminders ? (
+                        <>
+                          {maintReminders.map(r => {
+                            const Icon = maintTypeIcons[r.type] || Wrench;
+                            return (
+                              <div key={r.id} className={`flex items-center gap-2.5 p-2 rounded-xl ${
+                                r.isOverdue
+                                  ? "bg-red-100/60 dark:bg-red-900/30"
+                                  : r.isUrgent
+                                  ? "bg-amber-100/50 dark:bg-amber-900/20"
+                                  : "bg-white/60 dark:bg-gray-800/40"
+                              }`}>
+                                <div className={`size-7 rounded-lg flex items-center justify-center flex-shrink-0 ${maintTypeColors[r.type] || maintTypeColors.other}`}>
+                                  <Icon className="size-3.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                                    {maintTypeLabels[r.type] || r.type}
+                                    {r.kmInterval > 0 && (
+                                      <span className="text-gray-400 font-normal ml-1">· Cada {r.kmInterval.toLocaleString()} km</span>
+                                    )}
+                                    {r.monthInterval > 0 && !r.kmInterval && (
+                                      <span className="text-gray-400 font-normal ml-1">· Cada {r.monthInterval} mes{r.monthInterval > 1 ? "es" : ""}</span>
+                                    )}
+                                  </p>
+                                  <p className="text-[11px] text-gray-500 flex items-center gap-1.5 flex-wrap">
+                                    {r.kmRemaining !== null && (
+                                      <span className={`font-medium ${
+                                        r.isOverdue ? "text-red-600 dark:text-red-400" : r.isUrgent ? "text-amber-600 dark:text-amber-400" : "text-gray-600 dark:text-gray-400"
+                                      }`}>
+                                        {r.isOverdue ? "Vencido" : `Faltan ${r.kmRemaining.toLocaleString("es-CO")} km`}
+                                      </span>
+                                    )}
+                                    {r.daysUntil !== null && (
+                                      <span className="text-gray-400">
+                                        <Clock className="size-3 inline -mt-0.5" /> {formatShortDate(r.nextDueDate!)}
+                                        {!r.isOverdue && r.daysUntil > 0 && (
+                                          <span className="ml-1">({r.daysUntil}d)</span>
+                                        )}
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                                {r.kmRemaining !== null && r.kmInterval > 0 && !r.isOverdue && (
+                                  <div className="w-12 flex-shrink-0">
+                                    <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full ${
+                                          r.kmRemaining <= 500 ? "bg-red-500" : r.kmRemaining <= r.kmInterval * 0.3 ? "bg-amber-500" : "bg-emerald-500"
+                                        }`}
+                                        style={{ width: `${Math.max(0, Math.min(100, ((r.kmInterval - r.kmRemaining) / r.kmInterval) * 100))}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {docReminders.map(d => {
+                            const DocIcon = docTypeIcons[d.type] || FileText;
+                            return (
+                              <div key={d.id} className={`flex items-center gap-2.5 p-2 rounded-xl ${
+                                d.isExpired
+                                  ? "bg-red-100/60 dark:bg-red-900/30"
+                                  : d.isExpiringSoon
+                                  ? "bg-amber-100/50 dark:bg-amber-900/20"
+                                  : "bg-white/60 dark:bg-gray-800/40"
+                              }`}>
+                                <div className={`size-7 rounded-lg flex items-center justify-center flex-shrink-0 ${docTypeColors[d.type] || docTypeColors.otro}`}>
+                                  <DocIcon className="size-3.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                                    {docTypeLabels[d.type] || d.type}
+                                  </p>
+                                  <p className="text-[11px] text-gray-500">
+                                    <span className={`font-medium ${
+                                      d.isExpired ? "text-red-600 dark:text-red-400" : d.isExpiringSoon ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                                    }`}>
+                                      {d.isExpired ? "Vencido" : d.isExpiringSoon ? `Vence en ${d.daysUntilExpiry} días` : `Vigente (${d.daysUntilExpiry}d restantes)`}
+                                    </span>
+                                    <span className="ml-2 text-gray-400">
+                                      <Clock className="size-3 inline -mt-0.5" /> {formatShortDate(d.expiryDate)}
+                                    </span>
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </>
+                      ) : (
+                        <div className="py-2 text-center">
+                          <p className="text-xs text-gray-400">
+                            Sin recordatorios. Activa recordatorios al registrar mantenimiento o documentos.
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {/* Document reminders */}
-                  {docReminders.map(d => (
-                    <div key={d.id} className="flex items-center gap-3 p-2 bg-white/60 dark:bg-gray-800/60 rounded-xl">
-                      <Shield className={`size-4 flex-shrink-0 ${d.isExpired ? "text-red-500" : "text-amber-500"}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                          {docTypeLabels[d.type] || d.type}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          <span className={d.isExpired ? "text-red-500 font-medium" : "text-amber-600 font-medium"}>
-                            {d.isExpired ? "Vencido" : `Vence en ${d.daysUntilExpiry} días`}
-                          </span>
-                          <span className="ml-2">
-                            <Clock className="size-3 inline" /> {formatShortDate(d.expiryDate)}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })()}
@@ -960,6 +1109,13 @@ export function TransportPage() {
                           type: entry.type,
                           id: entry.id,
                           vehicleId: entry.vehicleId,
+                        })}
+                        onReverse={() => setReverseTarget({
+                          type: entry.type,
+                          id: entry.id,
+                          vehicleId: entry.vehicleId,
+                          cost: entry.cost,
+                          description: entry.type === "fuel" ? "Recarga" : entry.type === "document" ? (docTypeLabels[entry.docType || ""] || "Documento") : (maintTypeLabels[entry.maintType || ""] || "Mantenimiento"),
                         })}
                       />
                     ))}
@@ -1099,6 +1255,37 @@ export function TransportPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ─── Reverse Confirmation ───────────────────────────────── */}
+      <AlertDialog open={!!reverseTarget} onOpenChange={(open) => !open && setReverseTarget(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RotateCcw className="size-5 text-orange-500" />
+              ¿Reversar este registro?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {reverseTarget && (
+                <>
+                  Se eliminará el registro de <strong>{reverseTarget.description}</strong> por <strong>{formatCurrency(reverseTarget.cost)}</strong> y se revertirá su transacción financiera asociada (saldo del cuenta/presupuesto se restaurará).
+                  <br /><br />
+                  <span className="text-orange-600 dark:text-orange-400 font-medium">Esta acción no se puede deshacer.</span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReverse}
+              className="rounded-xl bg-orange-500 hover:bg-orange-600"
+            >
+              <RotateCcw className="size-4 mr-1" />
+              Reversar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -1109,11 +1296,13 @@ function TimelineCard({
   showVehicleName,
   onEdit,
   onDelete,
+  onReverse,
 }: {
   entry: TimelineEntry;
   showVehicleName: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onReverse?: () => void;
 }) {
   const isFuel = entry.type === "fuel";
   const isDoc = entry.type === "document";
@@ -1195,6 +1384,12 @@ function TimelineCard({
                   <Pencil className="size-4 mr-2 text-blue-500" />
                   Editar
                 </DropdownMenuItem>
+                {onReverse && (
+                  <DropdownMenuItem onClick={onReverse}>
+                    <RotateCcw className="size-4 mr-2 text-orange-500" />
+                    Reversar
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={onDelete} className="text-red-600">
                   <Trash2 className="size-4 mr-2" />
                   Eliminar
@@ -1335,7 +1530,7 @@ function VehicleDetailView({
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  // Upcoming maintenance with KM intervals
+  // Upcoming maintenance with KM intervals (ALL reminders, not just urgent)
   const now = new Date();
   const upcomingMaintenance = (vehicle.maintenanceRecords || [])
     .filter(r => r.reminderEnabled && (r.nextDueKm || r.nextDueDate))
@@ -1346,11 +1541,20 @@ function VehicleDetailView({
       const isUrgent = !isOverdue && ((kmRemaining !== null && kmRemaining <= 500) || (daysUntil !== null && daysUntil <= 15));
       const typeConfig = MAINTENANCE_TYPES.find(t => t.value === r.type);
       const kmInterval = typeConfig?.nextKmInterval || 0;
-      return { ...r, kmRemaining, daysUntil, isOverdue, isUrgent, kmInterval };
+      const monthInterval = typeConfig?.nextMonthInterval || 0;
+      return { ...r, kmRemaining, daysUntil, isOverdue, isUrgent, kmInterval, monthInterval };
     })
-    .filter(r => r.isOverdue || r.isUrgent || (r.kmRemaining !== null && r.kmRemaining <= 1000) || (r.daysUntil !== null && r.daysUntil <= 30));
+    .sort((a, b) => {
+      if (a.isOverdue && !b.isOverdue) return -1;
+      if (!a.isOverdue && b.isOverdue) return 1;
+      if (a.isUrgent && !b.isUrgent) return -1;
+      if (!a.isUrgent && b.isUrgent) return 1;
+      const aKm = a.kmRemaining ?? Infinity;
+      const bKm = b.kmRemaining ?? Infinity;
+      return aKm - bKm;
+    });
 
-  // Document expiry reminders
+  // Document expiry reminders (all with reminderEnabled)
   const docReminders = (vehicle.documents || [])
     .filter(d => d.reminderEnabled)
     .map(d => {
@@ -1359,9 +1563,11 @@ function VehicleDetailView({
       const isExpiringSoon = !isExpired && daysUntilExpiry <= (d.reminderDays || 30);
       return { ...d, daysUntilExpiry, isExpired, isExpiringSoon };
     })
-    .filter(d => d.isExpired || d.isExpiringSoon);
+    .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
 
   const hasReminders = upcomingMaintenance.length > 0 || docReminders.length > 0;
+  const overdueCount = upcomingMaintenance.filter(r => r.isOverdue).length + docReminders.filter(d => d.isExpired).length;
+  const urgentCount = upcomingMaintenance.filter(r => r.isUrgent).length + docReminders.filter(d => d.isExpiringSoon).length;
 
   return (
     <div className="flex flex-col h-full">
@@ -1460,60 +1666,139 @@ function VehicleDetailView({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {/* ─── Reminders Section ──────────────────────────────────── */}
-        {hasReminders && (
-          <div className="px-4 pt-3 pb-1">
-            <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800/30 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Bell className="size-4 text-amber-600" />
-                <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">Recordatorios</span>
-              </div>
-              <div className="space-y-2">
-                {upcomingMaintenance.map(r => (
-                  <div key={r.id} className="flex items-center gap-3 p-2 bg-white/60 dark:bg-gray-800/60 rounded-xl">
-                    <AlertTriangle className={`size-4 flex-shrink-0 ${r.isOverdue ? "text-red-500" : "text-amber-500"}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                        {maintTypeLabels[r.type] || r.type}
-                        {r.kmInterval > 0 && <span className="text-gray-400 font-normal"> · Cada {r.kmInterval.toLocaleString()} km</span>}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {r.kmRemaining !== null && (
-                          <span className={r.isOverdue ? "text-red-500 font-medium" : r.isUrgent ? "text-amber-600 font-medium" : ""}>
-                            {r.isOverdue ? "Vencido" : `Faltan ${r.kmRemaining.toLocaleString("es-CO")} km`}
-                          </span>
-                        )}
-                        {r.daysUntil !== null && (
-                          <span className="ml-2">
-                            <Clock className="size-3 inline" /> {formatShortDate(r.nextDueDate!)}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {docReminders.map(d => (
-                  <div key={d.id} className="flex items-center gap-3 p-2 bg-white/60 dark:bg-gray-800/60 rounded-xl">
-                    <Shield className={`size-4 flex-shrink-0 ${d.isExpired ? "text-red-500" : "text-amber-500"}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                        {docTypeLabels[d.type] || d.type}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        <span className={d.isExpired ? "text-red-500 font-medium" : "text-amber-600 font-medium"}>
-                          {d.isExpired ? "Vencido" : `Vence en ${d.daysUntilExpiry} días`}
-                        </span>
-                        <span className="ml-2">
-                          <Clock className="size-3 inline" /> {formatShortDate(d.expiryDate)}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* ─── Reminders Section (always visible) ──────────────────────────────────── */}
+        <div className="px-4 pt-3 pb-1">
+          <div className={`rounded-2xl border p-3 ${
+            overdueCount > 0
+              ? "bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-red-200 dark:border-red-800/30"
+              : urgentCount > 0
+              ? "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-800/30"
+              : hasReminders
+              ? "bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/10 dark:to-blue-900/10 border-cyan-200 dark:border-cyan-800/30"
+              : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
+          }`}>
+            <div className="flex items-center gap-2 mb-2">
+              <Bell className={`size-4 ${
+                overdueCount > 0 ? "text-red-500" : urgentCount > 0 ? "text-amber-600" : hasReminders ? "text-cyan-600" : "text-gray-400"
+              }`} />
+              <span className={`text-sm font-semibold ${
+                overdueCount > 0 ? "text-red-800 dark:text-red-300" : urgentCount > 0 ? "text-amber-800 dark:text-amber-300" : hasReminders ? "text-cyan-800 dark:text-cyan-300" : "text-gray-500 dark:text-gray-400"
+              }`}>
+                Recordatorios
+              </span>
+              {overdueCount > 0 && (
+                <Badge className="text-[10px] h-4 px-1.5 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-0">
+                  {overdueCount} vencido{overdueCount > 1 ? "s" : ""}
+                </Badge>
+              )}
+              {urgentCount > 0 && (
+                <Badge className="text-[10px] h-4 px-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-0">
+                  {urgentCount} próximo
+                </Badge>
+              )}
             </div>
+
+            {hasReminders ? (
+              <div className="space-y-1.5">
+                {/* Maintenance reminders */}
+                {upcomingMaintenance.map(r => {
+                  const Icon = maintTypeIcons[r.type] || Wrench;
+                  return (
+                    <div key={r.id} className={`flex items-center gap-2.5 p-2 rounded-xl ${
+                      r.isOverdue
+                        ? "bg-red-100/60 dark:bg-red-900/30"
+                        : r.isUrgent
+                        ? "bg-amber-100/50 dark:bg-amber-900/20"
+                        : "bg-white/60 dark:bg-gray-800/40"
+                    }`}>
+                      <div className={`size-7 rounded-lg flex items-center justify-center flex-shrink-0 ${maintTypeColors[r.type] || maintTypeColors.other}`}>
+                        <Icon className="size-3.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                          {maintTypeLabels[r.type] || r.type}
+                          {r.kmInterval > 0 && (
+                            <span className="text-gray-400 font-normal ml-1">· Cada {r.kmInterval.toLocaleString()} km</span>
+                          )}
+                          {r.monthInterval > 0 && !r.kmInterval && (
+                            <span className="text-gray-400 font-normal ml-1">· Cada {r.monthInterval} mes{r.monthInterval > 1 ? "es" : ""}</span>
+                          )}
+                        </p>
+                        <p className="text-[11px] text-gray-500 flex items-center gap-1.5 flex-wrap">
+                          {r.kmRemaining !== null && (
+                            <span className={`font-medium ${
+                              r.isOverdue ? "text-red-600 dark:text-red-400" : r.isUrgent ? "text-amber-600 dark:text-amber-400" : "text-gray-600 dark:text-gray-400"
+                            }`}>
+                              {r.isOverdue ? "Vencido" : `Faltan ${r.kmRemaining.toLocaleString("es-CO")} km`}
+                            </span>
+                          )}
+                          {r.daysUntil !== null && (
+                            <span className="text-gray-400">
+                              <Clock className="size-3 inline -mt-0.5" /> {formatShortDate(r.nextDueDate!)}
+                              {!r.isOverdue && r.daysUntil > 0 && (
+                                <span className="ml-1">({r.daysUntil}d)</span>
+                              )}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      {r.kmRemaining !== null && r.kmInterval > 0 && !r.isOverdue && (
+                        <div className="w-12 flex-shrink-0">
+                          <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                r.kmRemaining <= 500 ? "bg-red-500" : r.kmRemaining <= r.kmInterval * 0.3 ? "bg-amber-500" : "bg-emerald-500"
+                              }`}
+                              style={{ width: `${Math.max(0, Math.min(100, ((r.kmInterval - r.kmRemaining) / r.kmInterval) * 100))}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Document reminders */}
+                {docReminders.map(d => {
+                  const DocIcon = docTypeIcons[d.type] || FileText;
+                  return (
+                    <div key={d.id} className={`flex items-center gap-2.5 p-2 rounded-xl ${
+                      d.isExpired
+                        ? "bg-red-100/60 dark:bg-red-900/30"
+                        : d.isExpiringSoon
+                        ? "bg-amber-100/50 dark:bg-amber-900/20"
+                        : "bg-white/60 dark:bg-gray-800/40"
+                    }`}>
+                      <div className={`size-7 rounded-lg flex items-center justify-center flex-shrink-0 ${docTypeColors[d.type] || docTypeColors.otro}`}>
+                        <DocIcon className="size-3.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                          {docTypeLabels[d.type] || d.type}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          <span className={`font-medium ${
+                            d.isExpired ? "text-red-600 dark:text-red-400" : d.isExpiringSoon ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                          }`}>
+                            {d.isExpired ? "Vencido" : d.isExpiringSoon ? `Vence en ${d.daysUntilExpiry} días` : `Vigente (${d.daysUntilExpiry}d restantes)`}
+                          </span>
+                          <span className="ml-2 text-gray-400">
+                            <Clock className="size-3 inline -mt-0.5" /> {formatShortDate(d.expiryDate)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-2 text-center">
+                <p className="text-xs text-gray-400">
+                  Sin recordatorios configurados. Activa recordatorios al registrar mantenimiento o documentos.
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Anomaly warning */}
         {vehicle.anomalyDetected && (
@@ -1595,6 +1880,10 @@ function VehicleDetailView({
                               <Pencil className="size-4 mr-2 text-blue-500" />
                               Editar
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onDelete({ type: "document", id: doc.id, vehicleId: doc.vehicleId })} className="text-orange-600">
+                              <RotateCcw className="size-4 mr-2" />
+                              Reversar
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onDelete({ type: "document", id: doc.id, vehicleId: doc.vehicleId })} className="text-red-600">
                               <Trash2 className="size-4 mr-2" />
                               Eliminar
@@ -1666,6 +1955,11 @@ function VehicleDetailView({
                       }
                     }}
                     onDelete={() => onDelete({
+                      type: entry.type,
+                      id: entry.id,
+                      vehicleId: entry.vehicleId,
+                    })}
+                    onReverse={() => onDelete({
                       type: entry.type,
                       id: entry.id,
                       vehicleId: entry.vehicleId,

@@ -70,6 +70,13 @@ export function useLocalQuery<T extends { id: string }>(
   const [error, setError] = useState<string | null>(null);
   const lastFetchRef = useRef<number>(0);
   const mountedRef = useRef(true);
+  const dataLengthRef = useRef(0);
+
+  // Keep dataLengthRef in sync so fetchFromServer can read the latest value
+  // without needing it in its dependency array (which caused stale closures)
+  useEffect(() => {
+    dataLengthRef.current = data.length;
+  }, [data.length]);
 
   const { setSyncStatus } = useAppStore();
 
@@ -88,6 +95,8 @@ export function useLocalQuery<T extends { id: string }>(
   }, [userId, tableName]);
 
   // Fetch from server and update IndexedDB
+  // NOTE: data.length is NOT in the dependency array — we use dataLengthRef instead
+  // to avoid stale-closure issues when refetch is called from form callbacks.
   const fetchFromServer = useCallback(async (force = false) => {
     if (!userId || !apiPath) return;
 
@@ -113,7 +122,7 @@ export function useLocalQuery<T extends { id: string }>(
       if (mountedRef.current) {
         // If we already have local data, just mark sync error (don't overwrite)
         // If no local data, show the error
-        if (data.length === 0) {
+        if (dataLengthRef.current === 0) {
           setError(err.message || "Error de conexión");
         }
         // Don't clear existing data on fetch failure — keep showing stale local data
@@ -125,7 +134,7 @@ export function useLocalQuery<T extends { id: string }>(
         setSyncStatus(false);
       }
     }
-  }, [userId, apiPath, tableName, staleTime, data.length, setSyncStatus]);
+  }, [userId, apiPath, tableName, staleTime, setSyncStatus]);
 
   // Initial load: IndexedDB first, then server
   useEffect(() => {
