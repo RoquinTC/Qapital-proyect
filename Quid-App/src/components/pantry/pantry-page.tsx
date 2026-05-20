@@ -30,6 +30,35 @@ export function PantryPage() {
   const [showShoppingListForm, setShowShoppingListForm] = useState(false);
   const [showHealthProfileForm, setShowHealthProfileForm] = useState(false);
 
+  // ─── Swipe gesture for tab switching ─────────────────────────
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() });
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+    const touchEnd = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY, time: Date.now() };
+    const dx = touchEnd.x - touchStart.x;
+    const dy = Math.abs(touchEnd.y - touchStart.y);
+    const dt = touchEnd.time - touchStart.time;
+
+    if (Math.abs(dx) > 50 && dy < 50 && dt < 500) {
+      const target = e.target as HTMLElement;
+      const carouselParent = target.closest('[data-carousel], .overflow-x-auto, .snap-x');
+      if (carouselParent) return;
+
+      const currentIdx = tabs.findIndex((t) => t.id === activeTab);
+      if (dx < 0 && currentIdx < tabs.length - 1) {
+        setActiveTab(tabs[currentIdx + 1].id);
+      } else if (dx > 0 && currentIdx > 0) {
+        setActiveTab(tabs[currentIdx - 1].id);
+      }
+    }
+    setTouchStart(null);
+  };
+
   // ─── Listen for sidebar quick-actions ───────────────────────────
   useEffect(() => {
     if (!sidebarAction) return;
@@ -115,7 +144,7 @@ export function PantryPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

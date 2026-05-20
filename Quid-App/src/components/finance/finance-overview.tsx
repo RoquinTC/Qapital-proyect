@@ -225,7 +225,7 @@ function FinancialEvolutionTooltip({ active, payload, label }: { active?: boolea
   const displayMonth = mm ? FULL_MONTH_NAMES[mm] || monthLabel : monthLabel;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 px-3 py-2.5 text-xs">
+    <div className="max-w-[200px] bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 px-3 py-2.5 text-xs">
       <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1.5">{displayMonth}</p>
       {payload.map((entry, idx) => (
         <div key={idx} className="flex items-center gap-2 mb-0.5">
@@ -249,7 +249,7 @@ function CashFlowTooltip({ active, payload, label }: { active?: boolean; payload
   const displayMonth = mm ? FULL_MONTH_NAMES[mm] || monthLabel : monthLabel;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 px-3 py-2.5 text-xs">
+    <div className="max-w-[200px] bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 px-3 py-2.5 text-xs">
       <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1.5">{displayMonth}</p>
       {payload.map((entry, idx) => (
         <div key={idx} className="flex items-center gap-2 mb-0.5">

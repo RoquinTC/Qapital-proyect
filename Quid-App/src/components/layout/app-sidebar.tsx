@@ -199,7 +199,7 @@ export function AppSidebar() {
         </div>
 
         {/* Scrollable content */}
-        <div className="overflow-y-auto" style={{ maxHeight: "calc(100dvh - 160px)" }}>
+        <div className="overflow-y-auto max-h-[calc(100dvh-14rem)]">
           {/* Module Navigation with expandable actions */}
           <div className="p-3 space-y-1">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
