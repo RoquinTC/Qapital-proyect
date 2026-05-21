@@ -38,6 +38,38 @@ function isGetRequest(options?: RequestInit): boolean {
   return !options?.method || options.method.toUpperCase() === "GET";
 }
 
+function isOfflineLikeStatus(status: number): boolean {
+  return status === 502 || status === 503 || status === 504;
+}
+
+async function readApiError(response: Response): Promise<string> {
+  let errorMsg = `Error: ${response.status}`;
+  try {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const errorData = await response.json();
+      errorMsg = errorData.error || errorData.message || errorMsg;
+    } else if (response.status === 500) {
+      errorMsg = "Error interno del servidor. Revisa los logs antes de reintentar.";
+    } else if (response.status === 404) {
+      errorMsg = "Recurso no encontrado";
+    } else if (response.status === 401) {
+      errorMsg = "No autorizado";
+    } else if (response.status === 403) {
+      errorMsg = "No tienes permisos para esta operación";
+    } else if (isOfflineLikeStatus(response.status)) {
+      errorMsg = "Servidor no disponible temporalmente";
+    } else {
+      errorMsg = `Error del servidor (${response.status})`;
+    }
+  } catch {
+    if (response.status === 500) {
+      errorMsg = "Error interno del servidor. Revisa los logs antes de reintentar.";
+    }
+  }
+  return errorMsg;
+}
+
 /**
  * Extract the API path and table name from a URL.
  * e.g. "/api/accounts" → { tableName: "accounts", isCollection: true }
@@ -279,57 +311,20 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
     }
   }
 
-  // For POST/PUT/DELETE: try server, queue on failure
+  // For POST/PUT/DELETE: try server, queue only when the server is unreachable.
+  // Validation/auth/server logic errors must reach the UI instead of being
+  // treated as successful offline mutations.
   await ensureLocalDB();
+  let response: Response;
   try {
-    const response = await fetch(url, {
+    response = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
         ...options?.headers,
       },
       ...options,
     });
-
-    if (!response.ok) {
-      let errorMsg = `Error: ${response.status}`;
-      try {
-        const contentType = response.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-          const errorData = await response.json();
-          errorMsg = errorData.error || errorData.message || errorMsg;
-        } else {
-          if (response.status === 500) {
-            errorMsg = "Error interno del servidor. ¿Ejecutaste 'npx prisma db push' después de actualizar el esquema?";
-          } else if (response.status === 404) {
-            errorMsg = "Recurso no encontrado";
-          } else if (response.status === 401) {
-            errorMsg = "No autorizado";
-          } else {
-            errorMsg = `Error del servidor (${response.status})`;
-          }
-        }
-      } catch {
-        if (response.status === 500) {
-          errorMsg = "Error interno del servidor. ¿Ejecutaste 'npx prisma db push' después de actualizar el esquema?";
-        }
-      }
-      throw new Error(errorMsg);
-    }
-
-    // After successful mutation, update IndexedDB with server response
-    try {
-      const data = await response.json();
-      await updateLocalAfterMutation(url, options!, data);
-      // Emit data event for instant UI updates
-      try { emitMutationEvent(url, options?.method || "POST"); } catch {}
-      return data as T;
-    } catch {
-      // Response might not be JSON (e.g., 204 No Content for DELETE)
-      // Still emit event for DELETE operations
-      try { emitMutationEvent(url, options?.method || "DELETE"); } catch {}
-      return undefined as T;
-    }
-  } catch (networkError) {
+  } catch {
     // Server unreachable — queue mutation and apply optimistically
     console.log(`[Offline] Server unreachable, queuing ${options?.method} ${url}`);
     await queueOfflineMutation(url, options!);
@@ -339,6 +334,32 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
 
     // Return a mock success response so the UI can continue
     return { success: true, offline: true } as T;
+  }
+
+  if (!response.ok) {
+    if (isOfflineLikeStatus(response.status)) {
+      console.log(`[Offline] Server returned ${response.status}, queuing ${options?.method} ${url}`);
+      await queueOfflineMutation(url, options!);
+      await applyOptimisticWrite(url, options!);
+      try { emitMutationEvent(url, options?.method || "POST"); } catch {}
+      return { success: true, offline: true } as T;
+    }
+
+    throw new Error(await readApiError(response));
+  }
+
+  // After successful mutation, update IndexedDB with server response
+  try {
+    const data = await response.json();
+    await updateLocalAfterMutation(url, options!, data);
+    // Emit data event for instant UI updates
+    try { emitMutationEvent(url, options?.method || "POST"); } catch {}
+    return data as T;
+  } catch {
+    // Response might not be JSON (e.g., 204 No Content for DELETE)
+    // Still emit event for DELETE operations
+    try { emitMutationEvent(url, options?.method || "DELETE"); } catch {}
+    return undefined as T;
   }
 }
 
@@ -446,8 +467,14 @@ async function updateLocalAfterMutation(url: string, options: RequestInit, data:
     // direct lookup by primary key (O(1) and doesn't require an index on `name`).
     // For backward compatibility with older server responses that lack `id`,
     // we fall back to a full table scan filtered by name.
-    if (data?.updatedBalances && Array.isArray(data.updatedBalances)) {
-      for (const ub of data.updatedBalances) {
+    const updatedBalances = Array.isArray(data?.updatedBalances)
+      ? data.updatedBalances
+      : Array.isArray(data?._finance?.updatedBalances)
+        ? data._finance.updatedBalances
+        : [];
+
+    if (updatedBalances.length > 0) {
+      for (const ub of updatedBalances) {
         if (ub.isSubAccount) {
           // Update subAccount balance in IndexedDB
           const subAccountsTable = (_localDB as any).subAccounts;
@@ -501,6 +528,29 @@ async function updateLocalAfterMutation(url: string, options: RequestInit, data:
                 }
               }
             }
+          }
+        }
+      }
+    }
+
+    const updatedDebts = Array.isArray(data?.updatedDebts)
+      ? data.updatedDebts
+      : Array.isArray(data?._finance?.updatedDebts)
+        ? data._finance.updatedDebts
+        : [];
+
+    if (updatedDebts.length > 0) {
+      const debtsTable = (_localDB as any).debts;
+      if (debtsTable) {
+        for (const debt of updatedDebts) {
+          if (!debt?.id) continue;
+          try {
+            await debtsTable.update(debt.id, {
+              currentBalance: debt.currentBalance,
+              _lastModified: now,
+            });
+          } catch {
+            // Record may not be cached yet.
           }
         }
       }

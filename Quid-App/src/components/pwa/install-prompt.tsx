@@ -138,22 +138,22 @@ export function InstallPrompt() {
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-md"
         >
-          <div className="bg-white rounded-2xl shadow-xl border border-emerald-100 p-4 overflow-hidden relative">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-emerald-100 dark:border-emerald-900/40 p-4 overflow-hidden relative">
             {/* Green accent bar */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-emerald-600" />
 
             <div className="flex items-start gap-3">
               {/* Icon */}
-              <div className="flex-shrink-0 w-11 h-11 bg-emerald-50 rounded-xl flex items-center justify-center">
-                <Download className="w-5 h-5 text-emerald-600" />
+              <div className="flex-shrink-0 w-11 h-11 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                <Download className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   Instalar Quid
                 </h3>
-                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
                   Accede más rápido y úsala sin conexión. Se instala en segundos.
                 </p>
 
@@ -167,7 +167,7 @@ export function InstallPrompt() {
                   </button>
                   <button
                     onClick={handleDismiss}
-                    className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                    className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
                   >
                     Ahora no
                   </button>
@@ -177,7 +177,7 @@ export function InstallPrompt() {
               {/* Close button */}
               <button
                 onClick={handleDismiss}
-                className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-200 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>

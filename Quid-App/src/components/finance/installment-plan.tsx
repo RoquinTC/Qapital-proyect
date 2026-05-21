@@ -244,39 +244,6 @@ export function InstallmentPlan({
     });
   }, [billingCycles, today]);
 
-  // ── Auto-expand current date groups (today and recent) ──
-  useEffect(() => {
-    if (viewMode !== "dates") return;
-    setExpandedDateGroups((prev) => {
-      if (Object.keys(prev).length > 0) return prev;
-      const autoExpanded: Record<string, boolean> = {};
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-      // Auto-expand today's group if exists
-      if (dateGroups.some(([key]) => key === todayStr)) {
-        autoExpanded[todayStr] = true;
-      }
-      // Also expand the most recent date group
-      if (dateGroups.length > 0 && !autoExpanded[dateGroups[0][0]]) {
-        autoExpanded[dateGroups[0][0]] = true;
-      }
-      return autoExpanded;
-    });
-  }, [viewMode]);
-
-  // ── Auto-expand account groups ──
-  useEffect(() => {
-    if (viewMode !== "accounts") return;
-    setExpandedAccountGroups((prev) => {
-      if (Object.keys(prev).length > 0) return prev;
-      const autoExpanded: Record<string, boolean> = {};
-      // Auto-expand the first account group
-      if (allAccountGroups.length > 0) {
-        autoExpanded[allAccountGroups[0][0]] = true;
-      }
-      return autoExpanded;
-    });
-  }, [viewMode]);
-
   // ── Group paid installments by account ──
   const paidGroups = useMemo(() => {
     const groups: Record<string, {
@@ -374,6 +341,36 @@ export function InstallmentPlan({
       return b.totalAmount - a.totalAmount;
     });
   }, [unpaidInstallments, getAccountName, getSubAccountName]);
+
+  // ── Auto-expand current date groups (today and recent) ──
+  useEffect(() => {
+    if (viewMode !== "dates") return;
+    setExpandedDateGroups((prev) => {
+      if (Object.keys(prev).length > 0) return prev;
+      const autoExpanded: Record<string, boolean> = {};
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      if (dateGroups.some(([key]) => key === todayStr)) {
+        autoExpanded[todayStr] = true;
+      }
+      if (dateGroups.length > 0 && !autoExpanded[dateGroups[0][0]]) {
+        autoExpanded[dateGroups[0][0]] = true;
+      }
+      return autoExpanded;
+    });
+  }, [viewMode, dateGroups, today]);
+
+  // ── Auto-expand account groups ──
+  useEffect(() => {
+    if (viewMode !== "accounts") return;
+    setExpandedAccountGroups((prev) => {
+      if (Object.keys(prev).length > 0) return prev;
+      const autoExpanded: Record<string, boolean> = {};
+      if (allAccountGroups.length > 0) {
+        autoExpanded[allAccountGroups[0][0]] = true;
+      }
+      return autoExpanded;
+    });
+  }, [viewMode, allAccountGroups]);
 
   // ── Calculate due installments for pay button ──
   const dueInstallments = useMemo(() => {

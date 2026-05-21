@@ -174,19 +174,19 @@ export function OnboardingFlow() {
   const StepIcon = currentStep.icon;
 
   return (
-    <div className="min-h-dvh flex items-center justify-center p-4 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+    <div className="min-h-dvh flex items-center justify-center p-4 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <div className="w-full max-w-sm">
         {/* Progress bar */}
         <div className="relative mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-gray-400 font-medium">
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
               Paso {step + 1} de {steps.length}
             </span>
-            <span className="text-xs text-gray-400 font-medium">
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
               {Math.round(((step + 1) / steps.length) * 100)}%
             </span>
           </div>
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
               initial={{ width: 0 }}
@@ -230,10 +230,10 @@ export function OnboardingFlow() {
                   </div>
                 )}
 
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   {currentStep.title}
                 </h2>
-                <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
                   {currentStep.description}
                 </p>
 
@@ -254,7 +254,7 @@ export function OnboardingFlow() {
                       <select
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
-                        className="w-full h-11 rounded-xl border border-gray-200 px-3 text-sm bg-white focus:border-emerald-500 focus:ring-emerald-500/20 outline-none"
+                        className="w-full h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-emerald-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                       >
                         <option value="COP">🇨🇴 Peso Colombiano (COP)</option>
                         <option value="USD">🇺🇸 Dólar Americano (USD)</option>
@@ -263,12 +263,12 @@ export function OnboardingFlow() {
                         <option value="ARS">🇦🇷 Peso Argentino (ARS)</option>
                       </select>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl">
+                    <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           Notificaciones
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           Recordatorios de medicamentos y citas
                         </p>
                       </div>
@@ -291,14 +291,14 @@ export function OnboardingFlow() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.1 * i, duration: 0.3 }}
-                          className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-xl"
+                          className="flex items-center gap-2.5 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl"
                         >
                           <div
                             className={`size-8 rounded-lg bg-gradient-to-br ${currentStep.gradient} flex items-center justify-center shrink-0`}
                           >
                             <FeatureIcon className="size-4 text-white" />
                           </div>
-                          <span className="text-xs font-medium text-gray-700 leading-tight">
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300 leading-tight">
                             {feature.text}
                           </span>
                         </motion.div>
@@ -322,7 +322,7 @@ export function OnboardingFlow() {
                     >
                       <Check className="size-8 text-white" />
                     </motion.div>
-                    <p className="text-center text-sm text-gray-500">
+                    <p className="text-center text-sm text-gray-500 dark:text-gray-400">
                       Tu experiencia personalizada está lista
                     </p>
                   </div>
@@ -367,7 +367,7 @@ export function OnboardingFlow() {
                 {step > 0 && step < steps.length - 1 && (
                   <button
                     onClick={handleComplete}
-                    className="w-full mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors py-2"
+                    className="w-full mt-3 text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors py-2"
                     disabled={loading}
                   >
                     Saltar tutorial

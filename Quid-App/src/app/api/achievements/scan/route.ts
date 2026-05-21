@@ -108,16 +108,16 @@ export async function POST() {
     };
 
     for (const feature of discovered) {
-      const module = featureToModule[feature];
-      if (!module) continue;
+      const moduleName = featureToModule[feature];
+      if (!moduleName) continue;
 
       await db.achievementProgress.upsert({
         where: {
-          userId_module_feature: { userId, module, feature },
+          userId_module_feature: { userId, module: moduleName, feature },
         },
         create: {
           userId,
-          module,
+          module: moduleName,
           feature,
           discovered: true,
           discoveredAt: now,

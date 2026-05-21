@@ -173,9 +173,9 @@ export function AppSidebar() {
 
   return (
     <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-      <SheetContent side="left" className="w-[300px] p-0 gap-0 rounded-r-3xl bg-transparent">
+      <SheetContent side="left" className="w-[300px] p-0 gap-0 rounded-r-3xl overflow-hidden border-r border-emerald-100 bg-emerald-50/95 text-gray-900 shadow-2xl backdrop-blur-xl dark:border-emerald-900/30 dark:bg-gray-950/95 dark:text-gray-100">
         {/* User Profile Header */}
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-500 p-5 pb-6 rounded-tr-3xl">
+        <div className="bg-gradient-to-br from-emerald-600 to-teal-500 p-5 pb-6">
           <SheetHeader className="mb-3 p-0 space-y-0">
             <SheetTitle className="text-white text-left text-lg">Menú</SheetTitle>
           </SheetHeader>
@@ -201,7 +201,7 @@ export function AppSidebar() {
         </div>
 
         {/* Scrollable content */}
-        <div className="overflow-y-auto max-h-[calc(100dvh-14rem)]">
+        <div className="overflow-y-auto max-h-[calc(100dvh-14rem)] bg-white/80 dark:bg-gray-950/80">
           {/* Module Navigation with expandable actions */}
           <div className="p-3 space-y-1">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
@@ -389,7 +389,7 @@ export function AppSidebar() {
         {/* Sign Out - Fixed at bottom */}
         <ShareInvite open={shareOpen} onOpenChange={setShareOpen} />
 
-        <div className="absolute bottom-6 left-0 right-0 px-6 safe-area-bottom">
+        <div className="absolute bottom-0 left-0 right-0 bg-white/90 px-6 py-4 safe-area-bottom backdrop-blur dark:bg-gray-950/90">
           <Button
             variant="ghost"
             className="w-full justify-start text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-xl gap-3 text-sm"

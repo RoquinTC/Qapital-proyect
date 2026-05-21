@@ -23,6 +23,7 @@ import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { BackupRestorePrompt } from "@/components/settings/backup-restore-prompt";
 import { LockScreen } from "@/components/security/lock-screen";
 import { OfflineLockScreen } from "@/components/security/offline-lock-screen";
+import { ModuleErrorBoundary } from "@/components/layout/module-error-boundary";
 import { AchievementsProvider } from "@/hooks/use-achievements";
 import { useUpdateChecker } from "@/hooks/use-update-checker";
 import { motion, AnimatePresence } from "framer-motion";
@@ -52,7 +53,9 @@ function ModuleContent() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
         >
-          {modules[activeModule] || <DashboardPage />}
+          <ModuleErrorBoundary resetKey={activeModule}>
+            {modules[activeModule] || <DashboardPage />}
+          </ModuleErrorBoundary>
         </motion.div>
       </AnimatePresence>
     </div>

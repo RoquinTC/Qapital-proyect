@@ -126,7 +126,7 @@ const maintTypeLabels: Record<string, string> = {
 
 const maintTypeColors: Record<string, string> = {
   oil_change: "text-amber-600 bg-amber-100 dark:bg-amber-900/30",
-  tire_change: "text-gray-600 bg-gray-100 dark:bg-gray-700",
+  tire_change: "text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-300",
   brake_service: "text-red-600 bg-red-100 dark:bg-red-900/30",
   general: "text-blue-600 bg-blue-100 dark:bg-blue-900/30",
   parts_replacement: "text-purple-600 bg-purple-100 dark:bg-purple-900/30",
@@ -140,7 +140,7 @@ const maintTypeColors: Record<string, string> = {
   inspection: "text-violet-600 bg-violet-100 dark:bg-violet-900/30",
   wash: "text-blue-600 bg-blue-100 dark:bg-blue-900/30",
   aesthetics: "text-pink-600 bg-pink-100 dark:bg-pink-900/30",
-  other: "text-gray-600 bg-gray-100 dark:bg-gray-700",
+  other: "text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-300",
 };
 
 // ─── Document type constants ──────────────────────────────────────
@@ -153,7 +153,7 @@ const docTypeColors: Record<string, string> = {
   tecnomecanica: "text-amber-600 bg-amber-100 dark:bg-amber-900/30",
   seguro: "text-blue-600 bg-blue-100 dark:bg-blue-900/30",
   impuesto: "text-rose-600 bg-rose-100 dark:bg-rose-900/30",
-  otro: "text-gray-600 bg-gray-100 dark:bg-gray-700",
+  otro: "text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-300",
 };
 const docTypeIcons: Record<string, typeof Shield> = {
   soat: Shield, tecnomecanica: FileCheck, seguro: Shield,
@@ -382,7 +382,7 @@ export function VehicleDetail({ vehicleId, onBack }: VehicleDetailProps) {
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-white">{vehicle.name}</h3>
                 {vehicle.plate && (
-                  <span className="text-xs font-bold bg-white text-gray-800 border border-gray-300 rounded px-1.5 py-0 leading-4 tracking-wider uppercase">
+                  <span className="text-xs font-bold bg-white/95 text-gray-800 border border-white/70 rounded px-1.5 py-0 leading-4 tracking-wider uppercase dark:bg-gray-950/80 dark:text-gray-100 dark:border-white/20">
                     {vehicle.plate}
                   </span>
                 )}

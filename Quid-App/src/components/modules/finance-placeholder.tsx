@@ -10,8 +10,8 @@ export function FinancePlaceholder() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Finanzas</h2>
-          <p className="text-sm text-gray-500">Gestiona tu dinero</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Finanzas</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Gestiona tu dinero</p>
         </div>
         <Button className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 shadow-lg shadow-emerald-500/25">
           <Plus className="size-4 mr-1" />
@@ -34,8 +34,8 @@ export function FinancePlaceholder() {
                 <div className={`inline-flex items-center justify-center size-9 rounded-lg bg-gradient-to-br ${item.color} mb-2`}>
                   <Icon className="size-4 text-white" />
                 </div>
-                <p className="text-xs text-gray-500">{item.label}</p>
-                <p className="text-lg font-bold text-gray-900">{item.value}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{item.label}</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{item.value}</p>
               </CardContent>
             </Card>
           );
@@ -43,13 +43,13 @@ export function FinancePlaceholder() {
       </div>
 
       {/* Coming soon card */}
-      <Card className="border-0 shadow-md rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50">
+      <Card className="border-0 shadow-md rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30">
         <CardContent className="p-6 text-center">
           <div className="inline-flex items-center justify-center size-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30 mb-3">
             <Wallet className="size-7 text-white" />
           </div>
-          <h3 className="font-bold text-gray-900 mb-1">Módulo de Finanzas</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-1">Módulo de Finanzas</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Próximamente: Cuentas, transacciones, presupuestos, deudas y metas de ahorro.
           </p>
         </CardContent>

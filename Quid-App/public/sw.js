@@ -1,10 +1,10 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'quid-v1';
-const STATIC_CACHE = 'quid-static-v1';
-const DYNAMIC_CACHE = 'quid-dynamic-v1';
-const API_CACHE = 'quid-api-v1';
-const AUTH_CACHE = 'quid-auth-v1';
+const CACHE_NAME = 'quid-v2-stability';
+const STATIC_CACHE = 'quid-static-v2-stability';
+const DYNAMIC_CACHE = 'quid-dynamic-v2-stability';
+const API_CACHE = 'quid-api-v2-stability';
+const AUTH_CACHE = 'quid-auth-v2-stability';
 
 // Assets to cache on install (app shell)
 const APP_SHELL = [
@@ -124,9 +124,12 @@ function getStrategy(request) {
     return 'cache-first';
   }
 
-  // HTML pages — Stale While Revalidate
+  // HTML pages — Network First.
+  // Serving stale HTML after a deployment can point the browser at old Next.js
+  // chunks and produce the "Application error" screen. Prefer fresh HTML and
+  // use the cached shell only when the network/server is unavailable.
   if (request.headers.get('accept')?.includes('text/html')) {
-    return 'stale-while-revalidate';
+    return 'html-network-first';
   }
 
   // Default — Network with cache fallback
@@ -158,8 +161,8 @@ self.addEventListener('fetch', (event) => {
     case 'network-first':
       event.respondWith(networkFirst(event.request));
       break;
-    case 'stale-while-revalidate':
-      event.respondWith(staleWhileRevalidate(event.request));
+    case 'html-network-first':
+      event.respondWith(htmlNetworkFirst(event.request));
       break;
     default:
       event.respondWith(networkFirst(event.request));
@@ -312,25 +315,20 @@ async function networkFirst(request) {
   }
 }
 
-// Stale While Revalidate Strategy — for HTML pages
-async function staleWhileRevalidate(request) {
+// Network First Strategy — for HTML pages
+async function htmlNetworkFirst(request) {
   const cache = await caches.open(DYNAMIC_CACHE);
   const cachedResponse = await cache.match(request);
 
-  const fetchPromise = fetch(request)
-    .then((networkResponse) => {
-      if (networkResponse.ok) {
-        cache.put(request, networkResponse.clone());
-      }
-      return networkResponse;
-    })
-    .catch(() => {
-      // If network fails and no cache, return offline page
-      return cache.match('/offline.html');
-    });
-
-  // Return cache immediately if available, otherwise wait for network
-  return cachedResponse || fetchPromise;
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch {
+    return cachedResponse || cache.match('/offline.html') || new Response('Sin conexión', { status: 503 });
+  }
 }
 
 // Handle messages from the client

@@ -15,7 +15,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   localDB,
   API_TABLE_MAP,
@@ -385,6 +385,8 @@ export function useMultiQuery(
   options?: { staleTime?: number }
 ): UseMultiQueryResult {
   const userId = useAppUserId();
+  const querySignature = JSON.stringify(queries);
+  const queryEntries = useMemo(() => Object.entries(queries), [querySignature]);
 
   const [data, setData] = useState<Record<string, any[]>>(() =>
     Object.fromEntries(Object.keys(queries).map((key) => [key, []]))
@@ -401,7 +403,7 @@ export function useMultiQuery(
     const localData: Record<string, any[]> = {};
     let hasAnyLocalData = false;
 
-    for (const [key, apiPath] of Object.entries(queries)) {
+    for (const [key, apiPath] of queryEntries) {
       const tableName = API_TABLE_MAP[apiPath];
       if (tableName) {
         try {
@@ -420,7 +422,7 @@ export function useMultiQuery(
       setData(localData);
       setLoading(false);
     }
-  }, [userId, JSON.stringify(queries)]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, queryEntries]);
 
   const fetchAllFromServer = useCallback(async () => {
     if (!userId) return;
@@ -429,7 +431,7 @@ export function useMultiQuery(
     const results: Record<string, any[]> = { ...data };
     const newErrors: Record<string, string | null> = {};
 
-    const promises = Object.entries(queries).map(async ([key, apiPath]) => {
+    const promises = queryEntries.map(async ([key, apiPath]) => {
       try {
         const serverData = await apiFetch<any[]>(apiPath);
 
@@ -464,7 +466,7 @@ export function useMultiQuery(
       setSyncing(false);
       setLoading(false);
     }
-  }, [userId, data, JSON.stringify(queries)]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, data, queryEntries]);
 
   useEffect(() => {
     mountedRef.current = true;

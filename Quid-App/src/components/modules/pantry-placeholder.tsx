@@ -9,8 +9,8 @@ export function PantryPlaceholder() {
     <div className="p-4 space-y-4 pb-safe">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Despensa</h2>
-          <p className="text-sm text-gray-500">Tu inventario en casa</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Despensa</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Tu inventario en casa</p>
         </div>
         <Button className="rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 shadow-lg shadow-amber-500/25">
           <Plus className="size-4 mr-1" />
@@ -30,21 +30,21 @@ export function PantryPlaceholder() {
                 <div className={`inline-flex items-center justify-center size-9 rounded-lg bg-gradient-to-br ${item.color} mb-2`}>
                   <Icon className="size-4 text-white" />
                 </div>
-                <p className="text-xs text-gray-500">{item.label}</p>
-                <p className="text-lg font-bold text-gray-900">{item.value}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{item.label}</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{item.value}</p>
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      <Card className="border-0 shadow-md rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50">
+      <Card className="border-0 shadow-md rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/30">
         <CardContent className="p-6 text-center">
           <div className="inline-flex items-center justify-center size-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/30 mb-3">
             <ShoppingBasket className="size-7 text-white" />
           </div>
-          <h3 className="font-bold text-gray-900 mb-1">Módulo de Despensa</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-1">Módulo de Despensa</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Próximamente: Inventario de productos, listas de compras inteligentes y alertas de stock bajo.
           </p>
         </CardContent>

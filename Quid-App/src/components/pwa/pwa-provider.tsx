@@ -70,12 +70,12 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed top-4 left-4 right-4 z-[100] mx-auto max-w-sm"
           >
-            <div className="bg-white rounded-2xl shadow-xl border border-emerald-100 p-3 flex items-center gap-3 overflow-hidden relative">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-emerald-100 dark:border-emerald-900/40 p-3 flex items-center gap-3 overflow-hidden relative">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-emerald-600" />
-              <div className="flex-shrink-0 w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-emerald-600" />
+              <div className="flex-shrink-0 w-8 h-8 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <p className="text-sm font-semibold text-gray-900">App actualizada</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">App actualizada</p>
             </div>
           </motion.div>
         )}

@@ -222,7 +222,7 @@ export function LoginForm() {
   }, []);
 
   return (
-    <div className="min-h-dvh flex items-center justify-center p-4 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+    <div className="min-h-dvh flex items-center justify-center p-4 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -234,7 +234,7 @@ export function LoginForm() {
           <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
             Quid
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Todo converge aqui</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Todo converge aqui</p>
         </div>
 
         {/* Offline indicator */}
@@ -334,7 +334,7 @@ export function LoginForm() {
             )}
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 ¿No tienes cuenta?{" "}
                 <button
                   onClick={() => setAuthView("register")}
@@ -343,7 +343,7 @@ export function LoginForm() {
                   Regístrate
                 </button>
               </p>
-              <p className="text-sm text-gray-500 mt-3">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
                 ¿Olvidaste tu contraseña?{" "}
                 <button
                   onClick={() => setAuthView("forgot-password")}

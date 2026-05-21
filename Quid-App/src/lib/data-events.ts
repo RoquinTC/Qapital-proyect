@@ -91,8 +91,50 @@ export function emitMutationEvent(url: string, method: string): void {
   if (tableName) {
     emitDataEvent(tableName);
   }
+
+  for (const related of getRelatedTables(url, tableName)) {
+    emitDataEvent(related);
+  }
+
   // Always emit wildcard
   emitDataEvent("*");
+}
+
+function getRelatedTables(url: string, tableName: string | null): string[] {
+  const cleanUrl = url.split("?")[0];
+  const related = new Set<string>();
+
+  if (tableName === "transactions") {
+    related.add("accounts");
+    related.add("subAccounts");
+    related.add("budgets");
+    related.add("savingsGoals");
+  }
+
+  if (tableName === "maintenanceRecords" || tableName === "fuelLogs" || cleanUrl.includes("/documents")) {
+    related.add("vehicles");
+    related.add("transactions");
+    related.add("accounts");
+    related.add("subAccounts");
+    related.add("budgets");
+    related.add("debts");
+  }
+
+  if (tableName === "recurringPayments" || cleanUrl.includes("/confirm") || cleanUrl.includes("/reverse")) {
+    related.add("transactions");
+    related.add("accounts");
+    related.add("subAccounts");
+    related.add("budgets");
+    related.add("debts");
+    related.add("savingsGoals");
+  }
+
+  if (tableName === "shoppingListItems") {
+    related.add("shoppingLists");
+    related.add("pantryItems");
+  }
+
+  return Array.from(related).filter((name) => name !== tableName);
 }
 
 function getTableFromUrl(url: string): string | null {

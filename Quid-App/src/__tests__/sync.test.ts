@@ -73,20 +73,28 @@ describe('isTempId', () => {
 // ============================================
 
 describe('getRetryDelay', () => {
-  it('should return base delay for retry 0', () => {
-    expect(getRetryDelay(0)).toBe(BASE_RETRY_DELAY); // 1000ms
+  it('should return jittered base delay for retry 0', () => {
+    const delay = getRetryDelay(0);
+    expect(delay).toBeGreaterThanOrEqual(BASE_RETRY_DELAY * 0.5);
+    expect(delay).toBeLessThanOrEqual(BASE_RETRY_DELAY);
   });
 
-  it('should double delay for each retry', () => {
-    expect(getRetryDelay(1)).toBe(2000);
-    expect(getRetryDelay(2)).toBe(4000);
-    expect(getRetryDelay(3)).toBe(8000);
-    expect(getRetryDelay(4)).toBe(16000);
+  it('should jitter within the exponential delay window', () => {
+    expect(getRetryDelay(1)).toBeGreaterThanOrEqual(1000);
+    expect(getRetryDelay(1)).toBeLessThanOrEqual(2000);
+    expect(getRetryDelay(2)).toBeGreaterThanOrEqual(2000);
+    expect(getRetryDelay(2)).toBeLessThanOrEqual(4000);
+    expect(getRetryDelay(3)).toBeGreaterThanOrEqual(4000);
+    expect(getRetryDelay(3)).toBeLessThanOrEqual(8000);
+    expect(getRetryDelay(4)).toBeGreaterThanOrEqual(8000);
+    expect(getRetryDelay(4)).toBeLessThanOrEqual(16000);
   });
 
-  it('should cap at 30 seconds maximum', () => {
-    expect(getRetryDelay(10)).toBe(30000);
-    expect(getRetryDelay(100)).toBe(30000);
+  it('should cap the jittered delay at 30 seconds maximum', () => {
+    expect(getRetryDelay(10)).toBeGreaterThanOrEqual(15000);
+    expect(getRetryDelay(10)).toBeLessThanOrEqual(30000);
+    expect(getRetryDelay(100)).toBeGreaterThanOrEqual(15000);
+    expect(getRetryDelay(100)).toBeLessThanOrEqual(30000);
   });
 
   it('should use BASE_RETRY_DELAY constant', () => {

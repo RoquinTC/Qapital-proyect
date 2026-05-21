@@ -176,7 +176,7 @@ export function VehicleCard({ vehicle, onClick, onKmUpdated, currentFuelPrice }:
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold text-white">{vehicle.name}</h3>
                     {vehicle.plate && (
-                      <span className="text-[11px] font-bold bg-white text-gray-800 border border-gray-300 rounded px-1.5 py-0 leading-4 tracking-wider uppercase">
+                      <span className="text-[11px] font-bold bg-white/95 text-gray-800 border border-white/70 rounded px-1.5 py-0 leading-4 tracking-wider uppercase dark:bg-gray-950/80 dark:text-gray-100 dark:border-white/20">
                         {vehicle.plate}
                       </span>
                     )}

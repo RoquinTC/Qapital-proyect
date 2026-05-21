@@ -124,7 +124,7 @@ export function OfflineLockScreen({ cachedSession, onUnlock }: OfflineLockScreen
 
         {/* User info */}
         {userName && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Hola, <span className="font-medium text-gray-700 dark:text-gray-300">{userName}</span>
           </p>
         )}
@@ -159,7 +159,7 @@ export function OfflineLockScreen({ cachedSession, onUnlock }: OfflineLockScreen
               {hasOfflineCredentials ? (
                 <form onSubmit={handlePasswordSubmit} className="space-y-4">
                   <div className="text-center">
-                    <p className="text-sm text-gray-500 mb-4">Ingresa tu contraseña para acceder sin conexión</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Ingresa tu contraseña para acceder sin conexión</p>
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
@@ -186,7 +186,7 @@ export function OfflineLockScreen({ cachedSession, onUnlock }: OfflineLockScreen
                 </form>
               ) : (
                 <div className="text-center space-y-4">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Necesitas haber iniciado sesión al menos una vez con conexión para acceder sin conexión.
                   </p>
                   <p className="text-xs text-gray-400">

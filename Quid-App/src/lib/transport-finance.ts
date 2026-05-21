@@ -38,6 +38,8 @@ export interface FinanceIntegrationResult {
   budgetUpdated: boolean;
   balanceUpdated: boolean;
   debtUpdated: boolean;
+  updatedBalances?: Array<{ id: string; name: string; balance: number; isSubAccount: boolean }>;
+  updatedDebts?: Array<{ id: string; currentBalance: number }>;
 }
 
 // ─── Budget matching (mirrors the pattern in /api/transactions) ───
@@ -70,6 +72,8 @@ export async function createFinanceEntry(
     budgetUpdated: false,
     balanceUpdated: false,
     debtUpdated: false,
+    updatedBalances: [],
+    updatedDebts: [],
   };
 
   const {
@@ -78,6 +82,27 @@ export async function createFinanceEntry(
     accountId, subAccountId, debtId, installmentCount,
     notes,
   } = params;
+
+  if (accountId) {
+    const account = await db.account.findFirst({ where: { id: accountId, userId }, select: { id: true } });
+    if (!account) throw new Error("Cuenta de pago no encontrada o sin permiso");
+  }
+
+  if (subAccountId) {
+    const subAccount = await db.subAccount.findFirst({
+      where: { id: subAccountId, account: { userId } },
+      select: { id: true, accountId: true },
+    });
+    if (!subAccount) throw new Error("Subcuenta de pago no encontrada o sin permiso");
+    if (accountId && subAccount.accountId !== accountId) {
+      throw new Error("La subcuenta no pertenece a la cuenta seleccionada");
+    }
+  }
+
+  if (debtId) {
+    const debt = await db.debt.findFirst({ where: { id: debtId, userId }, select: { id: true } });
+    if (!debt) throw new Error("Deuda no encontrada o sin permiso");
+  }
 
   if (paymentType === "account" && accountId) {
     // ── ESCENARIO A: Pago con Cuenta/Bolsillo ──
@@ -108,11 +133,35 @@ export async function createFinanceEntry(
         where: { id: subAccountId },
         data: { balance: { increment: balanceChange } },
       });
+      const updatedSub = await db.subAccount.findUnique({
+        where: { id: subAccountId },
+        select: { id: true, name: true, balance: true, account: { select: { name: true } } },
+      });
+      if (updatedSub) {
+        result.updatedBalances!.push({
+          id: updatedSub.id,
+          name: `${updatedSub.account.name} → ${updatedSub.name}`,
+          balance: Number(updatedSub.balance),
+          isSubAccount: true,
+        });
+      }
     } else {
       await db.account.update({
         where: { id: accountId },
         data: { balance: { increment: balanceChange } },
       });
+      const updatedAccount = await db.account.findUnique({
+        where: { id: accountId },
+        select: { id: true, name: true, balance: true },
+      });
+      if (updatedAccount) {
+        result.updatedBalances!.push({
+          id: updatedAccount.id,
+          name: updatedAccount.name,
+          balance: Number(updatedAccount.balance),
+          isSubAccount: false,
+        });
+      }
     }
     result.balanceUpdated = true;
 
@@ -184,6 +233,16 @@ export async function createFinanceEntry(
       where: { id: debtId },
       data: { currentBalance: { increment: amount } },
     });
+    const updatedDebt = await db.debt.findUnique({
+      where: { id: debtId },
+      select: { id: true, currentBalance: true },
+    });
+    if (updatedDebt) {
+      result.updatedDebts!.push({
+        id: updatedDebt.id,
+        currentBalance: Number(updatedDebt.currentBalance),
+      });
+    }
     result.debtUpdated = true;
 
     // 4. For CC purchases, budget is updated when the CC payment is made,
