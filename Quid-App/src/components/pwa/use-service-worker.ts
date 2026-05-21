@@ -5,6 +5,8 @@ import { useEffect, useState, useCallback, useSyncExternalStore } from 'react';
 interface SWRegistration {
   registration: ServiceWorkerRegistration | null;
   updateAvailable: boolean;
+  currentVersion: string | null;
+  pendingVersion: string | null;
 }
 
 // Use useSyncExternalStore for online/offline status (avoids setState in effect)
@@ -33,10 +35,33 @@ export function useServiceWorker() {
   const [state, setState] = useState<SWRegistration>({
     registration: null,
     updateAvailable: false,
+    currentVersion: null,
+    pendingVersion: null,
   });
 
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const isOffline = useOnlineStatus();
+
+  const getServiceWorkerVersion = useCallback((worker: ServiceWorker | null) => {
+    if (!worker) return Promise.resolve<string | null>(null);
+
+    return new Promise<string | null>((resolve) => {
+      const channel = new MessageChannel();
+      const timeout = window.setTimeout(() => resolve(null), 1500);
+
+      channel.port1.onmessage = (event) => {
+        window.clearTimeout(timeout);
+        resolve(typeof event.data?.version === 'string' ? event.data.version : null);
+      };
+
+      try {
+        worker.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+      } catch {
+        window.clearTimeout(timeout);
+        resolve(null);
+      }
+    });
+  }, []);
 
   // Register the service worker
   useEffect(() => {
@@ -50,13 +75,14 @@ export function useServiceWorker() {
       const newWorker = registration?.installing;
       if (!newWorker) return;
 
-      const handleStateChange = () => {
+      const handleStateChange = async () => {
         if (newWorker.state === 'installed') {
           if (navigator.serviceWorker.controller) {
             // New version available
             console.log('[PWA] New version available');
+            const pendingVersion = await getServiceWorkerVersion(newWorker);
             setWaitingWorker(newWorker);
-            setState((prev) => ({ ...prev, updateAvailable: true }));
+            setState((prev) => ({ ...prev, pendingVersion, updateAvailable: true }));
           } else {
             // First install
             console.log('[PWA] Content cached for offline use');
@@ -82,13 +108,18 @@ export function useServiceWorker() {
         console.log('[PWA] Service Worker registered:', registration.scope);
         setState((prev) => ({ ...prev, registration }));
 
+        const activeWorker = registration.active || navigator.serviceWorker.controller;
+        const currentVersion = await getServiceWorkerVersion(activeWorker);
+        setState((prev) => ({ ...prev, currentVersion }));
+
         // Check for updates on load
         registration.addEventListener('updatefound', handleUpdateFound);
 
         // Check if there's already a waiting worker
         if (registration.waiting) {
+          const pendingVersion = await getServiceWorkerVersion(registration.waiting);
           setWaitingWorker(registration.waiting);
-          setState((prev) => ({ ...prev, updateAvailable: true }));
+          setState((prev) => ({ ...prev, pendingVersion, updateAvailable: true }));
         }
 
         // Listen for controlling SW change (after activation)
@@ -107,7 +138,7 @@ export function useServiceWorker() {
       }
       navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
-  }, []);
+  }, [getServiceWorkerVersion]);
 
   // Apply update — tell the waiting SW to activate
   const applyUpdate = useCallback(() => {
@@ -116,8 +147,8 @@ export function useServiceWorker() {
     console.log('[PWA] Applying update...');
     waitingWorker.postMessage({ type: 'SKIP_WAITING' });
 
-    setState((prev) => ({ ...prev, updateAvailable: false }));
     setWaitingWorker(null);
+    setState((prev) => ({ ...prev, updateAvailable: false, pendingVersion: null }));
   }, [waitingWorker]);
 
   // Clear all caches

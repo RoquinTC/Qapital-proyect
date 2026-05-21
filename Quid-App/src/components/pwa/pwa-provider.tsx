@@ -9,11 +9,28 @@ import { OfflineIndicator } from './offline-indicator';
 import { RecurringReminder } from './recurring-reminder';
 import { CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  buildReleaseSummary,
+  consumePendingAppliedRelease,
+  fetchReleaseNotes,
+  getLastKnownRelease,
+  markReleaseKnown,
+  rememberPendingAppliedRelease,
+  type ReleaseSummary,
+} from '@/lib/pwa/release-notes';
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {
-  const { updateAvailable, isOffline, applyUpdate, isSupported } = useServiceWorker();
+  const {
+    updateAvailable,
+    isOffline,
+    applyUpdate,
+    isSupported,
+    currentVersion,
+    pendingVersion,
+  } = useServiceWorker();
   const [dismissedUpdate, setDismissedUpdate] = useState(false);
   const [showUpdateToast, setShowUpdateToast] = useState(false);
+  const [releaseSummary, setReleaseSummary] = useState<ReleaseSummary | null>(null);
 
   const handleDismissUpdate = useCallback(() => {
     setDismissedUpdate(true);
@@ -21,12 +38,53 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setDismissedUpdate(false), 30 * 60 * 1000);
   }, []);
 
+  const handleApplyUpdate = useCallback(() => {
+    if (releaseSummary?.currentVersion) {
+      rememberPendingAppliedRelease(releaseSummary.currentVersion);
+    } else if (pendingVersion) {
+      rememberPendingAppliedRelease(pendingVersion);
+    }
+
+    applyUpdate();
+  }, [applyUpdate, pendingVersion, releaseSummary]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadReleaseSummary() {
+      if (!updateAvailable) {
+        setReleaseSummary(null);
+        return;
+      }
+
+      const manifest = await fetchReleaseNotes();
+      if (!manifest || cancelled) return;
+
+      const installedVersion = currentVersion || getLastKnownRelease();
+      const summary = buildReleaseSummary(manifest, installedVersion);
+      setReleaseSummary(summary);
+    }
+
+    loadReleaseSummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentVersion, updateAvailable]);
+
+  useEffect(() => {
+    if (currentVersion && !getLastKnownRelease()) {
+      markReleaseKnown(currentVersion);
+    }
+  }, [currentVersion]);
+
   // Check for post-update confirmation on mount
   useEffect(() => {
     try {
       const justUpdated = sessionStorage.getItem('pwa-just-updated');
       if (justUpdated === 'true') {
         sessionStorage.removeItem('pwa-just-updated');
+        consumePendingAppliedRelease();
         setShowUpdateToast(true);
         // Auto-hide after 3 seconds
         const timer = setTimeout(() => setShowUpdateToast(false), 3000);
@@ -55,7 +113,8 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       <IosInstallPrompt />
       <UpdateNotification
         updateAvailable={updateAvailable && !dismissedUpdate}
-        onApplyUpdate={applyUpdate}
+        releaseSummary={releaseSummary}
+        onApplyUpdate={handleApplyUpdate}
         onDismiss={handleDismissUpdate}
       />
       <RecurringReminder />

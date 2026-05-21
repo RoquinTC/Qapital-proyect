@@ -3,19 +3,25 @@
 import { useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { ReleaseSummary } from '@/lib/pwa/release-notes';
 
 interface UpdateNotificationProps {
   updateAvailable: boolean;
+  releaseSummary: ReleaseSummary | null;
   onApplyUpdate: () => void;
   onDismiss: () => void;
 }
 
 export function UpdateNotification({
   updateAvailable,
+  releaseSummary,
   onApplyUpdate,
   onDismiss,
 }: UpdateNotificationProps) {
   const [updating, setUpdating] = useState(false);
+  const visibleReleases = releaseSummary?.releases ?? [];
+  const releaseCount = visibleReleases.length;
+  const hasReleaseNotes = releaseCount > 0;
 
   const handleUpdate = () => {
     setUpdating(true);
@@ -54,23 +60,25 @@ export function UpdateNotification({
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {updating ? 'Actualizando...' : '¡Actualización disponible!'}
+                  {updating ? 'Actualizando...' : 'Actualización disponible'}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   {updating
                     ? 'La app se reiniciará en un momento.'
-                    : 'Hay una nueva versión de Quid lista para usar.'}
+                    : hasReleaseNotes && releaseCount > 1
+                      ? `Incluye ${releaseCount} versiones pendientes por aplicar.`
+                      : 'Hay una nueva versión de Quid lista para usar.'}
                 </p>
               </div>
 
-              {/* Actions — hide dismiss while updating */}
+              {/* Actions: hide dismiss while updating */}
               {!updating && (
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button
                     onClick={handleUpdate}
                     className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 active:scale-95 transition-all"
                   >
-                    Actualizar
+                    Aplicar
                   </button>
                   <button
                     onClick={onDismiss}
@@ -81,6 +89,36 @@ export function UpdateNotification({
                 </div>
               )}
             </div>
+
+            {!updating && hasReleaseNotes && (
+              <div className="mt-3 max-h-72 overflow-y-auto rounded-xl border border-gray-100 bg-gray-50/80 p-3 dark:border-gray-800 dark:bg-gray-950/50">
+                <div className="space-y-3">
+                  {visibleReleases.map((release) => (
+                    <div key={release.version}>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                          {release.title}
+                        </p>
+                        <span className="flex-shrink-0 text-[11px] text-gray-500 dark:text-gray-400">
+                          {release.date}
+                        </span>
+                      </div>
+                      <ul className="mt-1.5 space-y-1">
+                        {release.changes.map((change) => (
+                          <li
+                            key={change}
+                            className="flex gap-2 text-xs leading-5 text-gray-700 dark:text-gray-300"
+                          >
+                            <span className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-emerald-500" />
+                            <span>{change}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
       )}

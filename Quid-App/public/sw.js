@@ -1,15 +1,16 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'quid-v2-stability';
-const STATIC_CACHE = 'quid-static-v2-stability';
-const DYNAMIC_CACHE = 'quid-dynamic-v2-stability';
-const API_CACHE = 'quid-api-v2-stability';
-const AUTH_CACHE = 'quid-auth-v2-stability';
+const CACHE_NAME = 'quid-v3-security-sync';
+const STATIC_CACHE = 'quid-static-v3-security-sync';
+const DYNAMIC_CACHE = 'quid-dynamic-v3-security-sync';
+const API_CACHE = 'quid-api-v3-security-sync';
+const AUTH_CACHE = 'quid-auth-v3-security-sync';
 
 // Assets to cache on install (app shell)
 const APP_SHELL = [
   '/',
   '/manifest.json',
+  '/release-notes.json',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable-192.png',
@@ -338,7 +339,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data?.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: CACHE_NAME });
+    event.ports?.[0]?.postMessage({ version: CACHE_NAME });
   }
 
   if (event.data?.type === 'CLEAR_CACHE') {

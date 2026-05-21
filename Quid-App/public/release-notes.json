@@ -1,0 +1,27 @@
+{
+  "currentVersion": "quid-v3-security-sync",
+  "releases": [
+    {
+      "version": "quid-v3-security-sync",
+      "date": "2026-05-20",
+      "title": "Seguridad y sincronizacion offline",
+      "changes": [
+        "Inicio con huella o PIN mas seguro mediante tokens de un solo uso.",
+        "Sincronizacion offline mas robusta para registros creados sin conexion.",
+        "Actualizacion de saldos y listados de forma inmediata al guardar movimientos.",
+        "Mejoras de contraste en tema claro y oscuro para evitar textos ilegibles."
+      ]
+    },
+    {
+      "version": "quid-v2-stability",
+      "date": "2026-05-20",
+      "title": "Estabilidad de la PWA",
+      "changes": [
+        "Mejor manejo de cache para reducir pantallas de error despues de despliegues.",
+        "Soporte offline reforzado para mantener la sesion cuando el servidor no responde.",
+        "Proteccion de modulos para que un error no tumbe toda la aplicacion.",
+        "Correccion visual del fondo del menu hamburguesa."
+      ]
+    }
+  ]
+}
