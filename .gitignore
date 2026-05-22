@@ -23,12 +23,15 @@ Aura-IA/firebase-key.json
 Aura-IA/credentials.json
 Aura-IA/.env
 Qapital-App/.env
+Quid-App/.env
 
 # Databases
 *.db
 *.sqlite
 Aura-IA/memory.db
 Qapital-App/db/custom.db
+Quid-App/db/custom.db
+Quid-App/scripts/.generated/
 
 # OS files
 .DS_Store
