@@ -89,7 +89,7 @@ export async function middleware(request: NextRequest) {
   // ---- Aura AI Bypass ----
   // Permite que el agente autónomo acceda a sus endpoints de sincronización
   // usando su API Key en lugar de una sesión de usuario.
-  if (pathname.startsWith("/api/aura/sync")) {
+  if (pathname.startsWith("/api/aura/sync") || pathname === "/api/aura/chat") {
     const auraToken = request.headers.get("x-aura-token");
     if (auraToken === process.env.AURA_API_KEY) {
       return NextResponse.next();

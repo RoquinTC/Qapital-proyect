@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 // URL interna de Docker para hablar con Aura
-const AURA_INTERNAL_URL = 'http://aura-super-agent:3000/verify';
+const AURA_INTERNAL_URL = process.env.AURA_INTERNAL_URL || 'http://aura-super-agent:3000/verify';
 
 export async function POST(req: Request) {
   try {
