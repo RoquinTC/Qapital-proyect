@@ -15,6 +15,7 @@ import { VehicleForm } from "./vehicle-form";
 import { FuelLogForm } from "./fuel-log-form";
 import { MaintenanceForm } from "./maintenance-form";
 import { VehicleDocumentForm } from "./vehicle-document-form";
+import { VehicleReminderForm } from "./vehicle-reminder-form";
 import { FuelPriceWidget } from "./fuel-price-widget";
 import { QuickKmUpdate } from "./quick-km-update";
 import { VehicleIcon } from "./vehicle-icon";
@@ -37,7 +38,7 @@ import {
 import { apiFetch, formatCurrency, formatShortDate } from "@/lib/api";
 import { useLocalQuery } from "@/lib/local/hooks/queries";
 import { useDataEvent } from "@/hooks/use-data-event";
-import type { Vehicle, FuelLog, MaintenanceRecord, VehicleDocument } from "@/lib/types";
+import type { Vehicle, FuelLog, MaintenanceRecord, VehicleDocument, VehicleReminder } from "@/lib/types";
 import { MAINTENANCE_TYPES } from "@/lib/types/transport";
 import { toast } from "sonner";
 
@@ -112,6 +113,7 @@ type VehicleWithDetails = Vehicle & {
   fuelLogs: Array<{ id: string; date: string; km: number; amount: number; pricePerGallon: number; gallons: number; isFullTank?: boolean; notes?: string | null }>;
   maintenanceRecords: Array<{ id: string; type: string; description: string; km: number; cost: number; date: string; nextDueKm?: number | null; nextDueDate?: string | null; reminderEnabled?: boolean; items?: Array<{ id: string; name: string; quantity: number; unitPrice: number; totalPrice: number }> }>;
   documents?: Array<{ id: string; vehicleId: string; type: string; documentNumber?: string | null; issueDate: string; expiryDate: string; cost: number; reminderDays: number; reminderEnabled: boolean; notes?: string | null }>;
+  reminders?: VehicleReminder[];
   fuelLevel?: number;
   currentFuel?: number;
   estimatedRange?: number;
@@ -172,6 +174,7 @@ export function TransportPage() {
   useDataEvent("maintenanceRecords", handleDataRefresh);
   useDataEvent("fuelLogs", handleDataRefresh);
   useDataEvent("vehicles", handleDataRefresh);
+  useDataEvent("vehicleReminders", handleDataRefresh);
 
   // Selection
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -190,6 +193,8 @@ export function TransportPage() {
   const [editMaintenance, setEditMaintenance] = useState<MaintenanceRecord | null>(null);
   const [showDocumentForm, setShowDocumentForm] = useState(false);
   const [editDocument, setEditDocument] = useState<VehicleDocument | null>(null);
+  const [showReminderForm, setShowReminderForm] = useState(false);
+  const [editReminder, setEditReminder] = useState<VehicleReminder | null>(null);
   const [showFuelPriceDialog, setShowFuelPriceDialog] = useState(false);
   const [showKmUpdate, setShowKmUpdate] = useState(false);
 
@@ -200,7 +205,7 @@ export function TransportPage() {
   const [showReminderDetails, setShowReminderDetails] = useState(false);
 
   // Delete
-  const [deleteTarget, setDeleteTarget] = useState<{ type: "fuel" | "maintenance" | "vehicle" | "document"; id: string; vehicleId?: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "fuel" | "maintenance" | "vehicle" | "document" | "reminder"; id: string; vehicleId?: string } | null>(null);
 
   // Reverse
   const [reverseTarget, setReverseTarget] = useState<{ type: "fuel" | "maintenance" | "document"; id: string; vehicleId: string; cost: number; description: string } | null>(null);
@@ -453,6 +458,9 @@ export function TransportPage() {
       } else if (deleteTarget.type === "document" && deleteTarget.vehicleId) {
         await apiFetch(`/api/vehicles/${deleteTarget.vehicleId}/documents/${deleteTarget.id}`, { method: "DELETE" });
         toast.success("Documento eliminado");
+      } else if (deleteTarget.type === "reminder" && deleteTarget.vehicleId) {
+        await apiFetch(`/api/vehicles/${deleteTarget.vehicleId}/reminders/${deleteTarget.id}`, { method: "DELETE" });
+        toast.success("Recordatorio eliminado");
       }
       refetchVehicles();
     } catch (error) {
@@ -460,6 +468,24 @@ export function TransportPage() {
       toast.error("Error al eliminar");
     } finally {
       setDeleteTarget(null);
+    }
+  };
+
+  const handleToggleReminder = async (reminder: VehicleReminder, completed: boolean) => {
+    try {
+      await apiFetch(`/api/vehicles/${reminder.vehicleId}/reminders/${reminder.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          isActive: !completed,
+          completedAt: completed ? new Date().toISOString() : null,
+          completedKm: completed ? selectedVehicle?.currentKm ?? null : null,
+        }),
+      });
+      toast.success(completed ? "Recordatorio completado" : "Recordatorio reactivado");
+      refetchVehicles();
+    } catch (error) {
+      console.error("Error updating reminder:", error);
+      toast.error("No se pudo actualizar el recordatorio");
     }
   };
 
@@ -975,10 +1001,32 @@ export function TransportPage() {
             })
             .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
 
-          const hasReminders = maintReminders.length > 0 || docReminders.length > 0;
-          const overdueCount = maintReminders.filter(r => r.isOverdue).length + docReminders.filter(d => d.isExpired).length;
-          const urgentCount = maintReminders.filter(r => r.isUrgent).length + docReminders.filter(d => d.isExpiringSoon).length;
-          const totalCount = maintReminders.length + docReminders.length;
+          const customReminders = (selectedVehicle.reminders || [])
+            .map(r => {
+              const daysUntilDue = r.dueDate ? Math.ceil((new Date(r.dueDate).getTime() - now.getTime()) / (1000*60*60*24)) : null;
+              const kmRemaining = r.dueKm != null ? r.dueKm - selectedVehicle.currentKm : null;
+              const isOverdue = r.isActive && ((daysUntilDue !== null && daysUntilDue <= 0) || (kmRemaining !== null && kmRemaining <= 0));
+              const isUrgent = r.isActive && !isOverdue && (
+                (daysUntilDue !== null && daysUntilDue <= r.warningDays) ||
+                (kmRemaining !== null && kmRemaining <= (r.warningKm ?? 500))
+              );
+              return { ...r, daysUntilDue, kmRemaining, isOverdue, isUrgent };
+            })
+            .sort((a, b) => {
+              if (a.isActive && !b.isActive) return -1;
+              if (!a.isActive && b.isActive) return 1;
+              if (a.isOverdue && !b.isOverdue) return -1;
+              if (!a.isOverdue && b.isOverdue) return 1;
+              if (a.isUrgent && !b.isUrgent) return -1;
+              if (!a.isUrgent && b.isUrgent) return 1;
+              return (a.daysUntilDue ?? Infinity) - (b.daysUntilDue ?? Infinity);
+            });
+
+          const activeCustomReminders = customReminders.filter(r => r.isActive);
+          const hasReminders = maintReminders.length > 0 || docReminders.length > 0 || customReminders.length > 0;
+          const overdueCount = maintReminders.filter(r => r.isOverdue).length + docReminders.filter(d => d.isExpired).length + activeCustomReminders.filter(r => r.isOverdue).length;
+          const urgentCount = maintReminders.filter(r => r.isUrgent).length + docReminders.filter(d => d.isExpiringSoon).length + activeCustomReminders.filter(r => r.isUrgent).length;
+          const totalCount = maintReminders.length + docReminders.length + activeCustomReminders.length;
 
           return (
             <div className="px-4 pt-2">
@@ -1035,6 +1083,64 @@ export function TransportPage() {
                     <div className="pt-1.5 pb-1 space-y-1.5">
                       {hasReminders ? (
                         <>
+                          {customReminders.map(r => (
+                            <div key={r.id} className={`flex items-center gap-2.5 p-2 rounded-xl ${
+                              !r.isActive
+                                ? "bg-gray-100/70 opacity-70 dark:bg-gray-800/40"
+                                : r.isOverdue
+                                ? "bg-red-100/60 dark:bg-red-900/30"
+                                : r.isUrgent
+                                ? "bg-amber-100/50 dark:bg-amber-900/20"
+                                : "bg-white/60 dark:bg-gray-800/40"
+                            }`}>
+                              <div className="size-7 rounded-lg bg-cyan-100 text-cyan-600 flex items-center justify-center flex-shrink-0 dark:bg-cyan-900/30">
+                                <Bell className="size-3.5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                                  {r.title}
+                                  {!r.isActive && <span className="ml-1 text-gray-400 font-normal">· completado</span>}
+                                </p>
+                                <p className="text-[11px] text-gray-500 flex items-center gap-1.5 flex-wrap">
+                                  {r.daysUntilDue !== null && (
+                                    <span className={r.isOverdue ? "font-medium text-red-600 dark:text-red-400" : r.isUrgent ? "font-medium text-amber-600 dark:text-amber-400" : ""}>
+                                      <Clock className="size-3 inline -mt-0.5" /> {formatShortDate(r.dueDate!)}
+                                      {r.isActive && r.daysUntilDue > 0 && <span className="ml-1">({r.daysUntilDue}d)</span>}
+                                    </span>
+                                  )}
+                                  {r.kmRemaining !== null && (
+                                    <span className={r.isOverdue ? "font-medium text-red-600 dark:text-red-400" : r.isUrgent ? "font-medium text-amber-600 dark:text-amber-400" : ""}>
+                                      {r.isActive && r.kmRemaining > 0 ? `Faltan ${Math.round(r.kmRemaining).toLocaleString("es-CO")} km` : `${Math.round(r.dueKm ?? 0).toLocaleString("es-CO")} km`}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="size-8 flex-shrink-0">
+                                    <MoreHorizontal className="size-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl">
+                                  <DropdownMenuItem onClick={() => handleToggleReminder(r, r.isActive)}>
+                                    <Bell className="size-4 mr-2 text-cyan-500" />
+                                    {r.isActive ? "Completar" : "Reactivar"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { setEditReminder(r); setShowReminderForm(true); }}>
+                                    <Pencil className="size-4 mr-2 text-blue-500" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-red-600 focus:text-red-600"
+                                    onClick={() => setDeleteTarget({ type: "reminder", id: r.id, vehicleId: selectedVehicle.id })}
+                                  >
+                                    <Trash2 className="size-4 mr-2" />
+                                    Eliminar
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          ))}
                           {maintReminders.map(r => {
                             const Icon = maintTypeIcons[r.type] || Wrench;
                             return (
@@ -1126,8 +1232,17 @@ export function TransportPage() {
                       ) : (
                         <div className="py-2 text-center">
                           <p className="text-xs text-gray-400">
-                            Sin recordatorios. Activa recordatorios al registrar mantenimiento o documentos.
+                            Sin recordatorios. Puedes crear uno propio o activar alertas en mantenimiento/documentos.
                           </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-1 h-7 text-xs text-cyan-600"
+                            onClick={() => { setEditReminder(null); setShowReminderForm(true); }}
+                          >
+                            <Plus className="mr-1 size-3.5" />
+                            Crear recordatorio
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -1259,6 +1374,10 @@ export function TransportPage() {
               <Shield className="size-4 mr-2 text-violet-500" />
               Registrar Documento
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setEditReminder(null); setShowReminderForm(true); }}>
+              <Bell className="size-4 mr-2 text-cyan-500" />
+              Crear Recordatorio
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowFuelPriceDialog(true)}>
               <Settings className="size-4 mr-2 text-blue-500" />
               Precio Combustible
@@ -1308,6 +1427,15 @@ export function TransportPage() {
         onSuccess={refetchVehicles}
       />
 
+      <VehicleReminderForm
+        open={showReminderForm}
+        onOpenChange={setShowReminderForm}
+        vehicleId={selectedVehicleId}
+        currentKm={selectedVehicle?.currentKm}
+        reminder={editReminder}
+        onSuccess={refetchVehicles}
+      />
+
       <Dialog open={showFuelPriceDialog} onOpenChange={setShowFuelPriceDialog}>
         <DialogContent className="rounded-2xl max-w-sm">
           <DialogHeader>
@@ -1346,6 +1474,8 @@ export function TransportPage() {
                 ? "Se eliminará este registro de combustible y su transacción asociada. "
                 : deleteTarget?.type === "document"
                 ? "Se eliminará este documento y su transacción asociada. "
+                : deleteTarget?.type === "reminder"
+                ? "Se eliminará este recordatorio del vehículo. "
                 : "Se eliminará este registro de mantenimiento y su transacción asociada. "}
               Esta acción no se puede deshacer.
             </AlertDialogDescription>

@@ -492,6 +492,55 @@ export const vehicleUpdateSchema = z.object({
   plate: z.string().nullable().optional(),
 });
 
+const vehicleReminderBaseObject = z.object({
+  title: z.string().min(1, "El título es obligatorio"),
+  description: z.string().nullable().optional(),
+  category: z.string().optional().default("custom"),
+  triggerMode: z.enum(["date", "km", "hybrid"]).optional().default("date"),
+  dueDate: isoDateString.nullable().optional(),
+  dueKm: z.number().nullable().optional(),
+  warningDays: z.number().int().min(0).optional().default(7),
+  warningKm: z.number().min(0).nullable().optional().default(500),
+  repeatIntervalDays: z.number().int().min(1).nullable().optional(),
+  repeatIntervalKm: z.number().min(1).nullable().optional(),
+  isActive: z.boolean().optional().default(true),
+  completedAt: isoDateString.nullable().optional(),
+  completedKm: z.number().nullable().optional(),
+});
+
+export const vehicleReminderCreateSchema = vehicleReminderBaseObject.superRefine((data, ctx) => {
+  if ((data.triggerMode === "date" || data.triggerMode === "hybrid") && !data.dueDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["dueDate"],
+      message: "La fecha es obligatoria para este recordatorio",
+    });
+  }
+  if ((data.triggerMode === "km" || data.triggerMode === "hybrid") && data.dueKm == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["dueKm"],
+      message: "El kilometraje es obligatorio para este recordatorio",
+    });
+  }
+});
+export const vehicleReminderUpdateSchema = vehicleReminderBaseObject.partial().superRefine((data, ctx) => {
+  if (data.triggerMode === "date" && data.dueDate === null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["dueDate"],
+      message: "La fecha no puede quedar vacía en un recordatorio por fecha",
+    });
+  }
+  if (data.triggerMode === "km" && data.dueKm == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["dueKm"],
+      message: "El kilometraje no puede quedar vacío en un recordatorio por kilometraje",
+    });
+  }
+});
+
 export const fuelLogCreateSchema = z.object({
   date: isoDateString.optional(),
   km: z.number().optional(),

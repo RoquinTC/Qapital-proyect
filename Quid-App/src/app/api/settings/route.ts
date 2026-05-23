@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getCurrentBudgetPeriod, needsBudgetReset } from "@/lib/holidays";
 import { validateBody, settingsUpdateSchema } from "@/lib/validations";
 import { getColombiaNow } from "@/lib/api";
+import { isAdminEmail } from "@/lib/admin";
 
 export async function GET() {
   try {
@@ -41,7 +42,7 @@ export async function GET() {
     // Fetch user info for telegramId
     const user = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { telegramId: true }
+      select: { email: true, telegramId: true }
     });
 
     return NextResponse.json({
@@ -52,6 +53,7 @@ export async function GET() {
         end: period.end.toISOString(),
       },
       needsBudgetReset: needsReset,
+      isAdmin: isAdminEmail(user?.email),
     });
   } catch (error) {
     console.error("Get settings error:", error);

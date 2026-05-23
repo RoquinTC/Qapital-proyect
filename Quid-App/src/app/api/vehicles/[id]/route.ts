@@ -18,6 +18,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const vehicle = await db.vehicle.findFirst({
       where: { id, userId: session.user.id },
+      include: {
+        reminders: {
+          orderBy: [
+            { isActive: "desc" },
+            { dueDate: "asc" },
+            { dueKm: "asc" },
+          ],
+        },
+      },
     });
 
     if (!vehicle) {
@@ -68,6 +77,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       include: {
         fuelLogs: { orderBy: { date: "desc" } },
         maintenanceRecords: { orderBy: { date: "desc" } },
+        reminders: {
+          orderBy: [
+            { isActive: "desc" },
+            { dueDate: "asc" },
+            { dueKm: "asc" },
+          ],
+        },
       },
     });
 

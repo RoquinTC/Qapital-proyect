@@ -18,7 +18,29 @@ export interface Vehicle {
   updatedAt?: string;
   // ── Related data ──
   documents?: VehicleDocument[];
+  reminders?: VehicleReminder[];
   paymentDefault?: VehiclePaymentDefault | null;
+}
+
+export interface VehicleReminder {
+  id: string;
+  vehicleId: string;
+  userId: string;
+  title: string;
+  description?: string | null;
+  category: string;
+  triggerMode: "date" | "km" | "hybrid" | string;
+  dueDate?: string | null;
+  dueKm?: number | null;
+  warningDays: number;
+  warningKm?: number | null;
+  repeatIntervalDays?: number | null;
+  repeatIntervalKm?: number | null;
+  isActive: boolean;
+  completedAt?: string | null;
+  completedKm?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface FuelLog {

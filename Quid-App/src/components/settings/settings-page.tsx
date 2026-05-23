@@ -68,6 +68,7 @@ import { AccountManager } from "@/components/finance/account-manager";
 import { CategoriesManager } from "@/components/finance/categories-manager";
 import { BackupManager } from "@/components/settings/backup-manager";
 import { AchievementsView } from "@/components/settings/achievements-view";
+import { AdminPanel } from "@/components/settings/admin-panel";
 import { SecuritySettings } from "@/components/security/security-settings";
 import {
   AlertDialog,
@@ -99,6 +100,7 @@ type AppSettings = UserSettings & {
   };
   needsBudgetReset: boolean;
   telegramId?: string | null;
+  isAdmin?: boolean;
 };
 
 function formatDateShort(dateStr: string): string {
@@ -806,6 +808,20 @@ export function SettingsPage() {
             </AccordionContent>
           </AccordionItem>
         </Card>
+
+        {/* ── ADMIN ── */}
+        {settings.isAdmin && (
+          <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+            <AccordionItem value="admin" className="border-0">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <SectionHeader icon={ShieldCheck} iconColor="text-slate-700 dark:text-slate-300" iconBg="bg-slate-100 dark:bg-slate-800" title="Administración" badge="Admin" />
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <AdminPanel />
+              </AccordionContent>
+            </AccordionItem>
+          </Card>
+        )}
 
         {/* ── SEGURIDAD ── */}
         <Card className="border-0 shadow-sm rounded-xl overflow-hidden">

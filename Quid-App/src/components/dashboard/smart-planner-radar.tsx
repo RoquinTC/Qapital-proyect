@@ -35,6 +35,7 @@ const iconByKind: Record<RadarEventKind, typeof CalendarClock> = {
   "recurring-payment": WalletCards,
   "scheduled-income": WalletCards,
   "fuel-refill": Fuel,
+  "vehicle-reminder": CalendarClock,
   "vehicle-document": ShieldCheck,
   maintenance: Wrench,
   "medical-appointment": HeartPulse,

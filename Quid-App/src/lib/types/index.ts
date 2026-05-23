@@ -39,6 +39,7 @@ export type {
   FuelLevelData,
   FuelPrice,
   VehicleDocument,
+  VehicleReminder,
 } from './transport';
 
 // Health

@@ -113,6 +113,11 @@ function parseApiUrl(url: string): { tableName: string | null; isCollection: boo
       tableName = "maintenanceRecords";
       return { tableName, isCollection: true, isComplex: false, recordId };
     }
+    // /api/vehicles/{id}/reminders → vehicleReminders table
+    if (thirdSegment === "reminders") {
+      tableName = "vehicleReminders";
+      return { tableName, isCollection: true, isComplex: false, recordId };
+    }
     // /api/debts/{id}/installments → installments table
     if (thirdSegment === "installments") {
       tableName = "installments";

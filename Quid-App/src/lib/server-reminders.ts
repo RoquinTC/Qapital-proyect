@@ -147,6 +147,7 @@ async function sendTransportReminders(today: Date, since: Date) {
       fuelLogs: { orderBy: { date: "desc" } },
       maintenanceRecords: true,
       documents: true,
+      reminders: { where: { isActive: true } },
     },
   });
 
@@ -252,6 +253,46 @@ async function sendTransportReminders(today: Date, since: Date) {
           vehicleId: vehicle.id,
           documentId: doc.id,
           daysUntil: remaining,
+        },
+        since,
+      });
+      if (wasSent) sent += 1;
+    }
+
+    for (const reminder of vehicle.reminders) {
+      const kmRemaining = reminder.dueKm != null ? reminder.dueKm - vehicle.currentKm : null;
+      const dateDays = reminder.dueDate ? daysUntil(reminder.dueDate, today) : null;
+      const isKmDue = kmRemaining !== null && kmRemaining <= (reminder.warningKm ?? 500);
+      const isDateDue = dateDays !== null && dateDays <= reminder.warningDays;
+      if (!isKmDue && !isDateDue) continue;
+
+      const dueParts = [
+        kmRemaining !== null && kmRemaining <= 0
+          ? "ya esta vencido por kilometraje"
+          : kmRemaining !== null
+            ? `faltan ${Math.max(0, Math.round(kmRemaining)).toLocaleString("es-CO")} km`
+            : null,
+        dateDays !== null && dateDays <= 0
+          ? "vence hoy"
+          : dateDays !== null
+            ? `vence en ${dateDays} dias`
+            : null,
+      ].filter(Boolean);
+
+      const dueText = dueParts.join(" y ");
+      const wasSent = await sendReminderOnce({
+        userId: vehicle.userId,
+        type: "transport_custom_reminder_due",
+        title: `Recordatorio: ${vehicle.name}`,
+        message: `${reminder.title}${dueText ? `: ${dueText}` : ""}.`,
+        pushBody: `${vehicle.name}: ${reminder.title}${dueText ? ` (${dueText})` : ""}.`,
+        url: "/?module=transport",
+        reminderKey: `vehicle-reminder:${reminder.id}:${getColombiaTodayString()}`,
+        data: {
+          vehicleId: vehicle.id,
+          reminderId: reminder.id,
+          kmRemaining,
+          daysUntil: dateDays,
         },
         since,
       });

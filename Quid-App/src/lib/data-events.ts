@@ -111,7 +111,7 @@ function getRelatedTables(url: string, tableName: string | null): string[] {
     related.add("savingsGoals");
   }
 
-  if (tableName === "maintenanceRecords" || tableName === "fuelLogs" || cleanUrl.includes("/documents")) {
+  if (tableName === "maintenanceRecords" || tableName === "fuelLogs" || cleanUrl.includes("/documents") || cleanUrl.includes("/reminders")) {
     related.add("vehicles");
     related.add("transactions");
     related.add("accounts");
@@ -170,6 +170,7 @@ function getTableFromUrl(url: string): string | null {
   // Sub-resource mapping
   if (cleanUrl.includes("/fuel-logs")) return "fuelLogs";
   if (cleanUrl.includes("/maintenance")) return "maintenanceRecords";
+  if (cleanUrl.includes("/reminders")) return "vehicleReminders";
   if (cleanUrl.includes("/documents")) return "vehicles"; // Documents are embedded in vehicles
   if (cleanUrl.includes("/sub-accounts")) return "subAccounts";
   if (cleanUrl.includes("/installments")) return "installments";

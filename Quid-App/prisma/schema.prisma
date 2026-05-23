@@ -33,6 +33,7 @@ model User {
   abonos              Abono[]
   savingsGoals        SavingsGoal[]
   vehicles            Vehicle[]
+  vehicleReminders    VehicleReminder[]
   medications         Medication[]
   appointments        MedicalAppointment[]
   pantryItems         PantryItem[]
@@ -557,6 +558,7 @@ model Vehicle {
   fuelLogs        FuelLog[]
   maintenanceRecords MaintenanceRecord[]
   documents       VehicleDocument[]
+  reminders       VehicleReminder[]
   paymentDefault  VehiclePaymentDefault?
 
   @@map("vehicles")
@@ -645,6 +647,34 @@ model VehicleDocument {
   debt            Debt?     @relation("VehicleDocumentDebt", fields: [debtId], references: [id])
 
   @@map("vehicle_documents")
+}
+
+model VehicleReminder {
+  id                 String    @id @default(cuid())
+  vehicleId          String
+  userId             String
+  title              String
+  description        String?
+  category           String    @default("custom")
+  triggerMode        String    @default("date") // date, km, hybrid
+  dueDate            DateTime?
+  dueKm              Float?
+  warningDays        Int       @default(7)
+  warningKm          Float?    @default(500)
+  repeatIntervalDays Int?
+  repeatIntervalKm   Float?
+  isActive           Boolean   @default(true)
+  completedAt        DateTime?
+  completedKm        Float?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  vehicle            Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@map("vehicle_reminders")
 }
 
 model MaintenanceItem {

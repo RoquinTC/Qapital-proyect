@@ -37,7 +37,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://quid:quid-local-dev@postgres:5432/quid?schema=public}
+      - DATABASE_URL=${DOCKER_DATABASE_URL:-postgresql://quid:quid-local-dev@postgres:5432/quid?schema=public}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-change-me-in-production}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - NEXTAUTH_TRUSTHOST=true

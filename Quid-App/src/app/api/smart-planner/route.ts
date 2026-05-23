@@ -69,6 +69,10 @@ export async function GET() {
             where: { reminderEnabled: true },
             orderBy: { expiryDate: "asc" },
           },
+          reminders: {
+            where: { isActive: true },
+            orderBy: [{ dueDate: "asc" }, { dueKm: "asc" }],
+          },
         },
       }),
       db.medicalAppointment.findMany({
@@ -195,6 +199,48 @@ export async function GET() {
             amount: toNumber(maintenance.cost),
             severity: "warning",
             status: "pending",
+          });
+        }
+      }
+
+      for (const reminder of vehicle.reminders) {
+        const dueByDate = reminder.dueDate ? new Date(reminder.dueDate) : null;
+        const dueByKm = reminder.dueKm != null && vehicle.currentKm >= reminder.dueKm;
+        const kmRemaining = reminder.dueKm != null ? Math.max(0, reminder.dueKm - vehicle.currentKm) : null;
+
+        if (dueByDate && withinHorizon(dueByDate, horizon)) {
+          events.push({
+            id: `transport:reminder-date:${reminder.id}`,
+            source: "transport",
+            kind: "vehicle-reminder",
+            title: `Recordatorio: ${vehicle.name}`,
+            description: [reminder.title, reminder.description].filter(Boolean).join(" - "),
+            date: dueByDate.toISOString(),
+            severity: severityForDate(dueByDate),
+            status: "pending",
+            action: {
+              label: "Completar",
+              endpoint: `/api/vehicles/${vehicle.id}/reminders/${reminder.id}`,
+              method: "PUT",
+              body: { isActive: false, completedAt: new Date().toISOString(), completedKm: vehicle.currentKm },
+            },
+          });
+        } else if (dueByKm) {
+          events.push({
+            id: `transport:reminder-km:${reminder.id}`,
+            source: "transport",
+            kind: "vehicle-reminder",
+            title: `Recordatorio por kilometraje: ${vehicle.name}`,
+            description: `${reminder.title}${kmRemaining !== null ? ` desde ${reminder.dueKm?.toLocaleString("es-CO")} km` : ""}`,
+            date: today.toISOString(),
+            severity: "warning",
+            status: "pending",
+            action: {
+              label: "Completar",
+              endpoint: `/api/vehicles/${vehicle.id}/reminders/${reminder.id}`,
+              method: "PUT",
+              body: { isActive: false, completedAt: new Date().toISOString(), completedKm: vehicle.currentKm },
+            },
           });
         }
       }

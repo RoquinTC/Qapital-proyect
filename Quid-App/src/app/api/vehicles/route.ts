@@ -24,13 +24,20 @@ export async function GET() {
         documents: {
           orderBy: { expiryDate: "desc" },
         },
+        reminders: {
+          orderBy: [
+            { isActive: "desc" },
+            { dueDate: "asc" },
+            { dueKm: "asc" },
+          ],
+        },
       },
       orderBy: { createdAt: "desc" },
     });
 
     // Compute fuel level for each vehicle and attach it to the response
     const vehiclesWithFuelLevel = vehicles.map((vehicle) => {
-      const { fuelLogs, maintenanceRecords, documents, ...vehicleData } = vehicle;
+      const { fuelLogs, maintenanceRecords, documents, reminders, ...vehicleData } = vehicle;
 
       // Serialize Decimal fields
       const serializedLogs = fuelLogs.map((log) => ({
@@ -64,6 +71,14 @@ export async function GET() {
         updatedAt: doc.updatedAt?.toISOString(),
       }));
 
+      const serializedReminders = reminders.map((reminder) => ({
+        ...reminder,
+        dueDate: reminder.dueDate?.toISOString() ?? null,
+        completedAt: reminder.completedAt?.toISOString() ?? null,
+        createdAt: reminder.createdAt?.toISOString(),
+        updatedAt: reminder.updatedAt?.toISOString(),
+      }));
+
       // Calculate fuel level using shared utility
       const fuelLevelData = calculateFuelLevel(
         {
@@ -90,6 +105,7 @@ export async function GET() {
         fuelLogs: serializedLogs.slice(0, 10), // Up to 10 recent fuel logs for the card view
         maintenanceRecords: serializedMaintenance,
         documents: serializedDocuments,
+        reminders: serializedReminders,
         fuelLevel: fuelLevelData.fuelLevel,
         currentFuel: fuelLevelData.currentFuel,
         estimatedRange: fuelLevelData.estimatedRange,
@@ -141,6 +157,8 @@ export async function POST(req: Request) {
       include: {
         fuelLogs: true,
         maintenanceRecords: true,
+        documents: true,
+        reminders: true,
       },
     });
 
@@ -163,11 +181,13 @@ export async function POST(req: Request) {
     );
 
     // Serialize to match GET response shape
-    const { fuelLogs, maintenanceRecords, ...vehicleData } = vehicle;
+    const { fuelLogs, maintenanceRecords, documents, reminders, ...vehicleData } = vehicle;
     const serializedVehicle = {
       ...vehicleData,
       fuelLogs: [],
       maintenanceRecords: [],
+      documents: [],
+      reminders: [],
       fuelLevel: fuelLevelData.fuelLevel,
       currentFuel: fuelLevelData.currentFuel,
       estimatedRange: fuelLevelData.estimatedRange,

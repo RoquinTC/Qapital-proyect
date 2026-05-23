@@ -4,6 +4,7 @@ export type RadarEventKind =
   | "recurring-payment"
   | "scheduled-income"
   | "fuel-refill"
+  | "vehicle-reminder"
   | "vehicle-document"
   | "maintenance"
   | "medical-appointment"
