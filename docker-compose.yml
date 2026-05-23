@@ -37,7 +37,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://quid:quid-local-dev@postgres:5432/quid?schema=public
+      - DATABASE_URL=${DATABASE_URL:-postgresql://quid:quid-local-dev@postgres:5432/quid?schema=public}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-change-me-in-production}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - NEXTAUTH_TRUSTHOST=true
@@ -51,6 +51,30 @@ services:
       - CRON_SECRET=${CRON_SECRET:-local-cron-secret-change-me}
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  quid-cron:
+    image: curlimages/curl:8.11.1
+    container_name: quid-cron
+    depends_on:
+      quid-app:
+        condition: service_started
+    environment:
+      - CRON_SECRET=${CRON_SECRET:-local-cron-secret-change-me}
+      - AURA_API_KEY=${AURA_API_KEY:-AuraSecretKey2026}
+      - CRON_INTERVAL_SECONDS=${CRON_INTERVAL_SECONDS:-900}
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          date
+          curl -fsS "http://quid-app:3000/api/push/reminders?token=${CRON_SECRET:-local-cron-secret-change-me}" || true
+          echo
+          curl -fsS -X POST "http://aura-super-agent:3000/digest" -H "x-aura-token: ${AURA_API_KEY:-AuraSecretKey2026}" || true
+          echo
+          sleep "${CRON_INTERVAL_SECONDS:-900}"
+        done
     restart: unless-stopped
 
 volumes:
