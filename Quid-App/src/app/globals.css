@@ -48,6 +48,9 @@
 }
 
 :root {
+  --font-inter: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-poppins: Poppins, Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --radius: 0.75rem;
   --background: oklch(0.98 0.002 155);
   --foreground: oklch(0.15 0.01 155);

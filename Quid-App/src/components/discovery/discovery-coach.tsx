@@ -94,6 +94,7 @@ export function DiscoveryCoach() {
   const { activeModule, setActiveModule, setFinanceSubView, setTransportSubView, setHealthSubView, setPantrySubView, setSidebarAction } = useAppStore();
   const { loading, isUndiscovered } = useAchievements();
   const [hiddenTips, setHiddenTips] = useState<Set<string>>(new Set());
+  const [snoozedModules, setSnoozedModules] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     try {
@@ -106,6 +107,7 @@ export function DiscoveryCoach() {
 
   const moduleToUse = activeModule === "dashboard" ? "finance" : activeModule;
   if (moduleToUse === "settings") return null;
+  if (snoozedModules.has(moduleToUse)) return null;
 
   const tip = tips.find((candidate) =>
     candidate.module === moduleToUse &&
@@ -126,6 +128,11 @@ export function DiscoveryCoach() {
 
   const hideTip = () => {
     const key = `${tip.module}:${tip.feature}`;
+    setSnoozedModules((current) => {
+      const next = new Set(current);
+      next.add(tip.module);
+      return next;
+    });
     setHiddenTips((current) => {
       const next = new Set(current);
       next.add(key);

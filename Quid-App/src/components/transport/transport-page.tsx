@@ -667,9 +667,12 @@ export function TransportPage() {
               <Pencil className="size-2.5 text-gray-300" />
               {/* KM Outdated Warning pill */}
               {isKmOutdated && (
-                <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[11px] font-bold animate-pulse">
+                <span
+                  className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm animate-pulse"
+                  title="Actualizar kilometraje"
+                >
                   <AlertTriangle className="size-2" />
-                  Actualizar
+                  <span className="sr-only">Actualizar kilometraje</span>
                 </span>
               )}
             </button>

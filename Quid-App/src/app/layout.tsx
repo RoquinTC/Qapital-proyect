@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
@@ -7,19 +6,6 @@ import { QueryClientProvider } from "@/components/providers/query-provider";
 import { AppearanceProvider } from "@/components/providers/appearance-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -59,7 +45,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${poppins.variable} font-sans antialiased bg-background text-foreground`}
+        className="bg-background font-sans text-foreground antialiased"
       >
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider
