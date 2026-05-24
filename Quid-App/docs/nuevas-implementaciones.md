@@ -282,15 +282,13 @@ Se han implementado transacciones financieras ACID cruzadas y robustas que conec
 ---
 
 ## 4.1 Presupuesto, Categorías y Exclusiones
-**Estado:** `95% - Estabilización`
+**Estado:** `100% - Completado` ¡Excelente trabajo!
 
 ### ¡Al 100% de lo propuesto!
 *   **Exclusiones Editables:** El CRUD de transacciones permite alternar `excludeFromBudget` en caliente y reajusta dinámicamente la columna `spent` de la tabla `Budget` en tiempo real.
 *   **Sincronización Multimódulo:** Toda compra con TC desde Transporte, Salud, Pagos Recurrentes o Despensa alimenta el presupuesto real en su categoría respectiva.
 *   **Sincronización por Fecha de Corte:** Las cuotas y deudas se cruzan basándose en su `nextPaymentDate` (corte del mes de pago) y no solo por la fecha física de la transacción, logrando consistencia absoluta.
-
-### Lo que hace falta para lograr el objetivo completo:
-*   **Bloque "Por Clasificar":** Implementar un widget visual en la sección de Presupuesto que agrupe aquellas transacciones de la cuenta del mes que no tienen asignada categoría o subcategoría, permitiendo al usuario clasificarlas de forma interactiva con un clic.
+*   **Bloque "Por Clasificar" (Widget Interactivo):** Widget visual premium integrado en la pestaña de Presupuesto. Agrupa los movimientos del mes/periodo activo que no tienen asignada categoría o subcategoría. Permite al usuario clasificar de forma interactiva con un solo clic utilizando el formulario de transacción nativo.
 
 ---
 
