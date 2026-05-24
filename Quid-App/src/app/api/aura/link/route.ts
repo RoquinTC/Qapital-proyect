@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 // URL interna de Docker para hablar con Aura
 const AURA_INTERNAL_URL = process.env.AURA_INTERNAL_URL || 'http://aura-super-agent:3000/verify';
@@ -34,5 +35,24 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('❌ Error vinculando con Aura:', error);
     return NextResponse.json({ error: 'Error de conexión con el agente' }, { status: 500 });
+  }
+}
+
+export async function DELETE() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    await db.user.update({
+      where: { email: session.user.email },
+      data: { telegramId: null }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('❌ Error desvinculando con Aura:', error);
+    return NextResponse.json({ error: 'Error interno al desvincular' }, { status: 500 });
   }
 }

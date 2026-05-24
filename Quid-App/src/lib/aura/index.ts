@@ -156,10 +156,13 @@ function isCancellationText(text: string) {
 }
 
 function hasRecentAuraProposal(messages: CoreMessage[]) {
-  return [...messages]
+  const lastAssistantMessage = [...messages]
     .reverse()
-    .slice(0, 5)
-    .some((message) => message.role === "assistant" && /resumen para confirmar|responde confirmar/i.test(message.content));
+    .find((message) => message.role === "assistant");
+  
+  if (!lastAssistantMessage) return false;
+  
+  return /resumen para confirmar|responde confirmar/i.test(lastAssistantMessage.content);
 }
 
 function inferAction(text: string): AuraAction {

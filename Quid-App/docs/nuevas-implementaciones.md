@@ -266,6 +266,14 @@ Se han implementado transacciones financieras ACID cruzadas y robustas que conec
 *   **Gateway de Herramientas Estructurado (`/api/aura/tools`):** Actualmente la lógica es un archivo monolítico en `index.ts`. El directorio `src/lib/aura/tools` está vacío. Es necesario crear ficheros modulares para cada herramienta y un endpoint que exponga sus JSON Schemas para que modelos avanzados realicen *Tool Calling* nativo.
 *   **Máquina de Estados de Confirmación en dos pasos:** Implementar un flujo interactivo donde Aura proponga una transacción (ej. al faltar datos como la cuenta o categoría) y no la registre hasta que el usuario pulse un botón físico en Telegram o el chat interno (`[Confirmar]` / `[Cancelar]`).
 *   **Expandir Skills de Escritura:** Habilitar a Aura para realizar transferencias entre cuentas propias, registrar abonos a deudas/TC, configurar metas de ahorro y añadir recordatorios de vehículos.
+*   **Persistencia de Preferencias de Aura en Base de Datos:** Guardar los valores de los Ajustes de Aura (Modelo LLM, Permisos de Escritura, Skills activos y Tono) en PostgreSQL (por ejemplo, ampliando la tabla `UserSettings` o creando una tabla `AuraSettings` asociada al usuario), evitando que sean solo estados volátiles de la interfaz.
+*   **Factibilidad y Selección de Modelos Inteligentes:**
+    *   *Opción Local (Ollama):* Evaluar la viabilidad de descargar y ejecutar un modelo sumamente liviano (ej. Gemini Nano local mediante APIs nativas, o modelos de Ollama de 1.5B o 3B como `Llama-3.2:1b` o `Qwen2.5:1.5b` o `Gemma-2:2b`) para garantizar velocidad extrema y compatibilidad de procesamiento local en hardware limitado.
+    *   *Opción Cloud:* Permitir la selección del motor oficial de Gemini (vía clave API de Google) de forma que el usuario pueda usar la potencia de `gemini-1.5-flash` o `gemini-1.5-pro` directamente si así lo desea.
+*   **Controladores Activos de Escritura Directa:** Si el usuario deshabilita "Escritura Directa" en la UI, Aura debe rechazar amigablemente cualquier intento de registro en Telegram, respondiendo con un mensaje guiado e indicando la ruta exacta dentro del panel web de Ajustes para activarlo.
+*   **Filtros Dinámicos de Habilidades (Skills) y Tono:**
+    *   *Skills:* Si un skill (ej. Salud) está inactivo, interceptar las peticiones en Quid-App para que Aura decline la solicitud y responda que dicha habilidad se encuentra apagada en la aplicación principal.
+    *   *Tono:* Inyectar de manera dinámica el tono configurado por el usuario (Amigable, Profesional, Sarcástico, etc.) directamente en el `systemPrompt` que recibe el LLM.
 
 ---
 
@@ -467,6 +475,10 @@ Falta para considerarlo 100%:
 - Guardrails: Aura no debe consultar cripto/precios externos cuando la intención claramente pertenece a QUID.
 - Aura no debe escribir datos incompletos ni inventar cuenta, tarjeta, categoría, vehículo o medicamento.
 - Salud en Aura debe ser educativa y segura: explicar para qué sirve un medicamento, efectos secundarios, cómo tomarlo y advertencias, sin reemplazar diagnóstico médico.
+- **Persistencia de Ajustes en DB:** Guardar el modelo LLM, permisos de escritura, toggles de skills y tono en `UserSettings` o en una tabla de configuración dedicada.
+- **Factibilidad de Modelos Livianos:** Probar la ejecución de modelos locales muy pequeños y eficientes (ej. `Llama-3.2:1b`, `Qwen2.5:1.5b` o `Gemma-2:2b`) para agilizar respuestas locales en Ollama o explorar la vinculación directa con el SDK web de Gemini para procesar en cliente/nube de forma optimizada.
+- **Validación de Escritura Directa:** Si "Permisos de escritura directa" está desactivado, Aura en Telegram bloqueará la creación de registros y redirigirá al usuario con la ruta exacta de configuración.
+- **Filtros de Skills y Tono:** Deshabilitar los skills no marcados en Ajustes y modificar el comportamiento conversacional agregando el tono elegido en el prompt principal.
 
 ### B.2 Salud 2.0
 **Estado:** `75%`

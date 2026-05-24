@@ -1250,7 +1250,7 @@ export function BudgetsView() {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                     </span>
                     <h3 className="text-sm font-bold bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent flex items-center gap-1.5 dark:from-indigo-400 dark:to-violet-400">
-                      Gastos Excluidos (Chucherías y Antojos)
+                      Gastos Excluidos del Presupuesto
                     </h3>
                   </div>
                   <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 font-semibold border-0">
@@ -1268,7 +1268,7 @@ export function BudgetsView() {
                       className="overflow-hidden mt-3"
                     >
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
-                        Estos gastos están marcados como excluidos de tu presupuesto. Sirve para ver cuánto llevas gastado este mes en antojos o compras extraordinarias sin afectar tus metas.
+                        Estos gastos están marcados como excluidos de tu presupuesto. Sirve para ver cuánto llevas gastado este mes en compras extraordinarias u otros conceptos sin afectar tus metas.
                       </p>
 
                       <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
