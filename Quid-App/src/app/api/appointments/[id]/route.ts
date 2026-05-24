@@ -100,7 +100,45 @@ export async function PUT(
       data: updateData,
     });
 
-    return NextResponse.json(appointment);
+    // Obtener saldos actualizados para sincronización local
+    const updatedBalances: Array<{ id: string; name: string; balance: number; isSubAccount: boolean }> = [];
+    const targetAccountId = accountId || existing.accountId;
+    const targetSubAccountId = subAccountId || existing.subAccountId;
+
+    if (targetSubAccountId) {
+      const updatedSub = await db.subAccount.findUnique({
+        where: { id: targetSubAccountId },
+        select: { balance: true, name: true, account: { select: { name: true } } },
+      });
+      if (updatedSub) {
+        const { toNumber } = await import("@/lib/decimal-serializer");
+        updatedBalances.push({
+          id: targetSubAccountId,
+          name: `${updatedSub.account.name} → ${updatedSub.name}`,
+          balance: toNumber(updatedSub.balance),
+          isSubAccount: true,
+        });
+      }
+    } else if (targetAccountId) {
+      const updatedAcc = await db.account.findUnique({
+        where: { id: targetAccountId },
+        select: { balance: true, name: true },
+      });
+      if (updatedAcc) {
+        const { toNumber } = await import("@/lib/decimal-serializer");
+        updatedBalances.push({
+          id: targetAccountId,
+          name: updatedAcc.name,
+          balance: toNumber(updatedAcc.balance),
+          isSubAccount: false,
+        });
+      }
+    }
+
+    return NextResponse.json({
+      ...appointment,
+      updatedBalances,
+    });
   } catch (error) {
     console.error("Update appointment error:", error);
     return NextResponse.json({ error: "Error al actualizar cita" }, { status: 500 });
@@ -130,9 +168,41 @@ export async function DELETE(
     // Revertir y borrar cualquier copago o registro financiero antes de eliminar
     await reverseHealthFinanceEntry(id, session.user.id);
 
+    // Obtener saldos actualizados después de revertir para sincronización local
+    const updatedBalances: Array<{ id: string; name: string; balance: number; isSubAccount: boolean }> = [];
+    if (existing.subAccountId) {
+      const updatedSub = await db.subAccount.findUnique({
+        where: { id: existing.subAccountId },
+        select: { balance: true, name: true, account: { select: { name: true } } },
+      });
+      if (updatedSub) {
+        const { toNumber } = await import("@/lib/decimal-serializer");
+        updatedBalances.push({
+          id: existing.subAccountId,
+          name: `${updatedSub.account.name} → ${updatedSub.name}`,
+          balance: toNumber(updatedSub.balance),
+          isSubAccount: true,
+        });
+      }
+    } else if (existing.accountId) {
+      const updatedAcc = await db.account.findUnique({
+        where: { id: existing.accountId },
+        select: { balance: true, name: true },
+      });
+      if (updatedAcc) {
+        const { toNumber } = await import("@/lib/decimal-serializer");
+        updatedBalances.push({
+          id: existing.accountId,
+          name: updatedAcc.name,
+          balance: toNumber(updatedAcc.balance),
+          isSubAccount: false,
+        });
+      }
+    }
+
     await db.medicalAppointment.delete({ where: { id } });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, updatedBalances });
   } catch (error) {
     console.error("Delete appointment error:", error);
     return NextResponse.json({ error: "Error al eliminar cita" }, { status: 500 });

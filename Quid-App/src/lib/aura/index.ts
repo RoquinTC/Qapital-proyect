@@ -953,7 +953,7 @@ async function createTransactionFromAura(userId: string, text: string, options: 
             `- Categoría: ${categoryDisplay}`,
             `- Fecha: ${formatDate(date)}`,
             "",
-            "Responde CONFIRMAR para guardarla o CANCELAR para descartarla.",
+            "Responde CONFIRMAR para guardarla o CANCELAR para descartarla. O cambia la categoría con el botón ✏️ Categoría abajo.",
           ].join("\n"),
           action: {
             type: "proposal",
@@ -1006,7 +1006,7 @@ async function createTransactionFromAura(userId: string, text: string, options: 
         `- Categoría: ${categoryDisplay}`,
         `- Fecha: ${formatDate(parseRecordDate(text))}`,
         "",
-        "Responde CONFIRMAR para guardarlo o CANCELAR para descartarlo.",
+        "Responde CONFIRMAR para guardarlo o CANCELAR para descartarlo. O cambia la categoría con el botón ✏️ Categoría abajo.",
       ].join("\n"),
       action: {
         type: "proposal",

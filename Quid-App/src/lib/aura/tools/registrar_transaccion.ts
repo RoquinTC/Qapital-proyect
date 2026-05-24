@@ -127,6 +127,37 @@ async function findCategoryAndSubcategoryFromText(text: string, userId: string) 
     }
   }
 
+  // 5. Mapeo de palabras clave contextuales como fallback de corrección
+  if (/\b(gasolina|tanqueo|combustible|peaje|peajes|transporte|moto|carro|uber|didi|cabify|taxi|soat)\b/.test(normalized)) {
+    const isFuel = /\b(gasolina|tanqueo|combustible)\b/.test(normalized);
+    return { category: "Transporte", subCategory: isFuel ? "Combustible" : null };
+  }
+  if (/\b(papeleria|papelería|cuaderno|esfero|lapiz|impresion|impresiones|copias)\b/.test(normalized)) {
+    return { category: "Otros", subCategory: "Papelería" };
+  }
+  if (/\b(mercado|supermercado|comida|despensa|restaurante|almuerzo|cena|desayuno|pan|leche|cafe|cafeteria|domicilio|rappicard|rappi)\b/.test(normalized)) {
+    const isRest = /\b(restaurante|almuerzo|cena|desayuno|cafe|cafeteria|domicilio)\b/.test(normalized);
+    return { category: "Alimentación", subCategory: isRest ? "Restaurantes" : "Supermercado" };
+  }
+  if (/\b(medicina|medico|médico|cita|salud|drogueria|farmacia|pastillas|eps|clinica|hospital)\b/.test(normalized)) {
+    return { category: "Salud", subCategory: null };
+  }
+  if (/\b(arriendo|renta|servicio|internet|luz|agua|gas|hogar|casa|apartamento)\b/.test(normalized)) {
+    return { category: "Servicios", subCategory: null };
+  }
+  if (/\b(cine|pelicula|concierto|bar|cerveza|cervezas|fiesta|rumba|juego|juegos|netflix|spotify|disney|hbo|streaming)\b/.test(normalized)) {
+    return { category: "Entretenimiento", subCategory: null };
+  }
+  if (/\b(ropa|camisa|pantalon|zapatos|vestido|chaqueta|tienda)\b/.test(normalized)) {
+    return { category: "Ropa", subCategory: null };
+  }
+  if (/\b(cuota|tarjeta|prestamo|préstamo|banco|intereses)\b/.test(normalized)) {
+    return { category: "Deudas", subCategory: null };
+  }
+  if (/\b(ahorro|ahorrar|inversion|alcancia|bolsillo)\b/.test(normalized)) {
+    return { category: "Ahorros", subCategory: null };
+  }
+
   return null;
 }
 
@@ -262,7 +293,7 @@ export async function updateTransactionProposal(
       `- Categoría: ${categoryDisplay}`,
       `- Fecha: ${dateText || "Hoy"}`,
       "",
-      "¿Está todo correcto ahora? Responde CONFIRMAR para guardarlo o CANCELAR para descartarlo.",
+      "¿Está todo correcto ahora? Responde CONFIRMAR para guardarlo o CANCELAR para descartarlo. O cambia la categoría con el botón ✏️ Categoría abajo.",
     ].join("\n"),
     action: {
       type: "proposal" as const,

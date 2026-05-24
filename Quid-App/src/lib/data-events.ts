@@ -104,6 +104,15 @@ function getRelatedTables(url: string, tableName: string | null): string[] {
   const cleanUrl = url.split("?")[0];
   const related = new Set<string>();
 
+  if (tableName === "appointments") {
+    related.add("transactions");
+    related.add("accounts");
+    related.add("subAccounts");
+    related.add("budgets");
+    related.add("debts");
+    related.add("installments");
+  }
+
   if (tableName === "transactions") {
     related.add("accounts");
     related.add("subAccounts");

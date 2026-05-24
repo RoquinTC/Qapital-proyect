@@ -94,6 +94,17 @@ export interface MaintenanceItem {
   createdAt?: string;
 }
 
+export interface MaintenanceServiceRule {
+  id?: string;
+  typeKey: string;
+  name: string;
+  intervalKm?: number | null;
+  intervalMonths?: number | null;
+  warningKm?: number | null;
+  isActive: boolean;
+  isDefault?: boolean;
+}
+
 export interface VehicleDocument {
   id: string;
   vehicleId: string;
@@ -181,7 +192,7 @@ export const DOCUMENT_TYPES = [
 // ─── Maintenance Types (expanded) ───
 
 export const MAINTENANCE_TYPES = [
-  { value: "oil_change", label: "Cambio de aceite", nextKmInterval: 5000, nextMonthInterval: 6 },
+  { value: "oil_change", label: "Cambio de aceite", nextKmInterval: 2500, nextMonthInterval: 6 },
   { value: "tire_change", label: "Cambio de llantas", nextKmInterval: 40000, nextMonthInterval: 24 },
   { value: "brake_service", label: "Servicio de frenos", nextKmInterval: 20000, nextMonthInterval: 12 },
   { value: "general", label: "Revisión general", nextKmInterval: 10000, nextMonthInterval: 12 },

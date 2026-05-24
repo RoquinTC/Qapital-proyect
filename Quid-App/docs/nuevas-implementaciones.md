@@ -346,3 +346,212 @@ Se han implementado transacciones financieras ACID cruzadas y robustas que conec
 2.  **QA Responsive y PWA:** Realizar auditoría visual fina en viewports pequeños (360px a 390px) para las vistas complejas de Transporte (Placas de vehículos) y Salud (Alertas farmacológicas).
 3.  **Entregas Parciales en Salud:** Desarrollar el control lógico de medicamentos debidos por farmacia en órdenes multi-mes.
 
+---
+
+# Auditoría vigente Codex - 2026-05-24
+
+> Esta sección reemplaza como fuente de verdad los porcentajes anteriores del documento. Un punto solo se considera **100% cumplido** cuando el código existe, está integrado en UI/API, conserva la contabilidad entre módulos, y queda pendiente únicamente de prueba funcional del usuario.
+
+## A. Completado funcional, pendiente de prueba fina del usuario
+
+### A.1 PostgreSQL / Oracle
+**Estado:** `100% aplicado - pendiente de monitoreo operativo`
+
+- PostgreSQL ya es la base principal y Oracle ya fue migrado.
+- Queda como rutina obligatoria antes de nuevos despliegues: `npm run lint`, `npm test`, `npm run build`, `docker compose build quid-app`, `docker compose up -d quid-app`, revisión de logs y consola del navegador.
+- El archivo SQLite anterior debe seguir archivado como respaldo histórico, no eliminado.
+
+### A.2 Panel Admin básico
+**Estado:** `85%`
+
+Cumplido:
+- Acceso condicionado por administrador.
+- Listado de usuarios.
+- Conteos por módulo.
+- Borrado de usuario probado localmente por el usuario.
+- Auditoría básica de huérfanos.
+
+Falta para considerarlo 100%:
+- Bitácora de acciones admin: quién borró, qué borró, cuándo y resultado.
+- Panel de salud del sistema: estado PostgreSQL, versión/build, `OLLAMA_URL`, `AURA_API_KEY`, `CRON_SECRET`, último cron exitoso y último digest de Aura.
+- Doble confirmación más explícita para acciones destructivas en producción.
+
+### A.3 Transporte 2.0
+**Estado:** `93%`
+
+Cumplido:
+- Tabs principales: resumen, combustible, mantenimiento y recordatorios.
+- Placa en vehículo.
+- Widget visual de tanque/combustible.
+- Registro de combustible con pago por cuenta o tarjeta.
+- Mantenimiento tipo carrito con ítems, precios y catálogo reutilizable.
+- Recordatorios por fecha, kilometraje o ambos.
+- Sincronización de recordatorios cuando se registra mantenimiento con kilometraje actual.
+- Parámetros editables de mantenimiento por usuario (`/api/vehicles/maintenance/rules`): cada servicio puede definir intervalo por kilometraje, meses, aviso previo y si genera recordatorio automático. Esto evita valores quemados como aceite cada 5000 km y permite configurar aceite, bujías, llantas, balanceo, etc. desde la UI de Transporte.
+
+Falta para considerarlo 100%:
+- Prueba real de notificaciones push con app cerrada en Android.
+- QA visual en móviles pequeños para tabs, tarjetas y detalle del vehículo.
+- Confirmar que todos los reversos de combustible/mantenimiento restauran saldo, deuda y presupuesto en todos los escenarios.
+- Validar con datos reales que al cambiar un intervalo, el siguiente mantenimiento registrado cree el recordatorio con el nuevo kilometraje esperado.
+
+### A.4 Fondo de emergencia inteligente
+**Estado:** `95%`
+
+Cumplido:
+- Calcula meta usando ingresos reales y gastos fijos mediante reglas de categoría/subcategoría.
+- Permite configurar meses, frecuencia, cuenta de aporte y estructura similar a crear meta.
+- Crea la meta/recurrente con datos más controlados.
+
+Falta para considerarlo 100%:
+- Validar con datos reales que las reglas marcadas como `Ingreso real` y `Gasto fijo` eliminan ingresos inflados por transferencias.
+- Mostrar en UI una explicación auditable: ingresos considerados, gastos fijos considerados y exclusiones aplicadas.
+
+### A.5 Presupuesto, exclusiones y tarjetas
+**Estado:** `90%`
+
+Cumplido:
+- Transacciones pueden excluirse del presupuesto.
+- Hay endpoint para transacciones excluidas.
+- Hay bloque visual de excluidos en presupuesto.
+- Hay bloque de movimientos sin clasificar.
+- Compras con tarjeta desde módulos como transporte/despensa impactan la categoría real de la compra, no una categoría genérica de deuda.
+
+Falta para considerarlo 100%:
+- Auditar todos los flujos de escritura: finanzas, recurrentes, transporte, salud, despensa, Aura y compras directas con TC.
+- Evitar lenguaje demasiado específico como "Chucherías y Antojos" para cualquier transacción excluida; debe ser neutral: "Excluidos del presupuesto".
+- Definir si las categorías/subcategorías siguen siendo la base del presupuesto o si se simplifica a categorías con opción de excluir por movimiento.
+- Validar que pagos de tarjeta y transferencias internas nunca dupliquen presupuesto.
+- Añadir resumen por periodo: gasto total, presupuestado, no presupuestado, excluido y por clasificar.
+- Ajustar colores: 100% usado no siempre es malo; rojo debe reservarse para sobrepasar presupuesto.
+
+### A.6 Despensa / mercado conectado a Finanzas
+**Estado:** `85%`
+
+Cumplido:
+- Inventario base.
+- Listas de mercado.
+- Confirmación de compra con cuenta/subcuenta o tarjeta.
+- Impacto financiero en `Alimentación / Mercado`.
+- Actualización de presupuesto e inventario al confirmar.
+
+Falta para considerarlo 100%:
+- Reversar/anular una lista ya confirmada restaurando inventario, saldo/deuda y presupuesto.
+- Conversión de unidades con historial de precio: kg, libra, gramo, unidad.
+- Recetas conectadas de forma más fuerte con stock ideal, faltantes y perfiles de salud.
+- QA de confirmación con tarjeta en varias cuotas.
+
+## B. Implementado parcial, prioridad alta
+
+### B.1 Aura como asistente real con herramientas
+**Estado:** `50%`
+
+Cumplido:
+- Chat interno/API.
+- Integración Telegram por `telegramId`.
+- Conexión con Ollama/Hermes.
+- Digest básico.
+- Algunas herramientas ya empezaron a separarse en `src/lib/aura/tools`: `registrar_transaccion.ts` y `registrar_tanqueo.ts`.
+- Aura puede leer partes del contexto y hacer algunos registros básicos.
+- Telegram ya responde y puede proponer registros con botones de cuenta.
+- El endpoint `/api/aura/categories` fue ajustado para priorizar categorías reales del usuario y no imprimir secretos en consola.
+
+Falta para considerarlo 100%:
+- Crear gateway formal `/api/aura/tools`.
+- Definir JSON Schemas de herramientas.
+- Máquina de estados de confirmación: propuesta -> botones/opciones -> confirmar/cancelar -> escritura real.
+- Botones en Telegram y chat interno para elegir cuenta, tarjeta, categoría, vehículo, medicamento, fecha y cuotas.
+- Corregir en el bot externo el consumo del endpoint de categorías para que el botón `Categorías` pinte las categorías/subcategorías reales devueltas por Quid, no una lista genérica interna.
+- Skills de lectura: saldos, gastos por rango, ingresos reales, transferencias, presupuestos, deudas/TC, cuotas, CDTs, metas, recurrentes, planner, transporte, salud, despensa.
+- Skills de escritura: gasto, ingreso, transferencia, abono a deuda/TC, compra con TC, recarga combustible, mantenimiento, mercado, cita, copago, medicamento, orden médica, recordatorio.
+- Guardrails: Aura no debe consultar cripto/precios externos cuando la intención claramente pertenece a QUID.
+- Aura no debe escribir datos incompletos ni inventar cuenta, tarjeta, categoría, vehículo o medicamento.
+- Salud en Aura debe ser educativa y segura: explicar para qué sirve un medicamento, efectos secundarios, cómo tomarlo y advertencias, sin reemplazar diagnóstico médico.
+
+### B.2 Salud 2.0
+**Estado:** `75%`
+
+Cumplido:
+- Medicamentos con inventario, dosis y horarios.
+- Vista de inventario.
+- Recomendaciones con apoyo de IA.
+- Citas médicas.
+- Copagos conectados a Finanzas.
+- Órdenes médicas básicas con ítems, cantidad ordenada, entregada y pendiente.
+- Al completar una cita, la UI ahora debe pedir si hubo copago/gasto, permitir editar valor y escoger cuenta o tarjeta para enviar el movimiento a Finanzas.
+
+Falta para considerarlo 100%:
+- Flujo completo de entregas parciales por farmacia/EPS: dosis actual, pendientes actuales y próximas entregas.
+- Adjuntos/fotos de orden médica o comprobante.
+- Recordatorios de reclamación futura.
+- Desde una cita completada, crear orden médica y futuras citas derivadas.
+- Validar reversos financieros de copago en edición/eliminación.
+- Ampliar Aura Salud con base de conocimiento controlada y mensajes de seguridad.
+- Ampliar catálogo/autocompletado de medicamentos con una fuente más completa y controlada. No basta con agregar una lista manual corta: se necesita estrategia de dataset/API/cache local para nombres comerciales, principios activos y variantes difíciles de escribir.
+
+### B.3 Notificaciones proactivas / PWA / Oracle
+**Estado:** `70%`
+
+Cumplido:
+- Web Push y suscripción existen.
+- Endpoint de recordatorios de servidor existe.
+- Digest de Aura existe.
+- Hay infraestructura para cron mediante secreto.
+
+Falta para considerarlo 100%:
+- Prueba real en Android con app cerrada.
+- Registrar último cron exitoso.
+- Mostrar estado de cron/push en panel admin.
+- Confirmar que Oracle ejecuta cron de pagos, transporte, salud, despensa y digest Aura.
+- Definir expectativas PWA vs APK: PWA sirve para push estándar; sonidos personalizados fuertes, widgets Android o integraciones nativas profundas quedan para fase APK/nativa.
+
+### B.4 Responsive/PWA multi-dispositivo
+**Estado:** `65%`
+
+Cumplido:
+- Varias pantallas ya usan `h-dvh`, `overflow-y-auto`, `pb-safe` y scroll interno.
+- Sidebar ya tiene header fijo, contenido scrolleable y logout fijo.
+
+Falta para considerarlo 100%:
+- Auditoría visual con capturas Playwright en 360x800, 390x844, 768x1024 y desktop.
+- Revisar formularios largos, dialogs, sheets, tabs y bottom nav.
+- Validar que nada queda recortado al final de la pantalla.
+- Reducir escalas visuales donde números/cards se ven sobredimensionados en móviles tipo Redmi.
+- Permitir zoom del usuario si todavía existe configuración que lo bloquee.
+
+## C. Nuevo requerimiento: Ajustes clasificados por módulo
+
+**Estado:** `0% - pendiente de implementación`
+
+Problema actual:
+- La pantalla `Ajustes` está centralizada en `src/components/settings/settings-page.tsx` y mezcla ajustes generales, Aura, admin, seguridad, finanzas, cuentas, categorías, cargue de datos, respaldo, logros y gestión destructiva.
+- El sidebar solo tiene una entrada global llamada `Ajustes`.
+- Esto ya no escala porque QUID tiene módulos grandes con configuraciones propias.
+
+Objetivo:
+- Reorganizar el menú de ajustes para que cada módulo tenga su propia sección de configuración.
+
+Propuesta de estructura:
+- **Ajustes generales:** tema, color de acento, seguridad, push, respaldo, cuenta, invitación, actualización/PWA.
+- **Ajustes de Finanzas:** día de corte, festivos, categorías/subcategorías, reglas de ingreso real/gasto fijo, exclusiones, presupuesto, importación financiera, cuentas, deudas, CDTs, metas.
+- **Ajustes de Transporte:** precio combustible, recordatorios de mantenimiento, documentos, parámetros de tanque/rendimiento, catálogos de servicios.
+- **Ajustes de Salud:** horarios de medicamentos, inventario, recomendaciones, órdenes, recordatorios, privacidad clínica.
+- **Ajustes de Despensa:** stock ideal, unidades, conversión, perfiles alimentarios, recetas, lista de mercado.
+- **Ajustes de Aura:** Telegram, modelo, herramientas habilitadas, permisos de escritura, digest diario, tono/frecuencia de mensajes.
+- **Ajustes Admin:** usuarios, huérfanos, salud del sistema, bitácora.
+
+Criterio de éxito:
+- Desde el sidebar se puede entrar a `Ajustes` y ver navegación por categorías/módulos.
+- Al abrir Finanzas dentro de Ajustes solo se muestran opciones financieras.
+- Las acciones destructivas quedan separadas de las configuraciones normales.
+- En móvil, el panel de ajustes no se vuelve una lista infinita difícil de recorrer.
+
+## D. Próximo orden recomendado de implementación
+
+1. **Cerrar presupuesto y exclusiones:** neutralizar lenguaje, terminar resumen por periodo y auditar todos los flujos con TC/recurrentes/salud/despensa/Aura.
+2. **Reorganizar Ajustes por módulo:** separar UI y componentes antes de que crezca más.
+3. **Aura tools v1:** gateway, schemas, confirmación con botones y skills financieras principales.
+4. **Notificaciones reales:** cron observable en admin y prueba Android con app cerrada.
+5. **Salud entregas parciales:** pendientes actuales/futuros, adjuntos y recordatorios.
+6. **Responsive QA:** capturas automatizadas y correcciones por viewport.
+7. **Despensa avanzada:** reversos, conversión de unidades y recetas con faltantes.

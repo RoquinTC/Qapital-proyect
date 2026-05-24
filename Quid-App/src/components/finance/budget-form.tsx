@@ -23,7 +23,8 @@ import {
 import { apiFetch, formatCurrency, calcPercentage } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import { SubCategorySelector } from "./subcategory-selector";
-import type { CategoryData } from "@/lib/types";
+import { Switch } from "@/components/ui/switch";
+import type { CategoryData, Budget } from "@/lib/types";
 
 interface BudgetFormProps {
   open: boolean;
@@ -43,11 +44,13 @@ interface BudgetFormProps {
     type: string;
     suggestedAmount?: number;
   } | null;
+  existingBudgets?: Budget[];
   onSuccess?: () => void;
 }
 
-export function BudgetForm({ open, onOpenChange, budget, prefilledCategory, onSuccess }: BudgetFormProps) {
+export function BudgetForm({ open, onOpenChange, budget, prefilledCategory, existingBudgets, onSuccess }: BudgetFormProps) {
   const [loading, setLoading] = useState(false);
+  const [sumIfExists, setSumIfExists] = useState(false);
   const [type, setType] = useState(budget?.type || prefilledCategory?.type || "expense");
   const [category, setCategory] = useState(budget?.category || prefilledCategory?.category || "");
   const [customCategory, setCustomCategory] = useState("");
@@ -60,6 +63,22 @@ export function BudgetForm({ open, onOpenChange, budget, prefilledCategory, onSu
   const [categories, setCategories] = useState<CategoryData[]>([]);
 
   const isEditing = !!budget;
+
+  const finalCategory = useCustom ? customCategory : category;
+  const duplicateBudget = existingBudgets?.find(
+    (b) =>
+      b.type === type &&
+      b.category.toLowerCase() === finalCategory.toLowerCase() &&
+      (b.subCategory || "").toLowerCase() === (subCategory || "").toLowerCase()
+  );
+
+  useEffect(() => {
+    if (duplicateBudget) {
+      setSumIfExists(true);
+    } else {
+      setSumIfExists(false);
+    }
+  }, [duplicateBudget]);
 
   // Get subcategories for current category
   const currentCategoryData = categories.find((c) => c.name === category);
@@ -150,7 +169,10 @@ export function BudgetForm({ open, onOpenChange, budget, prefilledCategory, onSu
       } else {
         await apiFetch("/api/budgets", {
           method: "POST",
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            ...data,
+            sumIfExists,
+          }),
         });
       }
 
@@ -283,6 +305,30 @@ export function BudgetForm({ open, onOpenChange, budget, prefilledCategory, onSu
             <Label>Monto Presupuestado</Label>
             <CurrencyInput value={amount} onChange={setAmount} showPrefix placeholder="0" className="rounded-xl h-12" />
           </div>
+
+          {/* Sum If Exists warning/panel */}
+          {!isEditing && duplicateBudget && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl space-y-2">
+              <p className="text-xs text-amber-800 dark:text-amber-300 font-medium">
+                Ya existe un presupuesto de {formatCurrency(duplicateBudget.amount)} para esta categoría.
+              </p>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-amber-950 dark:text-amber-200 cursor-pointer" htmlFor="sum-switch">
+                  ¿Deseas sumar este monto al presupuesto existente?
+                </Label>
+                <Switch
+                  id="sum-switch"
+                  checked={sumIfExists}
+                  onCheckedChange={setSumIfExists}
+                />
+              </div>
+              {sumIfExists && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  El nuevo límite del presupuesto será {formatCurrency(duplicateBudget.amount + (parseFloat(amount) || 0))}.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Preview bar */}
           {amount && (

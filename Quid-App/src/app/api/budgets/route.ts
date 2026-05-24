@@ -30,6 +30,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
+    // Read sumIfExists from cloned request to not consume the stream
+    const cloneReq = req.clone();
+    let sumIfExists = false;
+    try {
+      const raw = await cloneReq.json();
+      sumIfExists = raw.sumIfExists === true;
+    } catch (e) {
+      // Ignore JSON parse errors here; validateBody will handle them
+    }
+
     const body = await validateBody(req, budgetCreateSchema);
     const { type, category, subCategory, amount, period, icon, color } = body;
 
@@ -48,6 +58,15 @@ export async function POST(req: NextRequest) {
     });
 
     if (existing) {
+      if (sumIfExists) {
+        const budget = await db.budget.update({
+          where: { id: existing.id },
+          data: {
+            amount: { increment: amount },
+          },
+        });
+        return NextResponse.json(budget, { status: 200 });
+      }
       return NextResponse.json({ error: "Ya existe un presupuesto para esta categoría" }, { status: 409 });
     }
 

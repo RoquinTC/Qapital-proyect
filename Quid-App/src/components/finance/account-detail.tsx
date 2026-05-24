@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { apiFetch, formatCurrency, formatDate, parseLocalDate, toColombiaDateString, calculateProportionalYield, getDaysInMonth } from "@/lib/api";
 import { useLocalSingleQuery } from "@/lib/local/hooks/queries";
+import { useDataEvent } from "@/hooks/use-data-event";
 import { AccountCard } from "./account-card";
 import { AccountForm } from "./account-form";
 import { SubAccountForm } from "./sub-account-form";
@@ -235,6 +236,18 @@ export function AccountDetail() {
     selectedAccountId,
     "accounts"
   );
+
+  useDataEvent("transactions", () => {
+    fetchTransactions();
+    fetchAccount();
+    if (expandedSubAccount) {
+      fetchSubTransactions(expandedSubAccount);
+    }
+  });
+
+  useDataEvent("accounts", () => {
+    fetchAccount();
+  });
 
   // Fetch user settings for budgetCutoffDay
   useEffect(() => {

@@ -40,17 +40,41 @@ interface AppointmentFormProps {
 }
 
 const specialtyOptions = [
+  "Alergología",
+  "Anestesiología",
+  "Audiología",
+  "Cirugía General",
+  "Cirugía Maxilofacial",
+  "Cirugía Plástica",
   "Medicina General",
   "Cardiología",
+  "Coloproctología",
   "Dermatología",
   "Endocrinología",
+  "Fisiatría",
+  "Fisioterapia",
   "Gastroenterología",
+  "Genética",
+  "Geriatría",
   "Ginecología",
+  "Hematología",
+  "Infectología",
+  "Medicina Interna",
+  "Nefrología",
+  "Neumología",
   "Neurología",
+  "Nutrición",
+  "Odontología",
   "Oftalmología",
+  "Oncología",
   "Ortopedia",
+  "Otorrinolaringología",
   "Pediatría",
+  "Psicología",
   "Psiquiatría",
+  "Radiología",
+  "Reumatología",
+  "Terapia Ocupacional",
   "Traumatología",
   "Urología",
   "Otra",
@@ -212,7 +236,7 @@ export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: 
               className="rounded-xl"
             />
             <p className="text-xs text-gray-500">
-              Por ahora queda registrado en salud; luego lo conectamos al movimiento financiero con confirmación.
+              Al completar la cita podrás confirmar si realmente hubo copago, editar el valor y escoger cuenta o tarjeta.
             </p>
           </div>
 

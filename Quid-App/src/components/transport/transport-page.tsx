@@ -16,6 +16,7 @@ import { FuelLogForm } from "./fuel-log-form";
 import { MaintenanceForm } from "./maintenance-form";
 import { VehicleDocumentForm } from "./vehicle-document-form";
 import { VehicleReminderForm } from "./vehicle-reminder-form";
+import { MaintenanceRulesDialog } from "./maintenance-rules-dialog";
 import { FuelPriceWidget } from "./fuel-price-widget";
 import { QuickKmUpdate } from "./quick-km-update";
 import { VehicleIcon } from "./vehicle-icon";
@@ -205,6 +206,7 @@ export function TransportPage() {
   const [showReminderForm, setShowReminderForm] = useState(false);
   const [editReminder, setEditReminder] = useState<VehicleReminder | null>(null);
   const [showFuelPriceDialog, setShowFuelPriceDialog] = useState(false);
+  const [showMaintenanceRules, setShowMaintenanceRules] = useState(false);
   const [showKmUpdate, setShowKmUpdate] = useState(false);
 
   // Fuel status card expanded state
@@ -847,6 +849,17 @@ export function TransportPage() {
             );
           })}
         </div>
+
+        {transportTab === "reminders" && (
+          <button
+            type="button"
+            onClick={() => setShowMaintenanceRules(true)}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-100 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-300 dark:hover:bg-cyan-950/50"
+          >
+            <Settings className="size-3.5" />
+            Configurar cada cuántos km se repite cada mantenimiento
+          </button>
+        )}
       </div>
 
       {/* ─── Timeline Content ──────────────────────────────────── */}
@@ -1679,6 +1692,10 @@ export function TransportPage() {
               <Settings className="size-4 mr-2 text-blue-500" />
               Precio Combustible
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowMaintenanceRules(true)}>
+              <Settings className="size-4 mr-2 text-cyan-500" />
+              Intervalos Mantenimiento
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => { setEditVehicle(null); setShowVehicleForm(true); }}>
               <Car className="size-4 mr-2 text-emerald-500" />
               Nuevo Vehículo
@@ -1730,6 +1747,12 @@ export function TransportPage() {
         vehicleId={selectedVehicleId}
         currentKm={selectedVehicle?.currentKm}
         reminder={editReminder}
+        onSuccess={refetchVehicles}
+      />
+
+      <MaintenanceRulesDialog
+        open={showMaintenanceRules}
+        onOpenChange={setShowMaintenanceRules}
         onSuccess={refetchVehicles}
       />
 

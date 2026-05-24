@@ -7,6 +7,17 @@ import { AppointmentForm } from "./appointment-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { PaymentMethodSelector } from "@/components/transport/payment-method-selector";
+import {
   Plus,
   Stethoscope,
   CalendarCheck,
@@ -21,11 +32,14 @@ import {
   Clock,
   FileText,
   Wallet,
+  Loader2,
+  RotateCcw,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { formatDate } from "@/lib/api";
 import type { MedicalAppointment } from "@/lib/types";
+import type { PaymentMethodType } from "@/lib/types/transport";
 
 type Appointment = MedicalAppointment;
 
@@ -55,6 +69,7 @@ export function AppointmentsView() {
   const [showForm, setShowForm] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [completingAppointment, setCompletingAppointment] = useState<Appointment | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
 
   const fetchAppointments = useCallback(async () => {
@@ -100,11 +115,15 @@ export function AppointmentsView() {
     }
   };
 
-  const handleStatusChange = async (id: string, status: string) => {
+  const handleStatusChange = async (
+    id: string,
+    status: string,
+    payload?: Partial<Pick<Appointment, "copayAmount" | "accountId" | "subAccountId" | "debtId">>
+  ) => {
     try {
       await apiFetch(`/api/appointments/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, ...payload }),
       });
       fetchAppointments();
     } catch (error) {
@@ -133,16 +152,32 @@ export function AppointmentsView() {
   // Detail view
   if (selectedAppointment) {
     return (
-      <AppointmentDetail
-        appointment={selectedAppointment}
-        onBack={() => setSelectedAppointment(null)}
-        onEdit={() => handleEdit(selectedAppointment)}
-        onDelete={() => handleDelete(selectedAppointment.id)}
-        onStatusChange={(status) => {
-          handleStatusChange(selectedAppointment.id, status);
-          setSelectedAppointment(null);
-        }}
-      />
+      <>
+        <AppointmentDetail
+          appointment={selectedAppointment}
+          onBack={() => setSelectedAppointment(null)}
+          onEdit={() => handleEdit(selectedAppointment)}
+          onDelete={() => handleDelete(selectedAppointment.id)}
+          onCompleteRequest={() => setCompletingAppointment(selectedAppointment)}
+          onStatusChange={(status) => {
+            handleStatusChange(selectedAppointment.id, status);
+            setSelectedAppointment(null);
+          }}
+        />
+        <CompleteAppointmentDialog
+          appointment={completingAppointment}
+          open={!!completingAppointment}
+          onOpenChange={(open) => {
+            if (!open) setCompletingAppointment(null);
+          }}
+          onConfirm={async (payload) => {
+            if (!completingAppointment) return;
+            await handleStatusChange(completingAppointment.id, "completed", payload);
+            setCompletingAppointment(null);
+            setSelectedAppointment(null);
+          }}
+        />
+      </>
     );
   }
 
@@ -307,6 +342,134 @@ export function AppointmentsView() {
   );
 }
 
+function CompleteAppointmentDialog({
+  appointment,
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  appointment: Appointment | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (payload: {
+    copayAmount: number | null;
+    accountId: string | null;
+    subAccountId: string | null;
+    debtId: string | null;
+  }) => Promise<void>;
+}) {
+  const [hasCopay, setHasCopay] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [payment, setPayment] = useState<{
+    paymentType: PaymentMethodType;
+    accountId: string | null;
+    subAccountId: string | null;
+    debtId: string | null;
+    installmentCount: number | null;
+  }>({
+    paymentType: "account",
+    accountId: null,
+    subAccountId: null,
+    debtId: null,
+    installmentCount: null,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const numericAmount = amount ? Number(amount) : 0;
+  const needsPayment = hasCopay && numericAmount > 0;
+  const hasPaymentSource = payment.paymentType === "credit_card" ? !!payment.debtId : !!payment.accountId;
+
+  useEffect(() => {
+    if (!open) return;
+    setHasCopay(false);
+    setAmount("");
+    setPayment({
+      paymentType: "account",
+      accountId: null,
+      subAccountId: null,
+      debtId: null,
+      installmentCount: null,
+    });
+  }, [open, appointment?.id]);
+
+  const handleConfirm = async () => {
+    if (needsPayment && !hasPaymentSource) return;
+    setSaving(true);
+    try {
+      await onConfirm({
+        copayAmount: hasCopay ? numericAmount : null,
+        accountId: needsPayment ? payment.accountId : null,
+        subAccountId: needsPayment ? payment.subAccountId : null,
+        debtId: needsPayment && payment.paymentType === "credit_card" ? payment.debtId : null,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[95vw] sm:w-full sm:max-w-md rounded-2xl max-h-[90dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Completar cita médica</DialogTitle>
+          <DialogDescription>
+            Confirma si hubo copago o gasto médico para registrarlo correctamente en Finanzas.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/20 dark:text-rose-200">
+            {appointment?.specialty || "Cita médica"}
+            {appointment?.doctorName ? ` con ${appointment.doctorName}` : ""}
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
+            <div>
+              <Label className="text-sm">¿Generó copago o gasto?</Label>
+              <p className="text-xs text-gray-500">Si no pagaste nada, déjalo desactivado.</p>
+            </div>
+            <Switch checked={hasCopay} onCheckedChange={setHasCopay} />
+          </div>
+
+          {hasCopay && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="complete-copay">Valor pagado</Label>
+                <Input
+                  id="complete-copay"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Ej: 12000"
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value)}
+                  className="rounded-xl"
+                />
+              </div>
+
+              {numericAmount > 0 && (
+                <PaymentMethodSelector
+                  defaultPaymentType="account"
+                  onChange={setPayment}
+                />
+              )}
+            </>
+          )}
+
+          <Button
+            className="w-full rounded-xl bg-gradient-to-r from-rose-600 to-pink-500 hover:from-rose-700 hover:to-pink-600"
+            onClick={handleConfirm}
+            disabled={saving || (needsPayment && !hasPaymentSource)}
+          >
+            {saving ? <Loader2 className="size-4 animate-spin mr-2" /> : <CalendarCheck className="size-4 mr-2" />}
+            Completar cita
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Appointment detail sub-component
 function AppointmentDetail({
   appointment,
@@ -314,12 +477,14 @@ function AppointmentDetail({
   onEdit,
   onDelete,
   onStatusChange,
+  onCompleteRequest,
 }: {
   appointment: Appointment;
   onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onStatusChange: (status: string) => void;
+  onCompleteRequest: () => void;
 }) {
   const date = new Date(appointment.date);
   const statusLabels: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -448,23 +613,34 @@ function AppointmentDetail({
       </Card>
 
       {/* Status change buttons */}
-      {appointment.status === "scheduled" && (
+      {appointment.status === "scheduled" ? (
         <div className="flex gap-2">
           <Button
             variant="outline"
-            className="flex-1 rounded-xl border-emerald-200 text-emerald-600 hover:bg-emerald-50"
-            onClick={() => onStatusChange("completed")}
+            className="flex-1 rounded-xl border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-800/30 dark:hover:bg-emerald-950/20"
+            onClick={onCompleteRequest}
           >
             <CalendarCheck className="size-4 mr-1" />
             Completar
           </Button>
           <Button
             variant="outline"
-            className="flex-1 rounded-xl border-red-200 text-red-600 hover:bg-red-50"
+            className="flex-1 rounded-xl border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800/30 dark:hover:bg-red-950/20"
             onClick={() => onStatusChange("cancelled")}
           >
             <CalendarX className="size-4 mr-1" />
             Cancelar
+          </Button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1 rounded-xl border-amber-200 text-amber-600 hover:bg-amber-50 dark:border-amber-800/30 dark:hover:bg-amber-950/20"
+            onClick={() => onStatusChange("scheduled")}
+          >
+            <RotateCcw className="size-4 mr-1.5" />
+            Reversar Cita (Volver a Programar)
           </Button>
         </div>
       )}

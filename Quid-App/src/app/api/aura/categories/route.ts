@@ -25,12 +25,11 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const telegramId = searchParams.get("telegramId");
+    const includeDefaults = searchParams.get("includeDefaults") === "true";
     const headersList = await headers();
     const auraToken = headersList.get("x-aura-token");
     const isTrustedAuraClient =
       Boolean(process.env.AURA_API_KEY) && auraToken === process.env.AURA_API_KEY;
-
-    console.log(`[Aura Categories API] process.env.AURA_API_KEY: "${process.env.AURA_API_KEY}", auraToken: "${auraToken}", telegramId: "${telegramId}", isTrusted: ${isTrustedAuraClient}`);
 
     if (!isTrustedAuraClient || !telegramId) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -67,18 +66,12 @@ export async function GET(req: Request) {
     // Construir el mapa de categorías y subcategorías
     const map: Record<string, Set<string>> = {};
 
-    // 1. Agregar defaults
+    // 1. Defaults only when explicitly requested, or as fallback if the user has no data.
     const hiddenDefaults = new Set(
       customCategories
         .filter((c) => c.hidden)
         .map((c) => c.name)
     );
-
-    for (const cat of [...defaultExpenseCategories, ...defaultIncomeCategories]) {
-      if (!hiddenDefaults.has(cat)) {
-        if (!map[cat]) map[cat] = new Set();
-      }
-    }
 
     // 2. Agregar personalizadas
     for (const cc of customCategories) {
@@ -101,6 +94,15 @@ export async function GET(req: Request) {
         if (!map[t.category]) map[t.category] = new Set();
         if (t.subCategory) {
           map[t.category].add(t.subCategory);
+        }
+      }
+    }
+
+    const hasUserCategories = Object.keys(map).length > 0;
+    if (includeDefaults || !hasUserCategories) {
+      for (const cat of [...defaultExpenseCategories, ...defaultIncomeCategories]) {
+        if (!hiddenDefaults.has(cat)) {
+          if (!map[cat]) map[cat] = new Set();
         }
       }
     }

@@ -45,6 +45,7 @@ import {
   PencilLine,
   CirclePlus,
   Eye,
+  EyeOff,
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
@@ -165,6 +166,8 @@ export function BudgetsView() {
   const [viewMode, setViewMode] = useState<ViewMode>("compact");
   const [unclassified, setUnclassified] = useState<Transaction[]>([]);
   const [unclassifiedLoading, setUnclassifiedLoading] = useState(true);
+  const [excluded, setExcluded] = useState<Transaction[]>([]);
+  const [excludedLoading, setExcludedLoading] = useState(true);
 
   // Movement drill-down state
   const [categoryMovements, setCategoryMovements] = useState<Record<string, BudgetMovement[]>>({});
@@ -187,6 +190,17 @@ export function BudgetsView() {
     fetchUnbudgeted();
   }, [fetchUnbudgeted]);
 
+  const fetchExcluded = useCallback(async () => {
+    try {
+      const data = await apiFetch<Transaction[]>("/api/transactions/excluded");
+      setExcluded(data);
+    } catch (error) {
+      console.error("Error fetching excluded transactions:", error);
+    } finally {
+      setExcludedLoading(false);
+    }
+  }, []);
+
   const fetchUnclassified = useCallback(async () => {
     try {
       const data = await apiFetch<Transaction[]>("/api/transactions/unclassified");
@@ -200,7 +214,8 @@ export function BudgetsView() {
 
   useEffect(() => {
     fetchUnclassified();
-  }, [fetchUnclassified]);
+    fetchExcluded();
+  }, [fetchUnclassified, fetchExcluded]);
 
   const incomeBudgets = budgets.filter((b) => b.type === "income");
   const expenseBudgets = budgets.filter((b) => b.type === "expense");
@@ -215,6 +230,13 @@ export function BudgetsView() {
   const totalUnbudgetedIncome = unbudgeted
     .filter((u) => u.type === "income")
     .reduce((sum, u) => sum + u.totalSpent, 0);
+
+  const totalExcludedExpense = excluded
+    .filter((tx) => tx.type === "expense")
+    .reduce((sum, tx) => sum + Number(tx.amount), 0);
+  const totalExcludedIncome = excluded
+    .filter((tx) => tx.type === "income")
+    .reduce((sum, tx) => sum + Number(tx.amount), 0);
 
   const handleEdit = (budget: Budget) => {
     setEditingBudget(budget);
@@ -240,6 +262,7 @@ export function BudgetsView() {
       fetchBudgets();
       fetchUnbudgeted();
       fetchUnclassified();
+      fetchExcluded();
     } catch (error) {
       console.error("Error deleting budget:", error);
       toast.error("Error al eliminar presupuesto");
@@ -257,6 +280,7 @@ export function BudgetsView() {
       fetchBudgets();
       fetchUnbudgeted();
       fetchUnclassified();
+      fetchExcluded();
       setCategoryMovements({});
       setExpandedCategories({});
       toast.success("Presupuestos recalculados");
@@ -319,12 +343,63 @@ export function BudgetsView() {
     setShowTransactionForm(true);
   };
 
-  const handleTransactionSuccess = () => {
+  const refreshActiveData = useCallback(async (affectedCategory?: string, affectedType?: string) => {
+    // 1. Refresh main lists
     fetchBudgets();
     fetchUnbudgeted();
     fetchUnclassified();
-    setCategoryMovements({});
-    setExpandedCategories({});
+    fetchExcluded();
+
+    // 2. Refresh movements for the affected category if provided
+    if (affectedCategory) {
+      fetchCategoryMovements(affectedCategory, undefined, affectedType);
+    }
+
+    // 3. Also refresh movements for all other expanded categories to keep everything perfectly in sync!
+    Object.entries(expandedCategories).forEach(([key, isExpanded]) => {
+      if (isExpanded) {
+        const [type, cat] = key.split(":");
+        if (cat && (cat !== affectedCategory || type !== affectedType)) {
+          fetchCategoryMovements(cat, undefined, type);
+        }
+      }
+    });
+  }, [expandedCategories, fetchBudgets, fetchUnbudgeted, fetchUnclassified, fetchExcluded]);
+
+  const handleExcludeTransaction = async (txId: string, description: string, category?: string, type?: string) => {
+    try {
+      await apiFetch(`/api/transactions/${txId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          excludeFromBudget: true,
+        }),
+      });
+      toast.success(`Transacción "${description}" excluida del presupuesto`);
+      refreshActiveData(category, type);
+    } catch (error) {
+      console.error("Error excluding transaction:", error);
+      toast.error("Error al excluir transacción");
+    }
+  };
+
+  const handleRestoreTransaction = async (txId: string, description: string, category?: string, type?: string) => {
+    try {
+      await apiFetch(`/api/transactions/${txId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          excludeFromBudget: false,
+        }),
+      });
+      toast.success(`Transacción "${description}" reincorporada al presupuesto`);
+      refreshActiveData(category, type);
+    } catch (error) {
+      console.error("Error restoring transaction:", error);
+      toast.error("Error al reincorporar transacción");
+    }
+  };
+
+  const handleTransactionSuccess = () => {
+    refreshActiveData();
   };
 
   const groupBudgetsByCategory = (budgetList: Budget[]) => {
@@ -422,7 +497,19 @@ export function BudgetsView() {
           )}
         </div>
         {!isInstallment && (
-          <PencilLine className="size-3 text-gray-300 dark:text-gray-600 shrink-0" />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleExcludeTransaction(movement.id, movement.description, movement.category || undefined, movement.type);
+              }}
+              title="Excluir del presupuesto"
+              className="p-1 rounded-lg hover:bg-amber-100 hover:text-amber-600 dark:hover:bg-amber-950/40 dark:hover:text-amber-400 text-gray-300 dark:text-gray-600 transition-colors"
+            >
+              <EyeOff className="size-3.5" />
+            </button>
+            <PencilLine className="size-3 text-gray-300 dark:text-gray-600" />
+          </div>
         )}
       </div>
     );
@@ -1079,17 +1166,31 @@ export function BudgetsView() {
                             </p>
                           </div>
                         </div>
-                        <div className="text-right shrink-0 flex items-center gap-2">
-                          <span className={`text-xs font-bold ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                        <div className="text-right shrink-0 flex items-center gap-1.5">
+                          <span className={`text-xs font-bold ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"} mr-1`}>
                             {isIncome ? "+" : "-"}{formatCurrency(Number(tx.amount))}
                           </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-6 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/10 dark:hover:text-amber-400 transition-all"
-                          >
-                            <Pencil className="size-3" />
-                          </Button>
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleExcludeTransaction(tx.id, tx.description);
+                              }}
+                              title="Excluir del presupuesto"
+                              className="size-6 rounded-lg hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/10 dark:hover:text-amber-400 text-gray-400"
+                            >
+                              <EyeOff className="size-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-6 rounded-lg hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/10 dark:hover:text-amber-400 transition-all text-gray-400"
+                            >
+                              <Pencil className="size-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1101,6 +1202,102 @@ export function BudgetsView() {
         )}
       </AnimatePresence>
 
+      {/* Excluded/Chucherías Transactions Widget */}
+      <AnimatePresence>
+        {excluded.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden mb-3"
+          >
+            <Card className="border-2 border-indigo-500/20 dark:border-indigo-500/10 bg-indigo-50/30 dark:bg-indigo-950/10 rounded-2xl shadow-sm overflow-hidden">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                    </span>
+                    <h3 className="text-sm font-bold bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent flex items-center gap-1.5 dark:from-indigo-400 dark:to-violet-400">
+                      Gastos Excluidos (Chucherías y Antojos)
+                    </h3>
+                  </div>
+                  <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 font-semibold border-0">
+                    Total: {formatCurrency(totalExcludedExpense)}
+                  </Badge>
+                </div>
+                
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
+                  Estos gastos están marcados como excluidos de tu presupuesto. Sirve para ver cuánto llevas gastado este mes en antojos o compras extraordinarias sin afectar tus metas.
+                </p>
+
+                <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
+                  {excluded.map((tx) => {
+                    const isIncome = tx.type === "income";
+                    return (
+                      <div
+                        key={tx.id}
+                        onClick={() => handleEditTransaction(tx)}
+                        className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800/80 hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all cursor-pointer group shadow-none"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="size-8 rounded-lg flex items-center justify-center shrink-0 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600">
+                            <EyeOff className="size-4 animate-pulse" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                                {tx.description}
+                              </p>
+                              {tx.account && (
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-gray-200 dark:border-gray-800 text-gray-400 truncate max-w-[80px]">
+                                  {tx.account.name}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-gray-400">
+                              {new Date(tx.date).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+                              {tx.subAccount && ` · ${tx.subAccount.name}`}
+                              {tx.category && ` · ${tx.category}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mr-1">
+                            {isIncome ? "+" : "-"}{formatCurrency(Number(tx.amount))}
+                          </span>
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRestoreTransaction(tx.id, tx.description, tx.category || undefined, tx.type);
+                              }}
+                              title="Reincorporar al presupuesto"
+                              className="size-6 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/10 dark:hover:text-indigo-400 text-gray-400"
+                            >
+                              <Eye className="size-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-6 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/10 dark:hover:text-indigo-400 transition-all text-gray-400"
+                            >
+                              <Pencil className="size-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tabs: Gastos / Ingresos */}
       <motion.div variants={itemVariants}>
@@ -1378,6 +1575,7 @@ export function BudgetsView() {
         }}
         budget={editingBudget}
         prefilledCategory={prefilledBudgetCategory}
+        existingBudgets={budgets}
         onSuccess={() => {
           fetchBudgets();
           fetchUnbudgeted();

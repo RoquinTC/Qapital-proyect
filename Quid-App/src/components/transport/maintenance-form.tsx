@@ -25,6 +25,7 @@ import type {
   MaintenanceRecord,
   MaintenanceItem,
   PaymentMethodType,
+  MaintenanceServiceRule,
 } from "@/lib/types/transport";
 import { MAINTENANCE_TYPES } from "@/lib/types/transport";
 import { PaymentMethodSelector } from "@/components/transport/payment-method-selector";
@@ -90,6 +91,7 @@ export function MaintenanceForm({
   const [customServiceName, setCustomServiceName] = useState("");
   const [customServicePrice, setCustomServicePrice] = useState("");
   const [customMasterItems, setCustomMasterItems] = useState<{value: string, label: string, nextKmInterval: number, nextMonthInterval: number}[]>([]);
+  const [maintenanceRules, setMaintenanceRules] = useState<MaintenanceServiceRule[]>([]);
 
   // ─── Payment method state ───
   const [paymentData, setPaymentData] = useState<{
@@ -133,11 +135,13 @@ export function MaintenanceForm({
   // ─── Fetch vehicles & custom items ───
   const fetchVehiclesAndCustomItems = useCallback(async () => {
     try {
-      const [vehiclesData, customItemsData] = await Promise.all([
+      const [vehiclesData, customItemsData, rulesData] = await Promise.all([
         apiFetch<Vehicle[]>("/api/vehicles"),
-        apiFetch<string[]>("/api/vehicles/maintenance/custom-items").catch(() => [] as string[])
+        apiFetch<string[]>("/api/vehicles/maintenance/custom-items").catch(() => [] as string[]),
+        apiFetch<MaintenanceServiceRule[]>("/api/vehicles/maintenance/rules").catch(() => [] as MaintenanceServiceRule[]),
       ]);
       setVehicles(vehiclesData);
+      setMaintenanceRules(rulesData || []);
       
       const existingLabels = MAINTENANCE_TYPES.map(t => t.label.toLowerCase());
       const newCustomItems = (customItemsData || [])
@@ -290,6 +294,7 @@ export function MaintenanceForm({
         .filter(s => parseFloat(s.price) > 0)
         .map(s => ({
           name: s.label,
+          typeKey: s.typeKey,
           quantity: 1,
           unitPrice: parseFloat(s.price) || 0,
           totalPrice: parseFloat(s.price) || 0,
@@ -388,6 +393,9 @@ export function MaintenanceForm({
   const [catalogSearch, setCatalogSearch] = useState("");
 
   const allTypes = useMemo(() => [...MAINTENANCE_TYPES, ...customMasterItems], [customMasterItems]);
+  const ruleByTypeKey = useMemo(() => {
+    return new Map(maintenanceRules.map((rule) => [rule.typeKey, rule]));
+  }, [maintenanceRules]);
 
   const filteredTypes = useMemo(() => {
     if (!catalogSearch.trim()) return allTypes;
@@ -454,9 +462,9 @@ export function MaintenanceForm({
                       }`}>
                         {type.label}
                       </span>
-                      {type.nextKmInterval > 0 && (
+                      {(ruleByTypeKey.get(type.value)?.intervalKm ?? type.nextKmInterval) > 0 && (
                         <span className="text-[11px] text-gray-400">
-                          Cada {type.nextKmInterval.toLocaleString()} km
+                          Cada {(ruleByTypeKey.get(type.value)?.intervalKm ?? type.nextKmInterval).toLocaleString()} km
                         </span>
                       )}
                     </button>

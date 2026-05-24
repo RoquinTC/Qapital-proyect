@@ -10,6 +10,7 @@ import {
   getTransportSubCategory,
 } from "@/lib/transport-finance";
 import { MAINTENANCE_TYPES } from "@/lib/types/transport";
+import { resolveMaintenanceRule } from "@/lib/transport-maintenance-rules";
 
 function maintenanceReminderTitle(type: string) {
   const config = MAINTENANCE_TYPES.find((item) => item.value === type);
@@ -37,7 +38,15 @@ async function syncMaintenanceReminder({
 }) {
   if (!enabled || itemNames.length === 0) return;
 
-  for (const itemName of itemNames) {
+  const userRules = await db.maintenanceServiceRule.findMany({
+    where: { userId },
+  });
+
+  for (const rawItemName of itemNames) {
+    const [itemName, typeKey = rawItemName] = rawItemName.split("::");
+    const resolvedRule = resolveMaintenanceRule({ name: itemName, typeKey }, userRules);
+    if (!resolvedRule.isActive) continue;
+
     // Find existing active reminder to carry over custom intervals
     const existingReminder = await db.vehicleReminder.findFirst({
       where: {
@@ -60,21 +69,14 @@ async function syncMaintenanceReminder({
       });
     }
 
-    // Determine intervals. Preference: existing reminder -> catalog defaults -> 0
-    let intervalKm = existingReminder?.repeatIntervalKm || 0;
-    let intervalDays = existingReminder?.repeatIntervalDays || 0;
-
-    if (!intervalKm && !intervalDays) {
-      const typeConfig = MAINTENANCE_TYPES.find(t => t.label.toLowerCase() === itemName.toLowerCase() || t.value === itemName);
-      if (typeConfig) {
-        intervalKm = typeConfig.nextKmInterval;
-        intervalDays = typeConfig.nextMonthInterval * 30; // Approximation for defaults
-      }
-    }
+    // User service rules are the source of truth. Existing reminders can still
+    // carry a custom interval when the user edited only that reminder.
+    const intervalKm = existingReminder?.repeatIntervalKm || resolvedRule.intervalKm || 0;
+    const intervalDays = existingReminder?.repeatIntervalDays || resolvedRule.intervalDays || 0;
 
     if (!intervalKm && !intervalDays) continue; // No rule to generate next reminder for this specific item
 
-    let nextDueKm = intervalKm > 0 ? recordKm + intervalKm : null;
+    const nextDueKm = intervalKm > 0 ? recordKm + intervalKm : null;
     let nextDueDate: Date | null = null;
     
     if (intervalDays > 0) {
@@ -92,7 +94,7 @@ async function syncMaintenanceReminder({
         triggerMode: nextDueKm && nextDueDate ? "hybrid" : nextDueKm ? "km" : "date",
         dueKm: nextDueKm,
         dueDate: nextDueDate,
-        warningKm: intervalKm ? Math.min(500, Math.max(100, Math.round(intervalKm * 0.2))) : 500,
+        warningKm: intervalKm ? resolvedRule.warningKm : 500,
         warningDays: 15,
         repeatIntervalKm: intervalKm > 0 ? intervalKm : null,
         repeatIntervalDays: intervalDays > 0 ? intervalDays : null,
@@ -162,20 +164,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     let finalNextDueKm: number | null = null;
     let finalNextDueDate: Date | null = null;
 
+    const userRules = await db.maintenanceServiceRule.findMany({
+      where: { userId: session.user.id },
+    });
     const existingReminder = await db.vehicleReminder.findFirst({
       where: { userId: session.user.id, vehicleId: id, category: "maintenance", title: maintenanceReminderTitle(maintenanceType), isActive: true },
     });
 
-    let intervalKm = existingReminder?.repeatIntervalKm || 0;
-    let intervalDays = existingReminder?.repeatIntervalDays || 0;
-
-    if (!intervalKm && !intervalDays) {
-      const typeConfig = MAINTENANCE_TYPES.find(t => t.value === maintenanceType);
-      if (typeConfig) {
-        intervalKm = typeConfig.nextKmInterval;
-        intervalDays = typeConfig.nextMonthInterval * 30;
-      }
-    }
+    const resolvedPrimaryRule = resolveMaintenanceRule(
+      { name: maintenanceReminderTitle(maintenanceType), typeKey: maintenanceType },
+      userRules
+    );
+    const intervalKm = existingReminder?.repeatIntervalKm || resolvedPrimaryRule.intervalKm || 0;
+    const intervalDays = existingReminder?.repeatIntervalDays || resolvedPrimaryRule.intervalDays || 0;
 
     if (intervalKm > 0) finalNextDueKm = recordKm + intervalKm;
     if (intervalDays > 0) {
@@ -225,7 +226,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const itemNamesToSync = items && items.length > 0 
-      ? items.map((i: any) => i.name) 
+      ? items.map((i: any) => `${i.name}::${i.typeKey || i.name}`) 
       : [maintenanceReminderTitle(maintenanceType)];
 
     await syncMaintenanceReminder({
