@@ -34,27 +34,27 @@ export async function createHealthFinanceEntry(params: {
   }
 
   const category = "Salud";
-  const subCategory = "Copagos";
+  const subCategory = "Copago Cita Medica";
 
   if (debtId) {
     // Compra con Tarjeta de Crédito
     const debt = await db.debt.findUnique({ where: { id: debtId } });
-    let nextPaymentDate = new Date(date);
+    let nextPaymentDate = new Date();
     if (debt?.cutoffDate && debt?.paymentDate) {
-      const purchaseDay = date.getDate();
+      const purchaseDay = nextPaymentDate.getDate();
       const cutoffDay = debt.cutoffDate;
       const paymentDay = debt.paymentDate;
       if (purchaseDay >= cutoffDay) {
-        nextPaymentDate = new Date(date.getFullYear(), date.getMonth() + 2, paymentDay);
+        nextPaymentDate = new Date(nextPaymentDate.getFullYear(), nextPaymentDate.getMonth() + 2, paymentDay);
       } else {
         if (paymentDay > cutoffDay) {
-          nextPaymentDate = new Date(date.getFullYear(), date.getMonth() + 1, paymentDay);
+          nextPaymentDate = new Date(nextPaymentDate.getFullYear(), nextPaymentDate.getMonth() + 1, paymentDay);
         } else {
-          nextPaymentDate = new Date(date.getFullYear(), date.getMonth() + 2, paymentDay);
+          nextPaymentDate = new Date(nextPaymentDate.getFullYear(), nextPaymentDate.getMonth() + 2, paymentDay);
         }
       }
     } else {
-      nextPaymentDate = new Date(date.getTime() + 30 * 24 * 60 * 60 * 1000);
+      nextPaymentDate = new Date(nextPaymentDate.getTime() + 30 * 24 * 60 * 60 * 1000);
     }
 
     const installment = await db.installment.create({
@@ -67,7 +67,7 @@ export async function createHealthFinanceEntry(params: {
         installmentAmount: amount,
         paidAmount: 0,
         remainingBalance: amount,
-        purchaseDate: date,
+        purchaseDate: new Date(),
         nextPaymentDate,
         isPaid: false,
         accountId: accountId || null,
@@ -110,7 +110,7 @@ export async function createHealthFinanceEntry(params: {
         description,
         category,
         subCategory,
-        date,
+        date: new Date(),
         sourceModule: "health",
         sourceId: appointmentId,
         accountId,

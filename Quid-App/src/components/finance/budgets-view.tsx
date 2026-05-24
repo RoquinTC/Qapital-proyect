@@ -168,6 +168,8 @@ export function BudgetsView() {
   const [unclassifiedLoading, setUnclassifiedLoading] = useState(true);
   const [excluded, setExcluded] = useState<Transaction[]>([]);
   const [excludedLoading, setExcludedLoading] = useState(true);
+  const [isUnclassifiedExpanded, setIsUnclassifiedExpanded] = useState(false);
+  const [isExcludedExpanded, setIsExcludedExpanded] = useState(false);
 
   // Movement drill-down state
   const [categoryMovements, setCategoryMovements] = useState<Record<string, BudgetMovement[]>>({});
@@ -1115,8 +1117,16 @@ export function BudgetsView() {
           >
             <Card className="border-2 border-amber-500/20 dark:border-amber-500/10 bg-amber-50/50 dark:bg-amber-950/10 rounded-2xl shadow-sm overflow-hidden">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
+                <div 
+                  className="flex items-center justify-between cursor-pointer select-none"
+                  onClick={() => setIsUnclassifiedExpanded(!isUnclassifiedExpanded)}
+                >
                   <div className="flex items-center gap-2">
+                    {isUnclassifiedExpanded ? (
+                      <ChevronDown className="size-4 text-amber-500 shrink-0" />
+                    ) : (
+                      <ChevronRight className="size-4 text-amber-500 shrink-0" />
+                    )}
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
@@ -1130,72 +1140,84 @@ export function BudgetsView() {
                   </Badge>
                 </div>
                 
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
-                  Tienes movimientos registrados sin categoría asignada. Asígnales una categoría para que entren en tu presupuesto.
-                </p>
+                <AnimatePresence initial={false}>
+                  {isUnclassifiedExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden mt-3"
+                    >
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
+                        Tienes movimientos registrados sin categoría asignada. Asígnales una categoría para que entren en tu presupuesto.
+                      </p>
 
-                <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
-                  {unclassified.map((tx) => {
-                    const isIncome = tx.type === "income";
-                    return (
-                      <div
-                        key={tx.id}
-                        onClick={() => handleEditTransaction(tx)}
-                        className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800/80 hover:border-amber-400 dark:hover:border-amber-500/50 transition-all cursor-pointer group shadow-none"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${
-                            isIncome ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600" : "bg-rose-50 dark:bg-rose-950/20 text-rose-600"
-                          }`}>
-                            {isIncome ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                                {tx.description}
-                              </p>
-                              {tx.account && (
-                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-gray-200 dark:border-gray-800 text-gray-400 truncate max-w-[80px]">
-                                  {tx.account.name}
-                                </Badge>
-                              )}
+                      <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
+                        {unclassified.map((tx) => {
+                          const isIncome = tx.type === "income";
+                          return (
+                            <div
+                              key={tx.id}
+                              onClick={() => handleEditTransaction(tx)}
+                              className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800/80 hover:border-amber-400 dark:hover:border-amber-500/50 transition-all cursor-pointer group shadow-none"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                  isIncome ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600" : "bg-rose-50 dark:bg-rose-950/20 text-rose-600"
+                                }`}>
+                                  {isIncome ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                                      {tx.description}
+                                    </p>
+                                    {tx.account && (
+                                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-gray-200 dark:border-gray-800 text-gray-400 truncate max-w-[80px]">
+                                        {tx.account.name}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-gray-400">
+                                    {new Date(tx.date).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+                                    {tx.subAccount && ` · ${tx.subAccount.name}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0 flex items-center gap-1.5">
+                                <span className={`text-xs font-bold ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"} mr-1`}>
+                                  {isIncome ? "+" : "-"}{formatCurrency(Number(tx.amount))}
+                                </span>
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleExcludeTransaction(tx.id, tx.description);
+                                    }}
+                                    title="Excluir del presupuesto"
+                                    className="size-6 rounded-lg hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/10 dark:hover:text-amber-400 text-gray-400"
+                                  >
+                                    <EyeOff className="size-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-6 rounded-lg hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/10 dark:hover:text-amber-400 transition-all text-gray-400"
+                                  >
+                                    <Pencil className="size-3" />
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
-                            <p className="text-[10px] text-gray-400">
-                              {new Date(tx.date).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
-                              {tx.subAccount && ` · ${tx.subAccount.name}`}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0 flex items-center gap-1.5">
-                          <span className={`text-xs font-bold ${isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"} mr-1`}>
-                            {isIncome ? "+" : "-"}{formatCurrency(Number(tx.amount))}
-                          </span>
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleExcludeTransaction(tx.id, tx.description);
-                              }}
-                              title="Excluir del presupuesto"
-                              className="size-6 rounded-lg hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/10 dark:hover:text-amber-400 text-gray-400"
-                            >
-                              <EyeOff className="size-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-6 rounded-lg hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/10 dark:hover:text-amber-400 transition-all text-gray-400"
-                            >
-                              <Pencil className="size-3" />
-                            </Button>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </CardContent>
             </Card>
           </motion.div>
@@ -1213,8 +1235,16 @@ export function BudgetsView() {
           >
             <Card className="border-2 border-indigo-500/20 dark:border-indigo-500/10 bg-indigo-50/30 dark:bg-indigo-950/10 rounded-2xl shadow-sm overflow-hidden">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
+                <div 
+                  className="flex items-center justify-between cursor-pointer select-none"
+                  onClick={() => setIsExcludedExpanded(!isExcludedExpanded)}
+                >
                   <div className="flex items-center gap-2">
+                    {isExcludedExpanded ? (
+                      <ChevronDown className="size-4 text-indigo-500 shrink-0" />
+                    ) : (
+                      <ChevronRight className="size-4 text-indigo-500 shrink-0" />
+                    )}
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
@@ -1228,71 +1258,83 @@ export function BudgetsView() {
                   </Badge>
                 </div>
                 
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
-                  Estos gastos están marcados como excluidos de tu presupuesto. Sirve para ver cuánto llevas gastado este mes en antojos o compras extraordinarias sin afectar tus metas.
-                </p>
+                <AnimatePresence initial={false}>
+                  {isExcludedExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden mt-3"
+                    >
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
+                        Estos gastos están marcados como excluidos de tu presupuesto. Sirve para ver cuánto llevas gastado este mes en antojos o compras extraordinarias sin afectar tus metas.
+                      </p>
 
-                <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
-                  {excluded.map((tx) => {
-                    const isIncome = tx.type === "income";
-                    return (
-                      <div
-                        key={tx.id}
-                        onClick={() => handleEditTransaction(tx)}
-                        className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800/80 hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all cursor-pointer group shadow-none"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className="size-8 rounded-lg flex items-center justify-center shrink-0 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600">
-                            <EyeOff className="size-4 animate-pulse" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                                {tx.description}
-                              </p>
-                              {tx.account && (
-                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-gray-200 dark:border-gray-800 text-gray-400 truncate max-w-[80px]">
-                                  {tx.account.name}
-                                </Badge>
-                              )}
+                      <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
+                        {excluded.map((tx) => {
+                          const isIncome = tx.type === "income";
+                          return (
+                            <div
+                              key={tx.id}
+                              onClick={() => handleEditTransaction(tx)}
+                              className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800/80 hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all cursor-pointer group shadow-none"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <div className="size-8 rounded-lg flex items-center justify-center shrink-0 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600">
+                                  <EyeOff className="size-4 animate-pulse" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                                      {tx.description}
+                                    </p>
+                                    {tx.account && (
+                                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-gray-200 dark:border-gray-800 text-gray-400 truncate max-w-[80px]">
+                                        {tx.account.name}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-gray-400">
+                                    {new Date(tx.date).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+                                    {tx.subAccount && ` · ${tx.subAccount.name}`}
+                                    {tx.category && ` · ${tx.category}`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0 flex items-center gap-1.5">
+                                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mr-1">
+                                  {isIncome ? "+" : "-"}{formatCurrency(Number(tx.amount))}
+                                </span>
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRestoreTransaction(tx.id, tx.description, tx.category || undefined, tx.type);
+                                    }}
+                                    title="Reincorporar al presupuesto"
+                                    className="size-6 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/10 dark:hover:text-indigo-400 text-gray-400"
+                                  >
+                                    <Eye className="size-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-6 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/10 dark:hover:text-indigo-400 transition-all text-gray-400"
+                                  >
+                                    <Pencil className="size-3" />
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
-                            <p className="text-[10px] text-gray-400">
-                              {new Date(tx.date).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
-                              {tx.subAccount && ` · ${tx.subAccount.name}`}
-                              {tx.category && ` · ${tx.category}`}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0 flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mr-1">
-                            {isIncome ? "+" : "-"}{formatCurrency(Number(tx.amount))}
-                          </span>
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRestoreTransaction(tx.id, tx.description, tx.category || undefined, tx.type);
-                              }}
-                              title="Reincorporar al presupuesto"
-                              className="size-6 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/10 dark:hover:text-indigo-400 text-gray-400"
-                            >
-                              <Eye className="size-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-6 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/10 dark:hover:text-indigo-400 transition-all text-gray-400"
-                            >
-                              <Pencil className="size-3" />
-                            </Button>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </CardContent>
             </Card>
           </motion.div>
