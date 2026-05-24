@@ -78,6 +78,7 @@ export async function POST(request: Request) {
       icon,
       color,
       type,
+      aiSuggestion,
     } = body
 
     if (!name || !targetAmount || !deadline || !frequency) {
@@ -156,6 +157,7 @@ export async function POST(request: Request) {
         icon: icon || null,
         color: color || '#8B5CF6',
         type: type || 'general',
+        aiSuggestion: aiSuggestion || null,
       },
       include: {
         sourceAccount: true,

@@ -369,6 +369,7 @@ export const savingsCreateSchema = z.object({
   icon: z.string().nullable().optional(),
   color: z.string().optional().default("#8B5CF6"),
   type: z.string().optional().default("general"),
+  aiSuggestion: z.string().nullable().optional(),
 });
 
 export const savingsUpdateSchema = z.object({

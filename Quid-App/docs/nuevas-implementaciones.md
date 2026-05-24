@@ -214,3 +214,176 @@ Crear un módulo dedicado a la gestión de alimentos del hogar. Funcionará como
 ### 5. Interconexión Financiera del Mercado
 * Al regresar del supermercado, el usuario abrirá su "Lista de Mercado" en la app para confirmar que todos los productos llegaron y verificará que los precios finales sean correctos.
 * **Viaje de Datos Automático:** Al confirmar la compra, el sistema preguntará con qué cuenta se pagó (Efectivo, Tarjeta, etc.) y enviará automáticamente este valor total al módulo de Finanzas, registrándolo como un gasto para mantener el presupuesto perfectamente cuadrado.
+
+---
+
+# Estado de Implementación y Faltantes (Actualizado 2026-05-24)
+
+## Resumen Ejecutivo
+
+Después de la migración a PostgreSQL en Oracle, QUID ya tiene varias bases importantes implementadas: panel admin interno, Transporte 2.0 en tabs, recordatorios de vehículo, fondo de emergencia inteligente, primeras piezas de Salud 2.0, Aura conectada a QUID y notificaciones push/cron documentadas.
+
+El punto más importante ahora es convertir lo existente en una base estable de producción: cerrar cambios pendientes, probar flujos críticos, limpiar consola/logs y completar los frentes que todavía están parciales.
+
+## 1. Panel Admin Interno
+
+**Estado:** Implementado como primera versión.
+
+Implementado:
+* Acceso restringido por `ADMIN_EMAILS`.
+* `rqcquintero@gmail.com` como admin base.
+* Sección visible solo para admin desde Ajustes.
+* API para listar usuarios y revisar conteos por módulos.
+* Borrado de usuario con limpieza de datos relacionados.
+* Auditoría de registros huérfanos y limpieza manual.
+
+Faltante:
+* Probar el borrado completo en ambiente controlado antes de usarlo con datos reales.
+* Agregar una pantalla de resumen de salud del sistema: versión, base de datos activa, variables críticas presentes, último cron ejecutado.
+* Agregar bitácora/auditoría de acciones admin para saber quién borró o limpió datos.
+
+## 2. Transporte 2.0
+
+**Estado:** Implementado parcialmente avanzado.
+
+Implementado:
+* Módulo separado en tabs: Resumen, Combustible, Mantenimiento y Recordatorios.
+* Recordatorios por fecha, kilometraje o ambos.
+* Recordatorios recurrentes por intervalo de kilómetros, conectados con mantenimientos como cambio de aceite.
+* Servicios personalizados de mantenimiento como catálogo reutilizable.
+* Resumen visual con widgets de combustible, última recarga, próximos recordatorios y señales rápidas.
+* Placa disponible en la información del vehículo.
+
+Faltante:
+* Revalidar visualmente en móvil que la placa se vea en tarjetas, detalle y registros relacionados.
+* Pulir el resumen para que no vuelva a convertirse en historial completo.
+* Conectar recordatorios de transporte con notificaciones proactivas y digest de Aura.
+* Agregar prueba funcional completa: crear vehículo, registrar tanqueo, registrar mantenimiento, crear recordatorio por km, verificar próxima alerta.
+
+## 3. Aura Integrada de Verdad
+
+**Estado:** Parcial. Aura ya responde y consulta algunas cosas, pero todavía no es el asistente robusto que queremos.
+
+Implementado:
+* Chat interno de Aura.
+* Vinculación con Telegram por `telegramId`.
+* Conexión protegida por `AURA_API_KEY`.
+* Conector a Ollama.
+* Lecturas internas de saldos, movimientos, recurrentes, planner, metas, CDTs, deudas, presupuestos, vehículos, salud y despensa.
+* Primeras escrituras directas: transacciones, tanqueos y confirmación de recurrentes.
+* Digest diario base con pendientes.
+
+Faltante crítico:
+* Crear un gateway formal de herramientas: `/api/aura/tools`.
+* Definir respuestas estructuradas para Aura: intención, entidades detectadas, datos faltantes, acción propuesta, confirmación y resultado.
+* Implementar una máquina de estados de confirmación para que Aura nunca guarde incompleto ni invente datos.
+* Separar claramente consultas de QUID de consultas externas para evitar respuestas fuera de contexto, por ejemplo cripto cuando el mensaje era un gasto.
+* Agregar botones en Telegram y chat interno para escoger cuenta, tarjeta, categoría, vehículo, confirmar o cancelar.
+* Expandir consultas por fecha: hoy, ayer, anteayer, semana pasada, últimos N días, mes anterior, mes actual y rango personalizado.
+* Completar skills de escritura: mercado/despensa, transferencias, ingresos, abonos, metas, CDTs, salud y recordatorios.
+* Probar escenarios con poco contexto: "gasté 25 mil en gasolina", "hice mercado por 200 mil", "pagué la tarjeta", "cuánto me queda", "qué tengo pendiente hoy".
+
+## 4. Fondo de Emergencia Inteligente
+
+**Estado:** Implementado como propuesta desde Finanzas, pendiente de prueba final visual y cálculo fino.
+
+Implementado:
+* Cálculo basado en gastos esenciales, ingresos reales y saldo disponible.
+* Exclusión de transferencias y categorías no reales para evitar inflar ingresos.
+* Selector de meses de cobertura y meses para construir el fondo.
+* Apertura del formulario real de meta de ahorro con datos precargados.
+* Soporte para metadatos de meta inteligente.
+
+Faltante:
+* Verificar en navegador que el formulario abra con los valores actualizados después de limpiar caché PWA.
+* Ajustar la frecuencia de pago, cuenta de origen, cuenta destino o CDT siguiendo exactamente la mecánica del formulario normal de metas.
+* Crear o sugerir el recurrente asociado al aporte periódico del fondo.
+* Validar que el aporte sugerido sea coherente con meta, meses, frecuencia y capacidad real.
+
+## 5. Salud 2.0
+
+**Estado:** Primera base implementada.
+
+Implementado:
+* Medicamentos con inventario, dosis, umbral bajo y registro de toma.
+* Citas médicas con copago y conexión financiera.
+* Órdenes médicas base con ítems.
+* Vistas de inventario, citas, órdenes y recomendaciones.
+
+Faltante:
+* Entregas parciales de órdenes médicas.
+* Pendientes de farmacia separados entre dosis actual y entregas futuras.
+* Evidencia fotográfica o adjuntos de orden médica.
+* Reclamaciones futuras con recordatorios automáticos.
+* Reversión completa de citas y gastos asociados.
+* Guardrails de Aura para salud: informativo, no diagnóstico.
+
+## 6. Despensa / Nevera Virtual
+
+**Estado:** Base existente, propuesta avanzada pendiente.
+
+Implementado:
+* Inventario de despensa.
+* Listas de mercado.
+* Confirmación de lista con actualización de inventario.
+* Registro financiero automático al confirmar compra.
+
+Faltante:
+* Stock ideal por producto.
+* Conversión de unidades.
+* Confirmación de compra con cuenta, subcuenta o tarjeta de pago; hoy registra el gasto sin método de pago.
+* Recetas conectadas con inventario real.
+* Recetas con faltantes y opción de agregarlos a lista de mercado.
+* Cruce con perfiles de salud propios, locales e invitados.
+* Skill de Aura para mercado: pedir datos faltantes, mostrar botones y registrar solo tras confirmación.
+
+## 7. Notificaciones Proactivas y Oracle
+
+**Estado:** Base técnica creada, falta validación completa en producción.
+
+Implementado:
+* Push subscriptions.
+* API de recordatorios push.
+* `server-reminders` con pagos, transporte, documentos, combustible y recordatorios.
+* Digest diario de Aura.
+* Runbook de Oracle con `CRON_SECRET`, `AURA_API_KEY` y cron.
+
+Faltante:
+* Confirmar en Oracle que el cron corre en horario correcto.
+* Confirmar que los push llegan con la PWA cerrada.
+* Confirmar que Aura Standalone envía digest por Telegram.
+* Registrar último cron exitoso para verlo desde Admin.
+* Tener claro que sonidos personalizados fuertes no son confiables en PWA; eso queda para fase nativa si se decide APK/Android más adelante.
+
+## 8. Responsive / PWA
+
+**Estado:** Mejorado, pero todavía necesita auditoría visual final.
+
+Implementado:
+* Correcciones de scroll y margen inferior en varias pantallas.
+* Ajustes iniciales para navegación inferior y módulos.
+
+Faltante:
+* Auditoría visual completa en 360x800, 390x844, 768x1024 y desktop.
+* Revisar todos los sheets y modales largos para que siempre hagan scroll.
+* Reducir escala visual en móviles donde números, títulos o tarjetas se vean sobredimensionados.
+* Verificar que bottom nav y botones flotantes no tapen contenido al final de listas.
+* Probar PWA instalada en Android real.
+
+## Prioridad Recomendada Desde Ahora
+
+1. Congelar base actual: revisar cambios pendientes, ejecutar lint/build y levantar Docker local.
+2. Probar en navegador los cambios recientes del fondo de emergencia y limpiar caché PWA si se ve una versión vieja.
+3. Cerrar Responsive/PWA porque afecta todos los módulos y la confianza de uso diario.
+4. Completar Aura como herramientas estructuradas con confirmación y botones.
+5. Completar Despensa con método de pago y stock ideal.
+6. Completar Salud 2.0 con entregas parciales y recordatorios.
+7. Validar cron/notificaciones en Oracle y exponer estado desde Admin.
+
+## Riesgos A Vigilar
+
+* Hay cambios locales pendientes en archivos de ahorro/fondo de emergencia; deben probarse y consolidarse antes de otra fase grande.
+* Existe un archivo `quid-app.tar.gz` sin seguimiento en el repositorio; debe mantenerse fuera de commits salvo que sea intencional.
+* Aura todavía puede responder con acciones aparentes sin registrar realmente si el flujo no queda controlado por herramientas.
+* Despensa registra gasto al confirmar compra, pero sin cuenta de pago; eso puede descuadrar finanzas si no se corrige.
+* Las notificaciones PWA dependen de permisos, VAPID, service worker y comportamiento del sistema operativo; deben validarse en dispositivo real.

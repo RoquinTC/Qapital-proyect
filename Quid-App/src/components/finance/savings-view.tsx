@@ -9,6 +9,7 @@ import { SavingsGoalForm } from "./savings-goal-form";
 import { SavingsContributeForm } from "./savings-contribute-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, PiggyBank, Sparkles, Loader2, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -27,10 +28,18 @@ type EmergencySuggestion = {
   existingGoalId: string | null;
   recommendedTarget: number;
   currentEmergencyLiquidity: number;
+  availableBalance: number;
   averageMonthlyExpenses: number;
+  averageMonthlyRealIncome: number;
   fixedMonthlyExpenses: number;
+  coverageMonths: number;
+  monthsToBuild: number;
+  contributionRate: number;
+  incomeBasedContribution: number;
+  gapMonthlyContribution: number;
   gap: number;
   monthlyContribution: number;
+  recommendedDeadline: string;
   aiSuggestion: string;
 };
 
@@ -56,7 +65,10 @@ export function SavingsView() {
   const [deleting, setDeleting] = useState(false);
   const [emergencySuggestion, setEmergencySuggestion] = useState<EmergencySuggestion | null>(null);
   const [emergencyLoading, setEmergencyLoading] = useState(false);
-  const [creatingEmergency, setCreatingEmergency] = useState(false);
+  const [showEmergencyGoalForm, setShowEmergencyGoalForm] = useState(false);
+  const [emergencyInitialGoal, setEmergencyInitialGoal] = useState<any | null>(null);
+  const [emergencyCoverageMonths, setEmergencyCoverageMonths] = useState("3");
+  const [emergencyBuildMonths, setEmergencyBuildMonths] = useState("6");
 
   const totalSaved = goals.reduce((sum, g) => sum + g.currentAmount, 0);
   const totalTarget = goals.reduce((sum, g) => sum + g.targetAmount, 0);
@@ -67,7 +79,12 @@ export function SavingsView() {
     async function loadEmergencySuggestion() {
       setEmergencyLoading(true);
       try {
-        const suggestion = await apiFetch<EmergencySuggestion>("/api/savings/emergency-suggestion");
+        const params = new URLSearchParams({
+          coverageMonths: emergencyCoverageMonths,
+          monthsToBuild: emergencyBuildMonths,
+          contributionRate: "10",
+        });
+        const suggestion = await apiFetch<EmergencySuggestion>(`/api/savings/emergency-suggestion?${params.toString()}`);
         if (!cancelled) setEmergencySuggestion(suggestion);
       } catch (error) {
         console.error("Error loading emergency suggestion:", error);
@@ -77,7 +94,7 @@ export function SavingsView() {
     }
     loadEmergencySuggestion();
     return () => { cancelled = true; };
-  }, []);
+  }, [emergencyBuildMonths, emergencyCoverageMonths]);
 
   const handleContribute = (goalId: string, goalName: string, linkedAccounts: any[] = []) => {
     setContributeGoalId(goalId);
@@ -127,18 +144,27 @@ export function SavingsView() {
   };
 
   const handleCreateEmergencyFund = async () => {
-    setCreatingEmergency(true);
-    try {
-      const result = await apiFetch<{ suggestion: EmergencySuggestion }>("/api/savings/emergency-suggestion", {
-        method: "POST",
-      });
-      setEmergencySuggestion(result.suggestion);
-      fetchGoals();
-    } catch (error) {
-      console.error("Error creating emergency fund:", error);
-    } finally {
-      setCreatingEmergency(false);
-    }
+    if (!emergencySuggestion) return;
+
+    setEmergencyInitialGoal({
+      name: "Fondo de emergencia",
+      description: "Colchón para cubrir gastos esenciales ante imprevistos.",
+      targetAmount: emergencySuggestion.recommendedTarget,
+      deadline: emergencySuggestion.recommendedDeadline,
+      frequency: "mensual",
+      monthlyDay: 1,
+      type: "emergency_fund",
+      icon: "Shield",
+      color: "#0EA5E9",
+      aiSuggestion: emergencySuggestion.aiSuggestion,
+    });
+    setEditingGoal(null);
+    setShowEmergencyGoalForm(true);
+  };
+
+  const handleEmergencyFormClose = (open: boolean) => {
+    setShowEmergencyGoalForm(open);
+    if (!open) setEmergencyInitialGoal(null);
   };
 
   if (loading) {
@@ -199,17 +225,59 @@ export function SavingsView() {
                   <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.recommendedTarget)}</p>
                 </div>
                 <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
-                  <p className="text-gray-500">Aporte 6 meses</p>
+                  <p className="text-gray-500">Aporte sugerido</p>
                   <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.monthlyContribution)}</p>
                 </div>
+                <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
+                  <p className="text-gray-500">Ingreso real prom.</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.averageMonthlyRealIncome)}</p>
+                </div>
+                <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
+                  <p className="text-gray-500">10% ingreso real</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.incomeBasedContribution)}</p>
+                </div>
               </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-gray-500">Cubrir</p>
+                  <Select value={emergencyCoverageMonths} onValueChange={setEmergencyCoverageMonths}>
+                    <SelectTrigger className="h-9 rounded-xl bg-white/80 text-xs dark:bg-gray-900/60">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 mes</SelectItem>
+                      <SelectItem value="3">3 meses</SelectItem>
+                      <SelectItem value="6">6 meses</SelectItem>
+                      <SelectItem value="12">12 meses</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-gray-500">Construir en</p>
+                  <Select value={emergencyBuildMonths} onValueChange={setEmergencyBuildMonths}>
+                    <SelectTrigger className="h-9 rounded-xl bg-white/80 text-xs dark:bg-gray-900/60">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3 meses</SelectItem>
+                      <SelectItem value="6">6 meses</SelectItem>
+                      <SelectItem value="9">9 meses</SelectItem>
+                      <SelectItem value="12">12 meses</SelectItem>
+                      <SelectItem value="18">18 meses</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                El aporte divide la meta pendiente entre los meses elegidos. El 10% del ingreso real se muestra como referencia de capacidad, excluyendo transferencias internas.
+              </p>
               <Button
                 onClick={handleCreateEmergencyFund}
-                disabled={creatingEmergency || emergencyLoading}
+                disabled={emergencyLoading}
                 className="mt-3 w-full rounded-xl bg-sky-600 hover:bg-sky-700"
               >
-                {creatingEmergency ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ShieldCheck className="mr-2 size-4" />}
-                Crear fondo sugerido
+                <ShieldCheck className="mr-2 size-4" />
+                Configurar fondo sugerido
               </Button>
             </CardContent>
           </Card>
@@ -299,6 +367,17 @@ export function SavingsView() {
         onOpenChange={handleFormClose}
         editingGoal={editingGoal}
         onSuccess={handleFormSuccess}
+      />
+
+      <SavingsGoalForm
+        open={showEmergencyGoalForm}
+        onOpenChange={handleEmergencyFormClose}
+        initialGoal={emergencyInitialGoal}
+        onSuccess={(goal) => {
+          handleEmergencyFormClose(false);
+          handleFormSuccess();
+          return goal;
+        }}
       />
 
       {/* Contribute Sheet */}

@@ -28,6 +28,7 @@ interface SavingsGoalFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   editingGoal?: any
+  initialGoal?: any
   onSuccess?: (goal: any) => void
 }
 
@@ -47,12 +48,17 @@ const WEEK_LABELS = ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4']
 const BIWEEKLY_LABELS = ['Primera quincena', 'Segunda quincena']
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export function SavingsGoalForm({ open, onOpenChange, editingGoal, onSuccess }: SavingsGoalFormProps) {
+export function SavingsGoalForm({ open, onOpenChange, editingGoal, initialGoal, onSuccess }: SavingsGoalFormProps) {
   // Basic fields
   const [name, setName] = useState('')
+  const [description, setDescription] = useState<string | null>(null)
   const [targetAmount, setTargetAmount] = useState('')
   const [deadline, setDeadline] = useState('')
   const [frequency, setFrequency] = useState<'mensual' | 'quincenal' | 'semanal'>('mensual')
+  const [goalType, setGoalType] = useState('general')
+  const [goalIcon, setGoalIcon] = useState<string | null>(null)
+  const [goalColor, setGoalColor] = useState('#8B5CF6')
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null)
 
   // Frequency-specific fields
   const [monthlyDay, setMonthlyDay] = useState(1)
@@ -248,16 +254,23 @@ export function SavingsGoalForm({ open, onOpenChange, editingGoal, onSuccess }: 
   useEffect(() => {
     if (open && editingGoal) {
       populateFromGoal(editingGoal)
+    } else if (open && initialGoal) {
+      populateFromGoal(initialGoal)
     } else if (open && !editingGoal) {
       resetForm()
     }
-  }, [open, editingGoal])
+  }, [open, editingGoal, initialGoal])
 
   const resetForm = () => {
     setName('')
+    setDescription(null)
     setTargetAmount('')
     setDeadline('')
     setFrequency('mensual')
+    setGoalType('general')
+    setGoalIcon(null)
+    setGoalColor('#8B5CF6')
+    setAiSuggestion(null)
     setMonthlyDay(1)
     setBiweeklyDay1(1)
     setBiweeklyDay2(15)
@@ -291,9 +304,14 @@ export function SavingsGoalForm({ open, onOpenChange, editingGoal, onSuccess }: 
 
   const populateFromGoal = (goal: any) => {
     setName(goal.name || '')
+    setDescription(goal.description || null)
     setTargetAmount(goal.targetAmount?.toString() || '')
     setDeadline(goal.deadline ? toColombiaDateString(goal.deadline) : '')
     setFrequency(goal.frequency || 'mensual')
+    setGoalType(goal.type || 'general')
+    setGoalIcon(goal.icon || null)
+    setGoalColor(goal.color || '#8B5CF6')
+    setAiSuggestion(goal.aiSuggestion || null)
     setMonthlyDay(goal.monthlyDay || 1)
     setSourceAccountId(goal.sourceAccountId || '')
     setDestinationAccountId(goal.destinationAccountId || '')
@@ -395,6 +413,11 @@ export function SavingsGoalForm({ open, onOpenChange, editingGoal, onSuccess }: 
         biweeklyDays: frequency === 'quincenal' ? JSON.stringify([biweeklyDay1, biweeklyDay2]) : undefined,
         weeklyDay: frequency === 'semanal' ? weeklyDay : undefined,
         linkedCDTIds: selectedCDTIds,
+        description,
+        type: goalType,
+        icon: goalIcon,
+        color: goalColor,
+        aiSuggestion,
         linkedAccountItems: linkedAccounts.map(la => ({
           accountId: la.accountId,
           subAccountId: la.subAccountId || undefined,
