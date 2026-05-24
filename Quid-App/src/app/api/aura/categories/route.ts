@@ -30,6 +30,8 @@ export async function GET(req: Request) {
     const isTrustedAuraClient =
       Boolean(process.env.AURA_API_KEY) && auraToken === process.env.AURA_API_KEY;
 
+    console.log(`[Aura Categories API] process.env.AURA_API_KEY: "${process.env.AURA_API_KEY}", auraToken: "${auraToken}", telegramId: "${telegramId}", isTrusted: ${isTrustedAuraClient}`);
+
     if (!isTrustedAuraClient || !telegramId) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
