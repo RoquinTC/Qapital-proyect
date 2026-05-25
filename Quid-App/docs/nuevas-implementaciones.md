@@ -493,13 +493,27 @@ Cumplido:
 - Al completar una cita, la UI ahora debe pedir si hubo copago/gasto, permitir editar valor y escoger cuenta o tarjeta para enviar el movimiento a Finanzas.
 
 Falta para considerarlo 100%:
-- Flujo completo de entregas parciales por farmacia/EPS: dosis actual, pendientes actuales y próximas entregas.
-- Adjuntos/fotos de orden médica o comprobante.
-- Recordatorios de reclamación futura.
-- Desde una cita completada, crear orden médica y futuras citas derivadas.
-- Validar reversos financieros de copago en edición/eliminación.
-- Ampliar Aura Salud con base de conocimiento controlada y mensajes de seguridad.
-- Ampliar catálogo/autocompletado de medicamentos con una fuente más completa y controlada. No basta con agregar una lista manual corta: se necesita estrategia de dataset/API/cache local para nombres comerciales, principios activos y variantes difíciles de escribir.
+- **Flujo Completo de Autorizaciones Médicas (EPS) con Control de Vencimiento y Renovación:**
+  - **Máquina de Estados de Citas Derivadas:** Las citas derivadas de una orden médica transicionan de manera controlada por: `Pendiente de Autorización` (en trámite ante la EPS) ➡️ `Autorizada / Pendiente de Agendamiento` (código de autorización listo, esperando llamada) ➡️ `Programada` (con fecha y hora asignadas).
+  - **Vigencia Parametrizable:** El sistema solicitará de manera obligatoria la `fecha de autorización` y los `días de vigencia` (ej. 30, 60, 90 días o personalizado), calculando de forma automática en base de datos la `fechaVencimientoCalculada`.
+  - **Historial de Renovación y Prórrogas:** Si una autorización expira antes de poder concretar el agendamiento, el usuario podrá acceder a la autorización vencida y renovarla/ampliarla. El sistema guardará un registro histórico de todas las fechas y estados de autorización previos para conservar una bitácora de auditoría clínica prístina.
+  - **Validaciones al Agendar:** Al asignar fecha a la cita, el backend y frontend validarán que la fecha de la cita se encuentre dentro de la vigencia, emitiendo tres niveles de control:
+    * *Cita posterior al vencimiento:* Advertencia de rechazo inminente por la clínica.
+    * *Autorización expirada:* Advertencia de que el documento no es válido y debe ser renovado.
+    * *Coincidencia crítica:* Alerta si la cita coincide en el último día de vigencia de la autorización.
+  - **Integración de Notificaciones:** El servicio de cron y Aura en Telegram generarán recordatorios proactivos automáticos cuando haya órdenes autorizadas pendientes de agendar que estén próximas a vencer.
+- **Bolsa de Medicamentos Pendientes por Reclamar (Abastecimiento y Farmacia):**
+  - **Registro Enlazado a la Cita de Origen:** Al completar una cita médica, el usuario puede ingresar la receta completa (medicamento, dosis y cantidad total formulada, ej: Ibuprofeno 90 pastillas por 3 meses). Este bloque de medicamentos queda enlazado históricamente con la cita de origen.
+  - **Auto-registro del Catálogo:** Si la receta médica incluye un principio activo o medicamento nuevo que no existe en el catálogo, el sistema lo creará automáticamente en la base de datos sin obligar al usuario a crearlo de manera manual individual.
+  - **Bolsa Virtual de Suministros Pendientes:** La orden crea una "bolsa virtual" de medicamentos pendientes de reclamar en la farmacia. Al retirar fármacos (ej. dosis mensual de 30 pastillas), el usuario marca el reclamo y el sistema:
+    1. **Resta** esa cantidad de la bolsa de pendientes (quedando 60 restantes).
+    2. **Suma** de manera atómica esa cantidad al inventario físico real para el consumo regular en el hogar.
+  - **Entregas Parciales y Soporte Documental (Foto de Recibo Pendiente):** Si la farmacia no entrega la orden completa o quedan medicamentos a medias:
+    1. Se calcula el restante exacto y se almacena en una bolsa de pendientes específica vinculada a esa dosis.
+    2. Se habilita la opción de tomar una fotografía o adjuntar un archivo digital del recibo físico de "Pendiente" emitido por la farmacia, sirviendo como soporte legal del saldo de medicamentos adeudado.
+- **Validar reversos financieros de copago en edición/eliminación.**
+- **Ampliar Aura Salud con base de conocimiento controlada y mensajes de seguridad.**
+- **Ampliar catálogo/autocompletado de medicamentos con una fuente más completa y controlada. No basta con agregar una lista manual corta: se necesita estrategia de dataset/API/cache local para nombres comerciales, principios activos y variantes difíciles de escribir.**
 
 ### B.3 Notificaciones proactivas / PWA / Oracle
 **Estado:** `70%`
