@@ -5,7 +5,7 @@ import { apiFetch, formatDate } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, Edit3, FileClock, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ClipboardList, Edit3, FileClock, Plus, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { MedicalOrder } from "@/lib/types";
 import { MedicalOrderForm } from "./medical-order-form";
@@ -22,6 +22,8 @@ export function MedicalOrdersView() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<MedicalOrder | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "partial" | "completed" | "cancelled">("all");
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -55,6 +57,8 @@ export function MedicalOrdersView() {
       console.error("Error deleting medical order:", error);
     }
   };
+
+  const filteredOrders = statusFilter === "all" ? orders : orders.filter((order) => order.status === statusFilter);
 
   if (loading) {
     return (
@@ -90,6 +94,30 @@ export function MedicalOrdersView() {
         </CardContent>
       </Card>
 
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {[
+          { value: "all", label: "Todas" },
+          { value: "pending", label: "Pendientes" },
+          { value: "partial", label: "Parciales" },
+          { value: "completed", label: "Completas" },
+          { value: "cancelled", label: "Canceladas" },
+        ].map((filter) => (
+          <Button
+            key={filter.value}
+            variant={statusFilter === filter.value ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter(filter.value as typeof statusFilter)}
+            className={`h-8 shrink-0 rounded-xl text-xs ${
+              statusFilter === filter.value
+                ? "bg-cyan-100 text-cyan-700 hover:bg-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300"
+                : ""
+            }`}
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+
       {orders.length === 0 ? (
         <Card className="border-0 shadow-md rounded-2xl bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-cyan-900/20 dark:to-teal-900/20">
           <CardContent className="p-8 text-center">
@@ -108,23 +136,36 @@ export function MedicalOrdersView() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {orders.map((order) => {
+          {filteredOrders.map((order) => {
             const status = statusLabels[order.status] || statusLabels.pending;
             const pendingItems = (order.items || []).filter((item) => item.pendingQty > 0);
+            const isExpanded = expandedId === order.id;
 
             return (
               <Card key={order.id} className="border-0 shadow-md rounded-2xl">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
+                <CardContent className="p-3 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(isExpanded ? null : order.id)}
+                    className="flex w-full items-start justify-between gap-3 text-left"
+                  >
+                    <div className="min-w-0">
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{order.title}</h3>
-                      <p className="text-xs text-gray-500">
+                      <p className="truncate text-xs text-gray-500">
                         {order.orderNumber ? `Orden ${order.orderNumber} · ` : ""}
                         {formatDate(order.issueDate)}
                       </p>
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        {pendingItems.length > 0
+                          ? `${pendingItems.length} medicamento${pendingItems.length !== 1 ? "s" : ""} pendiente${pendingItems.length !== 1 ? "s" : ""}`
+                          : "Sin pendientes de entrega"}
+                      </p>
                     </div>
-                    <Badge className={`${status.className} border-0`}>{status.label}</Badge>
-                  </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Badge className={`${status.className} border-0`}>{status.label}</Badge>
+                      <ChevronDown className={`size-4 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                    </div>
+                  </button>
 
                   {order.nextClaimDate && (
                     <div className="flex items-center gap-1.5 text-xs text-cyan-700 dark:text-cyan-300">
@@ -133,7 +174,7 @@ export function MedicalOrdersView() {
                     </div>
                   )}
 
-                  <div className="space-y-1.5">
+                  {isExpanded && <div className="space-y-1.5">
                     {(order.items || []).map((item) => (
                       <div key={item.id} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs dark:bg-gray-800">
                         <span className="font-medium text-gray-700 dark:text-gray-200">{item.name}</span>
@@ -142,15 +183,15 @@ export function MedicalOrdersView() {
                         </span>
                       </div>
                     ))}
-                  </div>
+                  </div>}
 
-                  {pendingItems.length > 0 && (
+                  {isExpanded && pendingItems.length > 0 && (
                     <div className="rounded-xl bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
                       Pendiente: {pendingItems.map((item) => `${item.name} (${item.pendingQty} ${item.unit})`).join(", ")}
                     </div>
                   )}
 
-                  <div className="flex gap-2 pt-1">
+                  {isExpanded && <div className="flex gap-2 pt-1">
                     <Button
                       variant="outline"
                       size="sm"
@@ -172,7 +213,7 @@ export function MedicalOrdersView() {
                       <Trash2 className="size-3.5 mr-1" />
                       Eliminar
                     </Button>
-                  </div>
+                  </div>}
                 </CardContent>
               </Card>
             );

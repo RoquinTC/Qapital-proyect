@@ -26,12 +26,17 @@ import type { Medication } from "@/lib/types";
 
 interface HealthSummaryRes {
   summary: string;
+  source?: "ollama" | "local";
+  model?: string | null;
+  generatedAt?: string;
 }
 
 export function RecommendationsView() {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<string>("");
+  const [summaryMeta, setSummaryMeta] = useState<Omit<HealthSummaryRes, "summary"> | null>(null);
+  const [summaryError, setSummaryError] = useState("");
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [subView, setSubView] = useState<"routine" | "ai-report">("routine");
   const [takenStatus, setTakenStatus] = useState<Record<string, boolean>>({});
@@ -60,14 +65,22 @@ export function RecommendationsView() {
 
   const generateAISummary = async () => {
     setLoadingSummary(true);
+    setSummaryError("");
     try {
       const data = await apiFetch<HealthSummaryRes>("/api/ai/health-summary", {
         method: "POST",
       });
       setSummary(data.summary);
+      setSummaryMeta({
+        source: data.source,
+        model: data.model,
+        generatedAt: data.generatedAt,
+      });
     } catch (err) {
       console.error("Error generating clinical summary:", err);
-      setSummary("Ocurrió un error al generar tu informe clínico. Inténtalo de nuevo.");
+      setSummary("");
+      setSummaryMeta(null);
+      setSummaryError(err instanceof Error ? err.message : "Ocurrió un error al generar tu informe clínico. Inténtalo de nuevo.");
     } finally {
       setLoadingSummary(false);
     }
@@ -395,6 +408,23 @@ export function RecommendationsView() {
               </Button>
             </div>
 
+            {summaryMeta && (
+              <div className={`rounded-2xl border p-3 text-xs ${
+                summaryMeta.source === "ollama"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-300"
+                  : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300"
+              }`}>
+                {summaryMeta.source === "ollama"
+                  ? `Informe generado con IA local${summaryMeta.model ? ` (${summaryMeta.model})` : ""}.`
+                  : "Informe generado con reglas locales porque Ollama no respondió o el modelo no está disponible."}
+                {summaryMeta.generatedAt && (
+                  <span className="block opacity-80">
+                    Generado: {new Date(summaryMeta.generatedAt).toLocaleString("es-CO")}
+                  </span>
+                )}
+              </div>
+            )}
+
             <Card className="rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden bg-white dark:bg-gray-900">
               <CardContent className="p-5 space-y-4">
                 {loadingSummary ? (
@@ -441,10 +471,22 @@ export function RecommendationsView() {
                       );
                     })}
                   </div>
+                ) : summaryError ? (
+                  <div className="py-8 text-center space-y-2 text-red-500">
+                    <AlertCircle className="size-8 mx-auto" />
+                    <p className="text-xs">{summaryError}</p>
+                    <Button
+                      size="sm"
+                      onClick={generateAISummary}
+                      className="mt-2 rounded-xl bg-rose-600 text-white"
+                    >
+                      Reintentar
+                    </Button>
+                  </div>
                 ) : (
                   <div className="py-8 text-center space-y-2 text-gray-400">
                     <Info className="size-8 mx-auto" />
-                    <p className="text-xs">No se pudo cargar el análisis en este momento.</p>
+                    <p className="text-xs">Toca “Re-generar reporte” para consultar Aura.</p>
                   </div>
                 )}
               </CardContent>

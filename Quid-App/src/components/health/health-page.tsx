@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAppStore, type HealthSubView, type SidebarAction } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
-import { ClipboardList, Pill, Stethoscope, Sparkles, Package, ShieldCheck, ShoppingBag } from "lucide-react";
+import { Activity, ClipboardList, Pill, Stethoscope, Sparkles, Package, ShieldCheck, ShoppingBag } from "lucide-react";
 import { MedicationsView } from "./medications-view";
 import { AppointmentsView } from "./appointments-view";
 import { MedicalOrdersView } from "./medical-orders-view";
@@ -11,11 +11,13 @@ import { RecommendationsView } from "./recommendations-view";
 import { InventoryView } from "./inventory-view";
 import { AuthorizationsTab } from "./authorizations-tab";
 import { PendingClaimsTab } from "./pending-claims-tab";
+import { HealthSummaryView } from "./health-summary-view";
 import { MedicationForm } from "./medication-form";
 import { AppointmentForm } from "./appointment-form";
 import { MedicalOrderForm } from "./medical-order-form";
 
 const tabs: { id: HealthSubView; label: string; icon: any }[] = [
+  { id: "summary", label: "Resumen", icon: Activity },
   { id: "medications", label: "Medicamentos", icon: Pill },
   { id: "appointments", label: "Citas", icon: Stethoscope },
   { id: "orders", label: "Órdenes", icon: ClipboardList },
@@ -90,6 +92,8 @@ export function HealthPage() {
 
   const renderContent = () => {
     switch (healthSubView) {
+      case "summary":
+        return <HealthSummaryView />;
       case "medications":
         return <MedicationsView />;
       case "appointments":

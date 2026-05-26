@@ -6,7 +6,8 @@ export type ModuleType = "dashboard" | "finance" | "transport" | "health" | "pan
 
 export type FinanceSubView = "overview" | "accounts" | "transactions" | "budgets" | "debts" | "savings" | "cdts" | "recurring" | "account-detail" | "debt-detail" | "savings-detail" | "simulator" | "credit-simulator" | "debt-simulator";
 export type TransportSubView = "vehicles" | "fuel" | "maintenance";
-export type HealthSubView = "medications" | "appointments" | "orders" | "profiles" | "inventory" | "authorizations" | "claims";
+export type HealthSubView = "summary" | "medications" | "appointments" | "orders" | "profiles" | "inventory" | "authorizations" | "claims";
+export type HealthMedicationFilter = "all" | "active" | "needs_setup" | "configured";
 export type PantrySubView = "items" | "shopping-lists";
 
 // Sidebar quick-action identifiers — each module page listens for its actions
@@ -57,6 +58,8 @@ interface AppState {
   setTransportSubView: (view: TransportSubView) => void;
   healthSubView: HealthSubView;
   setHealthSubView: (view: HealthSubView) => void;
+  healthMedicationFilter: HealthMedicationFilter;
+  setHealthMedicationFilter: (filter: HealthMedicationFilter) => void;
   pantrySubView: PantrySubView;
   setPantrySubView: (view: PantrySubView) => void;
 
@@ -119,8 +122,10 @@ export const useAppStore = create<AppState>()(
       setFinanceSubView: (view) => set({ financeSubView: view }),
       transportSubView: "vehicles",
       setTransportSubView: (view) => set({ transportSubView: view }),
-      healthSubView: "medications",
+      healthSubView: "summary",
       setHealthSubView: (view) => set({ healthSubView: view }),
+      healthMedicationFilter: "all",
+      setHealthMedicationFilter: (filter) => set({ healthMedicationFilter: filter }),
       pantrySubView: "items",
       setPantrySubView: (view) => set({ pantrySubView: view }),
 

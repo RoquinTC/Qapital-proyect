@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
+import { useAppStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ const itemVariants = {
 };
 
 export function InventoryView() {
+  const { setHealthSubView, setHealthMedicationFilter } = useAppStore();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
   const [subTab, setSubTab] = useState<"dosis" | "stock">("stock");
@@ -113,6 +115,17 @@ export function InventoryView() {
   };
 
   const activeMedications = medications.filter((m) => m.isActive);
+  const medsMissingSchedule = activeMedications.filter((med) => {
+    const hasDose = Boolean(med.dosage && med.dosage.trim() && med.dosage !== "Por definir");
+    let timesList: string[] = [];
+    try {
+      timesList = med.reminderTimes ? JSON.parse(med.reminderTimes) : [];
+    } catch {
+      timesList = [];
+    }
+    const needsSchedule = med.reminderEnabled && med.frequency !== "asNeeded";
+    return !hasDose || (needsSchedule && timesList.length === 0);
+  });
 
   if (loading) {
     return (
@@ -159,6 +172,33 @@ export function InventoryView() {
           <span>Dosis y Frecuencias</span>
         </button>
       </div>
+
+      {medsMissingSchedule.length > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            setHealthMedicationFilter("needs_setup");
+            setHealthSubView("medications");
+          }}
+          className="w-full text-left"
+        >
+        <Card className="border border-amber-200 bg-amber-50 shadow-sm rounded-2xl dark:border-amber-900/60 dark:bg-amber-950/20">
+          <CardContent className="p-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
+              <div>
+                <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                  {medsMissingSchedule.length} medicamento{medsMissingSchedule.length !== 1 ? "s" : ""} sin rutina completa
+                </p>
+                <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+                  Revisa dosis y horarios para que los recordatorios realmente funcionen.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        </button>
+      )}
 
       <AnimatePresence mode="wait">
         {subTab === "stock" ? (
@@ -297,6 +337,18 @@ export function InventoryView() {
                             <span className="font-medium text-gray-700 dark:text-gray-300 capitalize">{med.howToTake || "No requiere"}</span>
                           </div>
                         </div>
+
+                        {(() => {
+                          const hasDose = Boolean(med.dosage && med.dosage.trim() && med.dosage !== "Por definir");
+                          const needsSchedule = med.reminderEnabled && med.frequency !== "asNeeded";
+                          if (hasDose && (!needsSchedule || timesList.length > 0)) return null;
+                          return (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-300">
+                              {!hasDose && <p>Falta definir la dosis real.</p>}
+                              {needsSchedule && timesList.length === 0 && <p>Falta programar horario de recordatorio.</p>}
+                            </div>
+                          );
+                        })()}
 
                         {timesList.length > 0 && (
                           <div className="pt-1.5">

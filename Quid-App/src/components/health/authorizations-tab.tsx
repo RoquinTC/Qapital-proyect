@@ -29,6 +29,11 @@ import {
   History,
   AlertTriangle,
   FileText,
+  Edit3,
+  Trash2,
+  RotateCcw,
+  CalendarX,
+  ChevronDown,
 } from "lucide-react";
 
 interface Authorization {
@@ -71,6 +76,9 @@ export function AuthorizationsTab() {
   const [showRenewDialog, setShowRenewDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending_authorization" | "authorized" | "expired" | "scheduled">("all");
 
   // Form states
   const [authCode, setAuthCode] = useState("");
@@ -83,6 +91,7 @@ export function AuthorizationsTab() {
   const [aptDate, setAptDate] = useState("");
   const [location, setLocation] = useState("");
   const [aptNotes, setAptNotes] = useState("");
+  const [scheduleWarning, setScheduleWarning] = useState<string | null>(null);
 
   const fetchAuthorizations = async () => {
     setLoading(true);
@@ -148,11 +157,24 @@ export function AuthorizationsTab() {
 
   const handleSchedule = async () => {
     if (!activeAuth || !aptDate) return;
+    const daysLeft = getDaysLeft(activeAuth.expirationDate);
+    if (daysLeft !== null && daysLeft <= 0) {
+      setScheduleWarning("Esta autorización está vencida. Renueva o registra una nueva autorización antes de programar.");
+      return;
+    }
+    if (activeAuth.expirationDate) {
+      const appointmentDate = new Date(aptDate);
+      const expiration = new Date(activeAuth.expirationDate);
+      appointmentDate.setHours(0, 0, 0, 0);
+      expiration.setHours(0, 0, 0, 0);
+      if (appointmentDate > expiration) {
+        setScheduleWarning("La fecha de la cita queda después del vencimiento de la autorización.");
+        return;
+      }
+    }
     setSubmitting(true);
     try {
-      await apiFetch("/api/appointments", {
-        method: "POST",
-        body: JSON.stringify({
+      const payload = {
           doctorName: doctorName || null,
           specialty: activeAuth.specialty,
           location: location || null,
@@ -161,15 +183,89 @@ export function AuthorizationsTab() {
           reminderEnabled: true,
           status: "scheduled",
           authorizationId: activeAuth.id,
-        }),
-      });
+      };
+
+      if (activeAuth.appointment?.id) {
+        await apiFetch(`/api/appointments/${activeAuth.appointment.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await apiFetch("/api/appointments", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
       setShowScheduleDialog(false);
       setActiveAuth(null);
+      setScheduleWarning(null);
       fetchAuthorizations();
     } catch (error) {
       console.error("Error scheduling appointment:", error);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEditAuthorization = async () => {
+    if (!activeAuth || !activeAuth.specialty.trim()) return;
+    setSubmitting(true);
+    try {
+      await apiFetch(`/api/health/authorizations/${activeAuth.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          type: activeAuth.type,
+          specialty: activeAuth.specialty,
+          notes: activeAuth.notes || null,
+        }),
+      });
+      setShowEditDialog(false);
+      setActiveAuth(null);
+      fetchAuthorizations();
+    } catch (error) {
+      console.error("Error editing authorization:", error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReverseAuthorization = async (auth: Authorization) => {
+    const confirmed = window.confirm("Esto devuelve la autorización a pendiente EPS, limpia código/vigencia y desvincula la cita programada si existe. ¿Continuar?");
+    if (!confirmed) return;
+    try {
+      await apiFetch(`/api/health/authorizations/${auth.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ clearAuthorization: true }),
+      });
+      fetchAuthorizations();
+    } catch (error) {
+      console.error("Error reversing authorization:", error);
+    }
+  };
+
+  const handleUnlinkAppointment = async (auth: Authorization) => {
+    if (!auth.appointment?.id) return;
+    const confirmed = window.confirm("Esto quitará la cita programada de esta autorización, pero no eliminará la autorización. ¿Continuar?");
+    if (!confirmed) return;
+    try {
+      await apiFetch(`/api/appointments/${auth.appointment.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ authorizationId: null, notes: "Cita desvinculada de autorización EPS." }),
+      });
+      fetchAuthorizations();
+    } catch (error) {
+      console.error("Error unlinking appointment:", error);
+    }
+  };
+
+  const handleDeleteAuthorization = async (auth: Authorization) => {
+    const confirmed = window.confirm("¿Eliminar esta autorización EPS? Si tiene una cita asociada, quedará sin autorización vinculada.");
+    if (!confirmed) return;
+    try {
+      await apiFetch(`/api/health/authorizations/${auth.id}`, { method: "DELETE" });
+      fetchAuthorizations();
+    } catch (error) {
+      console.error("Error deleting authorization:", error);
     }
   };
 
@@ -204,6 +300,16 @@ export function AuthorizationsTab() {
     }
     return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900 rounded-lg text-xs font-semibold px-2 py-0.5">Autorizado</Badge>;
   };
+
+  const filteredAuthorizations = authorizations.filter((auth) => {
+    if (statusFilter === "all") return true;
+    if (statusFilter === "scheduled") return Boolean(auth.appointment);
+    if (statusFilter === "expired") {
+      const daysLeft = getDaysLeft(auth.expirationDate);
+      return auth.status === "expired" || (daysLeft !== null && daysLeft <= 0);
+    }
+    return auth.status === statusFilter;
+  });
 
   if (loading) {
     return (
@@ -246,6 +352,30 @@ export function AuthorizationsTab() {
         </CardContent>
       </Card>
 
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {[
+          { value: "all", label: "Todas" },
+          { value: "pending_authorization", label: "Pendientes" },
+          { value: "authorized", label: "Autorizadas" },
+          { value: "scheduled", label: "Con cita" },
+          { value: "expired", label: "Vencidas" },
+        ].map((filter) => (
+          <Button
+            key={filter.value}
+            variant={statusFilter === filter.value ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter(filter.value as typeof statusFilter)}
+            className={`h-8 shrink-0 rounded-xl text-xs ${
+              statusFilter === filter.value
+                ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300"
+                : ""
+            }`}
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+
       {/* Lista de autorizaciones */}
       <div className="space-y-3">
         {authorizations.length === 0 ? (
@@ -255,7 +385,7 @@ export function AuthorizationsTab() {
           </div>
         ) : (
           <AnimatePresence>
-            {authorizations.map((auth) => {
+            {filteredAuthorizations.map((auth) => {
               const daysLeft = getDaysLeft(auth.expirationDate);
               const formattedExp = auth.expirationDate
                 ? new Date(auth.expirationDate).toLocaleDateString("es-CO", {
@@ -264,6 +394,15 @@ export function AuthorizationsTab() {
                     year: "numeric",
                   })
                 : null;
+              const isExpired = daysLeft !== null && daysLeft <= 0;
+              const isLastValidDay = daysLeft === 0;
+              const isExpanded = expandedId === auth.id;
+              const needsAttention =
+                auth.status === "pending_authorization" ||
+                Boolean(auth.appointment && auth.appointment.status === "scheduled") ||
+                isExpired ||
+                isLastValidDay ||
+                (daysLeft !== null && daysLeft <= 5);
 
               return (
                 <motion.div
@@ -275,26 +414,49 @@ export function AuthorizationsTab() {
                   transition={{ duration: 0.2 }}
                 >
                   <Card className="border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <CardContent className="p-4 space-y-3">
+                    <CardContent className="p-3 space-y-3">
                       {/* Cabecera */}
-                      <div className="flex justify-between items-start gap-2">
-                        <div>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(isExpanded ? null : auth.id)}
+                        className="flex w-full items-center justify-between gap-2 text-left"
+                      >
+                        <div className="min-w-0">
                           <h4 className="text-sm font-bold text-gray-900 dark:text-white capitalize">
                             {auth.specialty}
                           </h4>
-                          <span className="text-[10px] text-gray-400 font-medium tracking-wide uppercase">
+                          <span className="block truncate text-[10px] text-gray-400 font-medium tracking-wide uppercase">
                             {auth.type === "specialist"
                               ? "Cita Especialista"
                               : auth.type === "procedure"
                               ? "Examen / Procedimiento"
                               : "Control Médico"}
                           </span>
+                          {auth.appointment ? (
+                            <span className={`mt-1 inline-flex items-center gap-1 text-[11px] ${
+                              auth.appointment.status === "scheduled"
+                                ? "text-emerald-700 dark:text-emerald-300"
+                                : "text-amber-700 dark:text-amber-300"
+                            }`}>
+                              <Calendar className="size-3" />
+                              {auth.appointment.status === "scheduled" ? "Cita: " : "Cita no activa: "}
+                              {new Date(auth.appointment.date).toLocaleString("es-CO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          ) : formattedExp ? (
+                            <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-gray-500">
+                              <FileClock className="size-3" />
+                              Vence: {formattedExp}
+                            </span>
+                          ) : null}
                         </div>
-                        {getStatusBadge(auth)}
-                      </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {getStatusBadge(auth)}
+                          <ChevronDown className={`size-4 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        </div>
+                      </button>
 
                       {/* Información de origen */}
-                      {auth.originAppointment && (
+                      {isExpanded && auth.originAppointment && (
                         <div className="text-xs text-gray-500 bg-gray-50 dark:bg-gray-900/60 p-2.5 rounded-xl flex items-start gap-2">
                           <FileText className="size-3.5 mt-0.5 text-gray-400 flex-shrink-0" />
                           <div>
@@ -305,7 +467,7 @@ export function AuthorizationsTab() {
                       )}
 
                       {/* Detalles de autorización */}
-                      {auth.status === "authorized" && (
+                      {isExpanded && auth.status === "authorized" && (
                         <div className="text-xs space-y-1.5 border-t border-gray-50 dark:border-gray-800 pt-2.5">
                           <div className="flex justify-between">
                             <span className="text-gray-400">Código de Autorización:</span>
@@ -342,21 +504,37 @@ export function AuthorizationsTab() {
                         </div>
                       )}
 
-                      {auth.notes && (
+                      {isExpanded && auth.notes && (
                         <p className="text-xs text-gray-400 italic bg-gray-50 dark:bg-gray-900/40 p-2 rounded-xl">
                           &ldquo;{auth.notes}&rdquo;
                         </p>
                       )}
 
+                      {needsAttention && isExpired && auth.status !== "pending_authorization" && (
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/20 dark:text-red-300">
+                          Esta autorización ya venció. No se debe programar cita con esta vigencia; renueva o reversa el trámite.
+                        </div>
+                      )}
+
+                      {needsAttention && isLastValidDay && (
+                        <div className="rounded-xl border border-orange-200 bg-orange-50 p-2.5 text-xs text-orange-800 dark:border-orange-900 dark:bg-orange-950/20 dark:text-orange-300">
+                          Hoy es el último día de vigencia. Si la entidad no agenda hoy, conviene renovar.
+                        </div>
+                      )}
+
                       {/* Información de cita programada */}
-                      {auth.appointment ? (
-                        <div className="mt-2 text-xs bg-emerald-50 text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300 p-2.5 rounded-xl border border-emerald-100/30">
+                      {isExpanded && auth.appointment ? (
+                        <div className={`mt-2 text-xs p-2.5 rounded-xl border ${
+                          auth.appointment.status === "scheduled"
+                            ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300 border-emerald-100/30"
+                            : "bg-amber-50 text-amber-800 dark:bg-amber-950/20 dark:text-amber-300 border-amber-100/30"
+                        }`}>
                           <p className="font-bold flex items-center gap-1.5 mb-1">
-                            <Calendar className="size-3.5" /> Cita Programada
+                            <Calendar className="size-3.5" /> {auth.appointment.status === "scheduled" ? "Cita programada" : "Cita cancelada o no activa"}
                           </p>
                           <div className="space-y-1 pl-5">
                             {auth.appointment.doctorName && (
-                              <p className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+                              <p className="flex items-center gap-1 text-[11px]">
                                 <User className="size-3" /> {auth.appointment.doctorName}
                               </p>
                             )}
@@ -364,7 +542,7 @@ export function AuthorizationsTab() {
                               <Clock className="size-3" /> {new Date(auth.appointment.date).toLocaleString("es-CO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                             </p>
                             {auth.appointment.location && (
-                              <p className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+                              <p className="flex items-center gap-1 text-[11px]">
                                 <MapPin className="size-3" /> {auth.appointment.location}
                               </p>
                             )}
@@ -374,7 +552,7 @@ export function AuthorizationsTab() {
                         auth.status === "authorized" &&
                         daysLeft !== null &&
                         daysLeft > 0 && (
-                          <div className="mt-2 bg-amber-50 text-amber-800 dark:bg-amber-950/20 dark:text-amber-300 p-2.5 rounded-xl border border-amber-100/30 text-xs flex items-center gap-2">
+                          <div className={`mt-2 bg-amber-50 text-amber-800 dark:bg-amber-950/20 dark:text-amber-300 p-2.5 rounded-xl border border-amber-100/30 text-xs items-center gap-2 ${isExpanded || daysLeft <= 5 ? "flex" : "hidden"}`}>
                             <AlertTriangle className="size-4 flex-shrink-0 text-amber-500" />
                             <span>Aún no has agendado la cita de esta autorización.</span>
                           </div>
@@ -382,7 +560,19 @@ export function AuthorizationsTab() {
                       )}
 
                       {/* Acciones */}
-                      <div className="flex gap-2 justify-end pt-2 border-t border-gray-50 dark:border-gray-800">
+                      {isExpanded && <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-gray-50 dark:border-gray-800">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-8 text-gray-500 rounded-xl"
+                          onClick={() => {
+                            setActiveAuth({ ...auth });
+                            setShowEditDialog(true);
+                          }}
+                        >
+                          <Edit3 className="size-3.5 mr-1" /> Editar
+                        </Button>
+
                         {auth.renewals && (auth.renewals as any[]).length > 0 && (
                           <Button
                             variant="ghost"
@@ -413,7 +603,7 @@ export function AuthorizationsTab() {
                           </Button>
                         )}
 
-                        {auth.status === "authorized" && !auth.appointment && (
+                        {auth.status === "authorized" && !auth.appointment && !isExpired && (
                           <Button
                             size="sm"
                             className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs h-8"
@@ -423,11 +613,41 @@ export function AuthorizationsTab() {
                               setAptDate("");
                               setLocation("");
                               setAptNotes("");
+                              setScheduleWarning(null);
                               setShowScheduleDialog(true);
                             }}
                           >
                             <Calendar className="size-3.5 mr-1" /> Agendar Cita
                           </Button>
+                        )}
+
+                        {auth.status === "authorized" && auth.appointment && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl text-xs h-8"
+                              onClick={() => {
+                                setActiveAuth(auth);
+                                setDoctorName(auth.appointment?.doctorName || "");
+                                setAptDate(auth.appointment?.date ? new Date(auth.appointment.date).toISOString().slice(0, 16) : "");
+                                setLocation(auth.appointment?.location || "");
+                                setAptNotes("");
+                                setScheduleWarning(null);
+                                setShowScheduleDialog(true);
+                              }}
+                            >
+                              <Calendar className="size-3.5 mr-1" /> Reprogramar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl text-xs h-8 border-amber-200 text-amber-700 hover:bg-amber-50"
+                              onClick={() => handleUnlinkAppointment(auth)}
+                            >
+                              <CalendarX className="size-3.5 mr-1" /> Desvincular
+                            </Button>
+                          </>
                         )}
 
                         {(auth.status === "expired" || (daysLeft !== null && daysLeft <= 0)) && (
@@ -445,7 +665,27 @@ export function AuthorizationsTab() {
                             <FileClock className="size-3.5 mr-1" /> Renovar
                           </Button>
                         )}
-                      </div>
+
+                        {auth.status === "authorized" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="rounded-xl text-xs h-8 border-orange-200 text-orange-700 hover:bg-orange-50"
+                            onClick={() => handleReverseAuthorization(auth)}
+                          >
+                            <RotateCcw className="size-3.5 mr-1" /> Reversar
+                          </Button>
+                        )}
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="rounded-xl text-xs h-8 border-red-200 text-red-600 hover:bg-red-50"
+                          onClick={() => handleDeleteAuthorization(auth)}
+                        >
+                          <Trash2 className="size-3.5 mr-1" /> Eliminar
+                        </Button>
+                      </div>}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -456,6 +696,80 @@ export function AuthorizationsTab() {
       </div>
 
       {/* DIÁLOGO APROBAR/AUTORIZAR EPS */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="w-[95vw] sm:w-full sm:max-w-md rounded-2xl p-5">
+          <DialogHeader>
+            <DialogTitle>Editar orden EPS</DialogTitle>
+            <DialogDescription>
+              Corrige el servicio, tipo o notas si la remisión quedó mal registrada.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-specialty" className="text-xs text-gray-500">Servicio o especialidad</Label>
+              <Input
+                id="edit-specialty"
+                value={activeAuth?.specialty || ""}
+                onChange={(event) => {
+                  if (!activeAuth) return;
+                  setActiveAuth({ ...activeAuth, specialty: event.target.value });
+                }}
+                className="rounded-xl h-10 text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs text-gray-500">Tipo</Label>
+              <div className="flex gap-2">
+                {[
+                  { value: "specialist", label: "Especialista" },
+                  { value: "procedure", label: "Examen" },
+                  { value: "control", label: "Control" },
+                ].map((type) => (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => {
+                      if (!activeAuth) return;
+                      setActiveAuth({ ...activeAuth, type: type.value });
+                    }}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
+                      activeAuth?.type === type.value
+                        ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300"
+                        : "border-gray-200 text-gray-500 dark:border-gray-800"
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-notes" className="text-xs text-gray-500">Notas</Label>
+              <Textarea
+                id="edit-notes"
+                value={activeAuth?.notes || ""}
+                onChange={(event) => {
+                  if (!activeAuth) return;
+                  setActiveAuth({ ...activeAuth, notes: event.target.value });
+                }}
+                className="rounded-xl min-h-[80px] resize-none text-sm"
+              />
+            </div>
+
+            <Button
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 font-medium"
+              onClick={handleEditAuthorization}
+              disabled={submitting || !activeAuth?.specialty}
+            >
+              {submitting ? <Loader2 className="size-4 animate-spin" /> : "Guardar cambios"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
         <DialogContent className="w-[95vw] sm:w-full sm:max-w-md rounded-2xl p-5">
           <DialogHeader>
@@ -575,7 +889,7 @@ export function AuthorizationsTab() {
           <DialogHeader>
             <DialogTitle>Agendar Cita con Especialista</DialogTitle>
             <DialogDescription>
-              Asigna la fecha y hora oficial de tu cita médica autorizada.
+              {activeAuth?.appointment ? "Actualiza la fecha oficial si la entidad reprogramó la cita." : "Asigna la fecha y hora oficial de tu cita médica autorizada."}
             </DialogDescription>
           </DialogHeader>
 
@@ -631,12 +945,18 @@ export function AuthorizationsTab() {
               />
             </div>
 
+            {scheduleWarning && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/20 dark:text-red-300">
+                {scheduleWarning}
+              </div>
+            )}
+
             <Button
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 font-medium"
               onClick={handleSchedule}
               disabled={submitting || !aptDate}
             >
-              {submitting ? <Loader2 className="size-4 animate-spin" /> : "Confirmar Agendamiento"}
+              {submitting ? <Loader2 className="size-4 animate-spin" /> : activeAuth?.appointment ? "Guardar reprogramación" : "Confirmar agendamiento"}
             </Button>
           </div>
         </DialogContent>

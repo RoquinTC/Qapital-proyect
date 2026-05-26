@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { apiFetch, toColombiaDateString } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 
 interface AppointmentFormProps {
@@ -36,7 +36,7 @@ interface AppointmentFormProps {
     status: string;
     copayAmount?: number | null;
   } | null;
-  onSuccess?: () => void;
+  onSuccess?: () => void | Promise<void>;
 }
 
 const specialtyOptions = [
@@ -80,6 +80,12 @@ const specialtyOptions = [
   "Otra",
 ];
 
+function toLocalDateTimeInput(value: string) {
+  const date = new Date(value);
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
 export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: AppointmentFormProps) {
   const [loading, setLoading] = useState(false);
   const [doctorName, setDoctorName] = useState(appointment?.doctorName || "");
@@ -87,8 +93,7 @@ export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: 
   const [location, setLocation] = useState(appointment?.location || "");
   const [dateStr, setDateStr] = useState(() => {
     if (appointment?.date) {
-      const d = toColombiaDateString(appointment.date);
-      return `${d}T09:00`;
+      return toLocalDateTimeInput(appointment.date);
     }
     return "";
   });
@@ -99,6 +104,17 @@ export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: 
   const [reminderEnabled, setReminderEnabled] = useState(appointment?.reminderEnabled ?? true);
 
   const isEditing = !!appointment;
+
+  useEffect(() => {
+    if (!open) return;
+    setDoctorName(appointment?.doctorName || "");
+    setSpecialty(appointment?.specialty || "");
+    setLocation(appointment?.location || "");
+    setDateStr(appointment?.date ? toLocalDateTimeInput(appointment.date) : "");
+    setNotes(appointment?.notes || "");
+    setCopayAmount(appointment?.copayAmount != null ? String(appointment.copayAmount) : "");
+    setReminderEnabled(appointment?.reminderEnabled ?? true);
+  }, [appointment, open]);
 
   const handleSubmit = async () => {
     if (!dateStr) return;
@@ -126,7 +142,7 @@ export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: 
         });
       }
 
-      onSuccess?.();
+      await onSuccess?.();
       onOpenChange(false);
       resetForm();
     } catch (error) {

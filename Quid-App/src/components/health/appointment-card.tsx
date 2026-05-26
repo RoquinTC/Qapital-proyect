@@ -1,9 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Clock, User } from "lucide-react";
+import { MapPin, Clock, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/api";
 
 interface AppointmentCardProps {
   appointment: {
@@ -17,6 +16,7 @@ interface AppointmentCardProps {
     status: string;
   };
   onClick?: () => void;
+  highlighted?: boolean;
 }
 
 const statusLabels: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -25,11 +25,8 @@ const statusLabels: Record<string, { label: string; color: string; bgColor: stri
   cancelled: { label: "Cancelada", color: "text-red-600 dark:text-red-400", bgColor: "bg-red-50 dark:bg-red-900/20" },
 };
 
-export function AppointmentCard({ appointment, onClick }: AppointmentCardProps) {
+export function AppointmentCard({ appointment, onClick, highlighted }: AppointmentCardProps) {
   const date = new Date(appointment.date);
-  const now = new Date();
-  const isPast = date < now;
-  const isUpcoming = date > now;
   const statusInfo = statusLabels[appointment.status] || statusLabels.scheduled;
 
   const day = date.getDate();
@@ -42,7 +39,9 @@ export function AppointmentCard({ appointment, onClick }: AppointmentCardProps) 
       className="w-full text-left"
       whileTap={{ scale: 0.98 }}
     >
-      <div className={`bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-md border ${
+      <div className={`bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border transition-shadow ${
+        highlighted ? "ring-2 ring-violet-200 dark:ring-violet-900/60 shadow-md" : ""
+      } ${
         appointment.status === "cancelled"
           ? "border-red-100 dark:border-red-900/30 opacity-70"
           : appointment.status === "completed"
@@ -51,7 +50,7 @@ export function AppointmentCard({ appointment, onClick }: AppointmentCardProps) 
       }`}>
         <div className="flex items-start gap-3">
           {/* Date icon */}
-          <div className={`size-12 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+          <div className={`size-10 rounded-xl flex flex-col items-center justify-center shrink-0 ${
             appointment.status === "scheduled"
               ? "bg-gradient-to-br from-emerald-500 to-teal-500"
               : appointment.status === "completed"
@@ -59,21 +58,25 @@ export function AppointmentCard({ appointment, onClick }: AppointmentCardProps) 
               : "bg-red-400"
           }`}>
             <span className="text-xs font-bold text-white leading-none">{day}</span>
-            <span className="text-[11px] text-white/80 uppercase">{month}</span>
+            <span className="text-[10px] text-white/80 uppercase">{month}</span>
           </div>
 
           {/* Details */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                {appointment.doctorName && (
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                  {appointment.doctorName ? (
+                    <>
                     <User className="size-3.5 text-gray-400" />
                     {appointment.doctorName}
-                  </h3>
-                )}
+                    </>
+                  ) : (
+                    appointment.specialty || "Cita médica"
+                  )}
+                </h3>
                 {appointment.specialty && (
-                  <span className="text-xs text-gray-500 ml-5">{appointment.specialty}</span>
+                  <span className="block truncate text-xs text-gray-500">{appointment.specialty}</span>
                 )}
               </div>
               <Badge className={`${statusInfo.bgColor} ${statusInfo.color} border-0 text-xs shrink-0`}>
@@ -82,18 +85,18 @@ export function AppointmentCard({ appointment, onClick }: AppointmentCardProps) 
             </div>
 
             {/* Time */}
-            <div className="flex items-center gap-1.5 mt-1.5">
+            <div className="flex items-center gap-3 mt-1.5">
+              <span className="inline-flex items-center gap-1.5">
               <Clock className="size-3 text-gray-400" />
               <span className="text-xs text-gray-500">{timeStr}</span>
-            </div>
-
-            {/* Location */}
-            {appointment.location && (
-              <div className="flex items-center gap-1.5 mt-1">
+              </span>
+              {appointment.location && (
+              <span className="inline-flex min-w-0 items-center gap-1.5">
                 <MapPin className="size-3 text-gray-400" />
                 <span className="text-xs text-gray-500 truncate">{appointment.location}</span>
-              </div>
-            )}
+              </span>
+              )}
+            </div>
           </div>
         </div>
       </div>

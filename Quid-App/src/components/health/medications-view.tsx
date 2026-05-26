@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
+import { useAppStore } from "@/lib/store";
 import { MedicationCard } from "./medication-card";
 import { MedicationForm } from "./medication-form";
 import { MedicationDetail } from "./medication-detail";
 import { TodaySchedule } from "./today-schedule";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Pill, Filter } from "lucide-react";
+import { Plus, Pill, Filter, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Medication } from "@/lib/types";
 
@@ -26,19 +27,21 @@ const itemVariants = {
 };
 
 export function MedicationsView() {
+  const { healthMedicationFilter, setHealthMedicationFilter } = useAppStore();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null);
-  const [filterActive, setFilterActive] = useState(false);
 
   const fetchMedications = useCallback(async () => {
     try {
       const data = await apiFetch<Medication[]>("/api/medications");
       setMedications(data);
+      return data;
     } catch (error) {
       console.error("Error fetching medications:", error);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -48,11 +51,29 @@ export function MedicationsView() {
     fetchMedications();
   }, [fetchMedications]);
 
-  const filteredMedications = filterActive
-    ? medications.filter((m) => m.isActive)
-    : medications;
+  const needsSetup = (med: Medication) => {
+    const hasDose = Boolean(med.dosage && med.dosage.trim() && med.dosage !== "Por definir");
+    let times: string[] = [];
+    try {
+      times = med.reminderTimes ? JSON.parse(med.reminderTimes) : [];
+    } catch {
+      times = [];
+    }
+    const needsSchedule = med.reminderEnabled && med.frequency !== "asNeeded";
+    return med.isActive && (!hasDose || (needsSchedule && times.length === 0));
+  };
+
+  const configured = (med: Medication) => med.isActive && !needsSetup(med);
+
+  const filteredMedications = medications.filter((med) => {
+    if (healthMedicationFilter === "active") return med.isActive;
+    if (healthMedicationFilter === "needs_setup") return needsSetup(med);
+    if (healthMedicationFilter === "configured") return configured(med);
+    return true;
+  });
 
   const activeCount = medications.filter((m) => m.isActive).length;
+  const needsSetupCount = medications.filter(needsSetup).length;
 
   const handleDelete = async (id: string) => {
     try {
@@ -67,6 +88,13 @@ export function MedicationsView() {
   const handleEdit = (med: Medication) => {
     setEditingMedication(med);
     setShowForm(true);
+  };
+
+  const handleFormSuccess = async () => {
+    const refreshed = await fetchMedications();
+    if (editingMedication?.id) {
+      setSelectedMedication(refreshed.find((med) => med.id === editingMedication.id) || null);
+    }
   };
 
   if (loading) {
@@ -85,12 +113,23 @@ export function MedicationsView() {
   // Show detail view
   if (selectedMedication) {
     return (
-      <MedicationDetail
-        medication={selectedMedication}
-        onBack={() => setSelectedMedication(null)}
-        onEdit={() => handleEdit(selectedMedication)}
-        onDelete={() => handleDelete(selectedMedication.id)}
-      />
+      <>
+        <MedicationDetail
+          medication={selectedMedication}
+          onBack={() => setSelectedMedication(null)}
+          onEdit={() => handleEdit(selectedMedication)}
+          onDelete={() => handleDelete(selectedMedication.id)}
+        />
+        <MedicationForm
+          open={showForm}
+          onOpenChange={(open) => {
+            setShowForm(open);
+            if (!open) setEditingMedication(null);
+          }}
+          medication={editingMedication}
+          onSuccess={handleFormSuccess}
+        />
+      </>
     );
   }
 
@@ -135,22 +174,56 @@ export function MedicationsView() {
         </motion.div>
       )}
 
-      {/* Filter */}
-      <motion.div variants={itemVariants} className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Todos los Medicamentos</h3>
-        <Button
-          variant={filterActive ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilterActive(!filterActive)}
-          className={`rounded-xl text-xs h-8 ${
-            filterActive
-              ? "bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/30 dark:text-rose-300"
-              : ""
-          }`}
+      {needsSetupCount > 0 && (
+        <motion.button
+          variants={itemVariants}
+          type="button"
+          onClick={() => setHealthMedicationFilter("needs_setup")}
+          className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-3 text-left dark:border-amber-900/60 dark:bg-amber-950/20"
         >
-          <Filter className="size-3 mr-1" />
-          {filterActive ? "Solo activos" : "Todos"}
-        </Button>
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
+            <div>
+              <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                {needsSetupCount} medicamento{needsSetupCount !== 1 ? "s" : ""} sin rutina completa
+              </p>
+              <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+                Toca aquí para ver cuáles necesitan dosis u horario.
+              </p>
+            </div>
+          </div>
+        </motion.button>
+      )}
+
+      {/* Filter */}
+      <motion.div variants={itemVariants} className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Todos los Medicamentos</h3>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[
+            { value: "all", label: "Todos", icon: Filter },
+            { value: "active", label: "Activos", icon: Pill },
+            { value: "needs_setup", label: "Sin rutina", icon: AlertTriangle },
+            { value: "configured", label: "Configurados", icon: CheckCircle2 },
+          ].map((filter) => {
+            const Icon = filter.icon;
+            return (
+              <Button
+                key={filter.value}
+                variant={healthMedicationFilter === filter.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setHealthMedicationFilter(filter.value as typeof healthMedicationFilter)}
+                className={`h-8 shrink-0 rounded-xl text-xs ${
+                  healthMedicationFilter === filter.value
+                    ? "bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/30 dark:text-rose-300"
+                    : ""
+                }`}
+              >
+                <Icon className="size-3 mr-1" />
+                {filter.label}
+              </Button>
+            );
+          })}
+        </div>
       </motion.div>
 
       {/* Medications list */}
@@ -162,10 +235,12 @@ export function MedicationsView() {
                 <Pill className="size-7 text-white" />
               </div>
               <h3 className="font-bold text-gray-900 dark:text-white mb-1">
-                Sin medicamentos
+                {healthMedicationFilter === "needs_setup" ? "Sin pendientes de rutina" : "Sin medicamentos"}
               </h3>
               <p className="text-sm text-gray-500 mb-4">
-                Agrega tu primer medicamento para gestionar tus tratamientos
+                {healthMedicationFilter === "needs_setup"
+                  ? "Todos los medicamentos activos tienen dosis y horario configurado."
+                  : "Agrega tu primer medicamento para gestionar tus tratamientos"}
               </p>
               <Button
                 onClick={() => {
@@ -222,7 +297,7 @@ export function MedicationsView() {
           if (!open) setEditingMedication(null);
         }}
         medication={editingMedication}
-        onSuccess={fetchMedications}
+        onSuccess={handleFormSuccess}
       />
     </motion.div>
   );

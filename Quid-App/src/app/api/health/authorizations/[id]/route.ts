@@ -33,6 +33,8 @@ export async function PUT(
       newDaysOfValidity,
       renewalReason,
       appointmentDateToCheck,
+      clearAuthorization,
+      unlinkAppointment,
     } = body;
 
     // Resolver el código de autorización (campo DB: code)
@@ -51,6 +53,13 @@ export async function PUT(
 
     let updatedData: any = {};
     let warning: string | null = null;
+
+    if (unlinkAppointment || clearAuthorization || status === "pending_authorization") {
+      await db.medicalAppointment.updateMany({
+        where: { userId: session.user.id, authorizationId: id },
+        data: { authorizationId: null },
+      });
+    }
 
     // LÓGICA DE RENOVACIÓN / PRÓRROGA
     if (isRenewal) {
@@ -97,6 +106,14 @@ export async function PUT(
       if (resolvedCode !== undefined) updatedData.code = resolvedCode || null;
       if (notes !== undefined) updatedData.notes = notes || null;
       if (appointmentId !== undefined) updatedData.appointmentId = appointmentId || null;
+      if (clearAuthorization) {
+        updatedData.status = "pending_authorization";
+        updatedData.code = null;
+        updatedData.authorizationDate = null;
+        updatedData.daysOfValidity = 30;
+        updatedData.expirationDate = null;
+        updatedData.appointmentId = null;
+      }
 
       let currentAuthDate: Date | null = existingAuth.authorizationDate;
       let currentDays: number | null = existingAuth.daysOfValidity;

@@ -33,6 +33,7 @@ import {
   ArrowRight,
   ExternalLink,
   Package,
+  ChevronDown,
 } from "lucide-react";
 
 interface Medication {
@@ -77,6 +78,8 @@ export function PendingClaimsTab() {
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [nextClaimDate, setNextClaimDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"active" | "pending" | "partial" | "completed">("active");
 
   const fetchData = async () => {
     setLoading(true);
@@ -188,6 +191,11 @@ export function PendingClaimsTab() {
     );
   };
 
+  const filteredOrders = orders.filter((order) => {
+    if (statusFilter === "active") return order.status !== "completed";
+    return order.status === statusFilter;
+  });
+
   if (loading) {
     return (
       <div className="p-4 space-y-3 pb-safe">
@@ -223,6 +231,29 @@ export function PendingClaimsTab() {
         </CardContent>
       </Card>
 
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {[
+          { value: "active", label: "Activas" },
+          { value: "pending", label: "Pendientes" },
+          { value: "partial", label: "Parciales" },
+          { value: "completed", label: "Completadas" },
+        ].map((filter) => (
+          <Button
+            key={filter.value}
+            variant={statusFilter === filter.value ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter(filter.value as typeof statusFilter)}
+            className={`h-8 shrink-0 rounded-xl text-xs ${
+              statusFilter === filter.value
+                ? "bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-950/40 dark:text-violet-300"
+                : ""
+            }`}
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+
       {/* Lista de órdenes médicas y sus entregas */}
       <div className="space-y-3">
         {orders.length === 0 ? (
@@ -232,8 +263,10 @@ export function PendingClaimsTab() {
           </div>
         ) : (
           <AnimatePresence>
-            {orders.map((order) => {
+            {filteredOrders.map((order) => {
               const hasPendingItems = order.items.some((i) => i.pendingQty > 0);
+              const isExpanded = expandedId === order.id;
+              const pendingCount = order.items.filter((i) => i.pendingQty > 0).length;
 
               return (
                 <motion.div
@@ -245,23 +278,33 @@ export function PendingClaimsTab() {
                   transition={{ duration: 0.2 }}
                 >
                   <Card className="border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <CardContent className="p-4 space-y-3">
+                    <CardContent className="p-3 space-y-3">
                       {/* Cabecera de la Orden */}
-                      <div className="flex justify-between items-start gap-2">
-                        <div>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(isExpanded ? null : order.id)}
+                        className="flex w-full items-start justify-between gap-2 text-left"
+                      >
+                        <div className="min-w-0">
                           <h4 className="text-sm font-bold text-gray-900 dark:text-white">
                             {order.title}
                           </h4>
-                          <span className="text-[10px] text-gray-400 font-medium uppercase">
+                          <span className="block truncate text-[10px] text-gray-400 font-medium uppercase">
                             Orden: {order.orderNumber || "Sin número"} • Expedida:{" "}
                             {new Date(order.issueDate).toLocaleDateString("es-CO")}
                           </span>
+                          <span className="mt-1 block text-[11px] text-gray-500">
+                            {pendingCount > 0 ? `${pendingCount} pendiente${pendingCount !== 1 ? "s" : ""} por reclamar` : "Entrega cerrada"}
+                          </span>
                         </div>
-                        {getOrderStatusBadge(order)}
-                      </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {getOrderStatusBadge(order)}
+                          <ChevronDown className={`size-4 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        </div>
+                      </button>
 
                       {/* Items de medicamentos */}
-                      <div className="space-y-2 pt-1">
+                      {isExpanded && <div className="space-y-2 pt-1">
                         {order.items.map((item) => (
                           <div
                             key={item.id}
@@ -290,7 +333,7 @@ export function PendingClaimsTab() {
                             </div>
                           </div>
                         ))}
-                      </div>
+                      </div>}
 
                       {/* Próximo reclamo o Soporte de Recibo */}
                       {(order.nextClaimDate || order.receiptUrl) && (
@@ -320,7 +363,7 @@ export function PendingClaimsTab() {
                       )}
 
                       {/* Botón de Reclamar */}
-                      {hasPendingItems && (
+                      {isExpanded && hasPendingItems && (
                         <div className="flex justify-end pt-2 border-t border-gray-50 dark:border-gray-800">
                           <Button
                             size="sm"

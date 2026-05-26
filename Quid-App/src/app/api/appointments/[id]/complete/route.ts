@@ -15,7 +15,7 @@ type CompleteAppointmentPayload = {
     orderNumber?: string | null;
     nextClaimDate?: string | null;
     notes?: string | null;
-    items?: Array<{ name: string; prescribedQty: number; unit?: string | null }>;
+    items?: Array<{ name: string; prescribedQty: number; unit?: string | null; monthlyDose?: number | null; notes?: string | null }>;
   };
   createFollowUp?: {
     specialty: string;
@@ -149,6 +149,57 @@ export async function POST(
 
     if (body.createOrder?.title) {
       const items = body.createOrder.items || [];
+      const orderItems: Array<{
+        medicationId: string | null;
+        name: string;
+        prescribedQty: number;
+        deliveredQty: number;
+        pendingQty: number;
+        unit: string;
+        monthlyDose: number | null;
+        notes: string | null;
+      }> = [];
+      for (const item of items) {
+        const name = item.name?.trim();
+        if (!name) continue;
+
+        let medicationId: string | null = null;
+        const existingMed = await db.medication.findFirst({
+          where: {
+            userId: session.user.id,
+            name: { equals: name, mode: "insensitive" },
+          },
+        });
+
+        if (existingMed) {
+          medicationId = existingMed.id;
+        } else {
+          const createdMed = await db.medication.create({
+            data: {
+              userId: session.user.id,
+              name,
+              dosage: "Por definir",
+              stockQuantity: 0,
+              stockUnit: item.unit || "und",
+              doseQuantity: item.monthlyDose ? Number(item.monthlyDose) / 30 : null,
+            },
+          });
+          medicationId = createdMed.id;
+        }
+
+        const prescribedQty = Number(item.prescribedQty) || 1;
+        orderItems.push({
+          medicationId,
+          name,
+          prescribedQty,
+          deliveredQty: 0,
+          pendingQty: prescribedQty,
+          unit: item.unit || "und",
+          monthlyDose: item.monthlyDose ?? null,
+          notes: item.notes || null,
+        });
+      }
+
       const order = await db.medicalOrder.create({
         data: {
           userId: session.user.id,
@@ -158,17 +209,9 @@ export async function POST(
           nextClaimDate: body.createOrder.nextClaimDate ? new Date(body.createOrder.nextClaimDate) : null,
           notes: body.createOrder.notes || null,
           status: "pending",
-          items: items.length > 0
+          items: orderItems.length > 0
             ? {
-                create: items
-                  .filter((item) => item.name?.trim())
-                  .map((item) => ({
-                    name: item.name.trim(),
-                    prescribedQty: Number(item.prescribedQty) || 1,
-                    deliveredQty: 0,
-                    pendingQty: Number(item.prescribedQty) || 1,
-                    unit: item.unit || "unit",
-                  })),
+                create: orderItems,
               }
             : undefined,
         },

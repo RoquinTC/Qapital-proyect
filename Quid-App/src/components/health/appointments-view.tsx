@@ -38,10 +38,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { formatDate } from "@/lib/api";
-import type { MedicalAppointment } from "@/lib/types";
+import type { MedicalAppointment, Medication } from "@/lib/types";
 import type { PaymentMethodType } from "@/lib/types/transport";
 
 type Appointment = MedicalAppointment;
+
+type PrescribedMedicationDraft = {
+  name: string;
+  qty: string;
+  unit: string;
+  days: string;
+  dosesPerDay: string;
+};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -76,8 +84,10 @@ export function AppointmentsView() {
     try {
       const data = await apiFetch<Appointment[]>("/api/appointments");
       setAppointments(data);
+      return data;
     } catch (error) {
       console.error("Error fetching appointments:", error);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -104,8 +114,14 @@ export function AppointmentsView() {
   const nextAppointment = upcoming.sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   )[0];
+  const todayAppointments = upcoming.filter((a) => {
+    const date = new Date(a.date);
+    return date.toDateString() === now.toDateString();
+  });
 
   const handleDelete = async (id: string) => {
+    const confirmed = window.confirm("¿Eliminar esta cita? Si tenía copago, también se reversará el movimiento financiero asociado.");
+    if (!confirmed) return;
     try {
       await apiFetch(`/api/appointments/${id}`, { method: "DELETE" });
       fetchAppointments();
@@ -120,12 +136,19 @@ export function AppointmentsView() {
     status: string,
     payload?: Partial<Pick<Appointment, "copayAmount" | "accountId" | "subAccountId" | "debtId">>
   ) => {
+    if (status === "cancelled") {
+      const confirmed = window.confirm("¿Cancelar esta cita? La cita quedará visible como cancelada y podrás volver a programarla si la entidad la reubica.");
+      if (!confirmed) return;
+    }
     try {
       await apiFetch(`/api/appointments/${id}`, {
         method: "PUT",
         body: JSON.stringify({ status, ...payload }),
       });
-      fetchAppointments();
+      const refreshed = await fetchAppointments();
+      if (selectedAppointment?.id === id) {
+        setSelectedAppointment(refreshed.find((a) => a.id === id) || null);
+      }
     } catch (error) {
       console.error("Error updating appointment:", error);
     }
@@ -144,6 +167,13 @@ export function AppointmentsView() {
   const handleEdit = (apt: Appointment) => {
     setEditingAppointment(apt);
     setShowForm(true);
+  };
+
+  const handleFormSuccess = async () => {
+    const refreshed = await fetchAppointments();
+    if (editingAppointment?.id) {
+      setSelectedAppointment(refreshed.find((a) => a.id === editingAppointment.id) || null);
+    }
   };
 
   if (loading) {
@@ -170,10 +200,16 @@ export function AppointmentsView() {
           onDelete={() => handleDelete(selectedAppointment.id)}
           onCompleteRequest={() => setCompletingAppointment(selectedAppointment)}
           onReverseCompletion={() => handleReverseCompletion(selectedAppointment.id)}
-          onStatusChange={(status) => {
-            handleStatusChange(selectedAppointment.id, status);
-            setSelectedAppointment(null);
+          onStatusChange={(status) => handleStatusChange(selectedAppointment.id, status)}
+        />
+        <AppointmentForm
+          open={showForm}
+          onOpenChange={(open) => {
+            setShowForm(open);
+            if (!open) setEditingAppointment(null);
           }}
+          appointment={editingAppointment}
+          onSuccess={handleFormSuccess}
         />
         <CompleteAppointmentDialog
           appointment={completingAppointment}
@@ -216,7 +252,7 @@ export function AppointmentsView() {
             </div>
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-3xl font-bold tracking-tight">{scheduledCount}</p>
+              <p className="text-3xl font-bold tracking-tight">{scheduledCount}</p>
                 <span className="text-xs text-violet-200">programada{scheduledCount !== 1 ? "s" : ""}</span>
               </div>
               {nextAppointment && (
@@ -231,6 +267,26 @@ export function AppointmentsView() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {todayAppointments.length > 0 && (
+        <motion.div variants={itemVariants}>
+          <div className="rounded-2xl border border-violet-100 bg-violet-50 p-3 dark:border-violet-900/50 dark:bg-violet-950/20">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-violet-700 dark:text-violet-300">
+              Atención hoy
+            </p>
+            <div className="space-y-2">
+              {todayAppointments.map((apt) => (
+                <AppointmentCard
+                  key={apt.id}
+                  appointment={apt}
+                  highlighted
+                  onClick={() => setSelectedAppointment(apt)}
+                />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Filter tabs */}
       <motion.div variants={itemVariants} className="flex gap-2 overflow-x-auto pb-1">
@@ -258,13 +314,14 @@ export function AppointmentsView() {
             <CalendarCheck className="size-4 text-emerald-500" />
             Próximas Citas
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {upcoming
               .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
               .map((apt) => (
                 <motion.div key={apt.id} variants={itemVariants}>
                   <AppointmentCard
                     appointment={apt}
+                    highlighted={apt.id === nextAppointment?.id}
                     onClick={() => setSelectedAppointment(apt)}
                   />
                 </motion.div>
@@ -280,7 +337,7 @@ export function AppointmentsView() {
             <CalendarX className="size-4 text-gray-400" />
             Citas Pasadas
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {past
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .map((apt) => (
@@ -353,7 +410,7 @@ export function AppointmentsView() {
           if (!open) setEditingAppointment(null);
         }}
         appointment={editingAppointment}
-        onSuccess={fetchAppointments}
+        onSuccess={handleFormSuccess}
       />
     </motion.div>
   );
@@ -378,7 +435,7 @@ function CompleteAppointmentDialog({
       orderNumber: string | null;
       nextClaimDate: string | null;
       notes: string | null;
-      items: Array<{ name: string; prescribedQty: number; unit: string }>;
+      items: Array<{ name: string; prescribedQty: number; unit: string; monthlyDose?: number | null; notes?: string | null }>;
     };
     createFollowUp?: {
       specialty: string;
@@ -415,10 +472,11 @@ function CompleteAppointmentDialog({
   const [orderNumber, setOrderNumber] = useState("");
   const [orderClaimDate, setOrderClaimDate] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
+  const [knownMedications, setKnownMedications] = useState<Medication[]>([]);
 
   // Prescribed medications inside order
-  const [meds, setMeds] = useState<Array<{ name: string; qty: string; unit: string }>>([
-    { name: "", qty: "30", unit: "unit" }
+  const [meds, setMeds] = useState<PrescribedMedicationDraft[]>([
+    { name: "", qty: "", unit: "und", days: "30", dosesPerDay: "1" }
   ]);
 
   // EPS Authorization follow-up
@@ -456,7 +514,7 @@ function CompleteAppointmentDialog({
     setOrderNumber("");
     setOrderClaimDate("");
     setOrderNotes("");
-    setMeds([{ name: "", qty: "30", unit: "unit" }]);
+    setMeds([{ name: "", qty: "", unit: "und", days: "30", dosesPerDay: "1" }]);
 
     setHasAuthorization(false);
     setAuthSpecialty("");
@@ -468,22 +526,39 @@ function CompleteAppointmentDialog({
     setFollowUpDoctor(appointment?.doctorName || "");
     setFollowUpDate("");
     setFollowUpLocation(appointment?.location || "");
+
+    apiFetch<Medication[]>("/api/medications")
+      .then((data) => setKnownMedications(data || []))
+      .catch((error) => {
+        console.error("Error loading medications for appointment completion:", error);
+        setKnownMedications([]);
+      });
   }, [open, appointment]);
 
   const addMedRow = () => {
-    setMeds([...meds, { name: "", qty: "30", unit: "unit" }]);
+    setMeds([...meds, { name: "", qty: "", unit: "und", days: "30", dosesPerDay: "1" }]);
   };
 
   const removeMedRow = (index: number) => {
     const updated = [...meds];
     updated.splice(index, 1);
-    setMeds(updated.length > 0 ? updated : [{ name: "", qty: "30", unit: "unit" }]);
+    setMeds(updated.length > 0 ? updated : [{ name: "", qty: "", unit: "und", days: "30", dosesPerDay: "1" }]);
   };
 
-  const updateMedRow = (index: number, field: "name" | "qty" | "unit", val: string) => {
+  const updateMedRow = (index: number, field: keyof PrescribedMedicationDraft, val: string) => {
     const updated = [...meds];
     updated[index][field] = val;
     setMeds(updated);
+  };
+
+  const addKnownMedication = (name: string) => {
+    setMeds((current) => {
+      const emptyIndex = current.findIndex((item) => !item.name.trim());
+      if (emptyIndex >= 0) {
+        return current.map((item, idx) => idx === emptyIndex ? { ...item, name } : item);
+      }
+      return [...current, { name, qty: "", unit: "und", days: "30", dosesPerDay: "1" }];
+    });
   };
 
   const handleConfirm = async () => {
@@ -494,11 +569,22 @@ function CompleteAppointmentDialog({
     try {
       const validMeds = meds
         .filter((m) => m.name.trim() !== "")
-        .map((m) => ({
-          name: m.name.trim(),
-          prescribedQty: Number(m.qty) || 1,
-          unit: m.unit || "unit",
-        }));
+        .map((m) => {
+          const days = Number(m.days) || 0;
+          const dosesPerDay = Number(m.dosesPerDay) || 0;
+          const inferredQty = days > 0 && dosesPerDay > 0 ? days * dosesPerDay : 0;
+          const prescribedQty = Number(m.qty) || inferredQty || 1;
+          const monthlyDose = dosesPerDay > 0 ? dosesPerDay * 30 : null;
+          return {
+            name: m.name.trim(),
+            prescribedQty,
+            unit: m.unit || "und",
+            monthlyDose,
+            notes: days > 0 || dosesPerDay > 0
+              ? `Receta por ${days || "?"} día(s), ${dosesPerDay || "?"} dosis/día.`
+              : null,
+          };
+        });
 
       await onConfirm({
         copayAmount: hasCopay ? numericAmount : null,
@@ -597,7 +683,7 @@ function CompleteAppointmentDialog({
             )}
           </div>
 
-          {/* SECCIÓN 2: RECETA MÉDICA (ÓRDENES / MEDICAMENTOS) */}
+          {/* SECCIÓN 2: FÓRMULA DE MEDICAMENTOS */}
           <div className="border border-gray-100 dark:border-gray-800 rounded-2xl p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex gap-2.5 items-center">
@@ -605,8 +691,8 @@ function CompleteAppointmentDialog({
                   <FileText className="size-4" />
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold">¿Te dieron receta u orden médica?</Label>
-                  <p className="text-xs text-gray-400">Registra los medicamentos o exámenes formulados.</p>
+                  <Label className="text-sm font-semibold">¿Te formularon medicamentos?</Label>
+                  <p className="text-xs text-gray-400">Quedan en la bolsa de pendientes por reclamar en farmacia.</p>
                 </div>
               </div>
               <Switch checked={hasOrder} onCheckedChange={setHasOrder} />
@@ -620,7 +706,7 @@ function CompleteAppointmentDialog({
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="order-title" className="text-xs text-gray-500">Título de la receta/orden</Label>
+                    <Label htmlFor="order-title" className="text-xs text-gray-500">Nombre de la fórmula</Label>
                     <Input
                       id="order-title"
                       placeholder="Ej: Fórmula de Medicamentos"
@@ -630,7 +716,7 @@ function CompleteAppointmentDialog({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="order-number" className="text-xs text-gray-500">Número de orden/fórmula (Opcional)</Label>
+                    <Label htmlFor="order-number" className="text-xs text-gray-500">Número de fórmula (opcional)</Label>
                     <Input
                       id="order-number"
                       placeholder="Ej: F-92831"
@@ -655,36 +741,81 @@ function CompleteAppointmentDialog({
                 {/* Formulario Dinámico de Medicamentos */}
                 <div className="space-y-2 pt-2">
                   <Label className="text-xs font-semibold text-gray-500">Medicamentos Formulados</Label>
+                  {knownMedications.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                      {knownMedications.slice(0, 12).map((med) => (
+                        <button
+                          key={med.id}
+                          type="button"
+                          onClick={() => addKnownMedication(med.name)}
+                          className="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-medium text-violet-700 transition-colors hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-200"
+                        >
+                          {med.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <datalist id="known-medications-list">
+                    {knownMedications.map((med) => (
+                      <option key={med.id} value={med.name} />
+                    ))}
+                  </datalist>
                   <div className="space-y-2">
                     {meds.map((med, idx) => (
-                      <div key={idx} className="flex gap-2 items-center">
-                        <Input
-                          placeholder="Nombre (ej: Ibuprofeno 400mg)"
-                          value={med.name}
-                          onChange={(e) => updateMedRow(idx, "name", e.target.value)}
-                          className="rounded-xl h-9 text-xs flex-1"
-                        />
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="Cant."
-                          value={med.qty}
-                          onChange={(e) => updateMedRow(idx, "qty", e.target.value)}
-                          className="rounded-xl h-9 text-xs w-16"
-                        />
-                        <Input
-                          placeholder="Unid."
-                          value={med.unit}
-                          onChange={(e) => updateMedRow(idx, "unit", e.target.value)}
-                          className="rounded-xl h-9 text-xs w-16"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeMedRow(idx)}
-                          className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
+                      <div key={idx} className="rounded-xl border border-gray-100 p-2.5 dark:border-gray-800">
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            list="known-medications-list"
+                            placeholder="Nombre (ej: Ibuprofeno 400mg)"
+                            value={med.name}
+                            onChange={(e) => updateMedRow(idx, "name", e.target.value)}
+                            className="rounded-xl h-9 text-xs flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeMedRow(idx)}
+                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Total"
+                            value={med.qty}
+                            onChange={(e) => updateMedRow(idx, "qty", e.target.value)}
+                            className="rounded-xl h-9 text-xs"
+                          />
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="Días"
+                            value={med.days}
+                            onChange={(e) => updateMedRow(idx, "days", e.target.value)}
+                            className="rounded-xl h-9 text-xs"
+                          />
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            placeholder="Dosis/día"
+                            value={med.dosesPerDay}
+                            onChange={(e) => updateMedRow(idx, "dosesPerDay", e.target.value)}
+                            className="rounded-xl h-9 text-xs"
+                          />
+                          <Input
+                            placeholder="Unidad"
+                            value={med.unit}
+                            onChange={(e) => updateMedRow(idx, "unit", e.target.value)}
+                            className="rounded-xl h-9 text-xs"
+                          />
+                        </div>
+                        <p className="mt-1 text-[10px] text-gray-400">
+                          Si dejas Total vacío, QUID calcula cantidad = días x dosis/día.
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -703,7 +834,7 @@ function CompleteAppointmentDialog({
                   <textarea
                     id="order-notes"
                     rows={2}
-                    placeholder="Instrucciones del médico, dosis diaria..."
+                    placeholder="Instrucciones del médico, soporte pendiente, farmacia..."
                     value={orderNotes}
                     onChange={(e) => setOrderNotes(e.target.value)}
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent p-2.5 outline-none resize-none focus:ring-1 focus:ring-violet-500"
@@ -713,7 +844,7 @@ function CompleteAppointmentDialog({
             )}
           </div>
 
-          {/* SECCIÓN 3: TRÁMITE DE AUTORIZACIÓN EPS */}
+          {/* SECCIÓN 3: ORDEN PARA AUTORIZACIÓN EPS */}
           <div className="border border-gray-100 dark:border-gray-800 rounded-2xl p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex gap-2.5 items-center">
@@ -721,8 +852,8 @@ function CompleteAppointmentDialog({
                   <Stethoscope className="size-4" />
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold">¿Requiere autorización de la EPS?</Label>
-                  <p className="text-xs text-gray-400">Si te remitieron a especialista o exámenes de diagnóstico.</p>
+                  <Label className="text-sm font-semibold">¿Generó orden para autorizar en EPS?</Label>
+                  <p className="text-xs text-gray-400">Queda pendiente de autorización antes de poder programar la cita.</p>
                 </div>
               </div>
               <Switch checked={hasAuthorization} onCheckedChange={setHasAuthorization} />
@@ -735,7 +866,7 @@ function CompleteAppointmentDialog({
                 className="space-y-3 pt-2 border-t border-gray-50 dark:border-gray-800"
               >
                 <div className="space-y-1.5">
-                  <Label htmlFor="auth-specialty" className="text-xs text-gray-500">Especialidad u Orden Solicitada</Label>
+                  <Label htmlFor="auth-specialty" className="text-xs text-gray-500">Servicio, especialidad o procedimiento</Label>
                   <Input
                     id="auth-specialty"
                     placeholder="Ej: Fisioterapia, Cardiología, Ecografía"
@@ -746,7 +877,7 @@ function CompleteAppointmentDialog({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-gray-500">Tipo de Orden</Label>
+                  <Label className="text-xs text-gray-500">Tipo de orden EPS</Label>
                   <div className="flex gap-2">
                     {authTypes.map((t) => (
                       <button
@@ -766,11 +897,11 @@ function CompleteAppointmentDialog({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="auth-notes" className="text-xs text-gray-500">Notas de la Autorización (Opcional)</Label>
+                  <Label htmlFor="auth-notes" className="text-xs text-gray-500">Notas para el trámite (opcional)</Label>
                   <textarea
                     id="auth-notes"
                     rows={2}
-                    placeholder="Ej: Diagnóstico asociado, requerimientos previos..."
+                    placeholder="Ej: diagnóstico asociado, CUPS, documentos requeridos..."
                     value={authNotes}
                     onChange={(e) => setAuthNotes(e.target.value)}
                     className="w-full text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-transparent p-2.5 outline-none resize-none focus:ring-1 focus:ring-violet-500"
