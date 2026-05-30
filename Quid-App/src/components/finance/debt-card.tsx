@@ -43,58 +43,58 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
   const cupo = debt.totalAmount - debt.currentBalance;
 
   const typeIcons: Record<string, React.ReactNode> = {
-    credit_card: <CreditCard className="size-3.5" />,
-    loan: <Landmark className="size-3.5" />,
-    other: <Wallet className="size-3.5" />,
+    credit_card: <CreditCard className="size-3" />,
+    loan: <Landmark className="size-3" />,
+    other: <Wallet className="size-3" />,
   };
 
   return (
     <motion.button
       onClick={onClick}
-      className="w-full text-left"
+      className="w-[285px] sm:w-[310px] shrink-0 snap-center text-left cursor-pointer"
       whileTap={{ scale: 0.98 }}
     >
       <div
-        className="rounded-2xl p-5 shadow-lg text-white relative overflow-hidden"
+        className="rounded-2xl p-4 shadow-md text-white relative overflow-hidden h-[190px] flex flex-col justify-between"
         style={{
           background: `linear-gradient(135deg, ${debt.color}, ${debt.color}CC, ${debt.color}99)`,
         }}
       >
         {/* Decorative circles */}
-        <div className="absolute -top-8 -right-8 size-32 rounded-full bg-white/10 pointer-events-none" />
-        <div className="absolute -bottom-6 -left-6 size-24 rounded-full bg-white/5 pointer-events-none" />
+        <div className="absolute -top-8 -right-8 size-28 rounded-full bg-white/10 pointer-events-none" />
+        <div className="absolute -bottom-6 -left-6 size-20 rounded-full bg-white/5 pointer-events-none" />
 
-        <div className="relative z-10">
+        <div className="relative z-10 h-full flex flex-col justify-between">
           {/* Top: Chip + Name row */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-start gap-2.5 mb-1">
             {/* Chip */}
-            <div className="flex items-center justify-center w-10 h-7 rounded-md bg-gradient-to-br from-yellow-300 to-yellow-500 shadow-sm">
-              <div className="w-6 h-5 rounded-sm border border-yellow-600/30 flex items-center justify-center">
-                <div className="w-4 h-0.5 bg-yellow-600/40 rounded-full" />
+            <div className="flex items-center justify-center w-7 h-5 rounded bg-gradient-to-br from-yellow-300 to-yellow-500 shadow-sm shrink-0 mt-0.5">
+              <div className="w-5.5 h-3.5 rounded-sm border border-yellow-600/30 flex items-center justify-center">
+                <div className="w-3.5 h-0.5 bg-yellow-600/40 rounded-full" />
               </div>
             </div>
             {/* Name */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-base font-bold truncate">{debt.name}</h3>
+              <h3 className="text-xs sm:text-sm font-bold truncate leading-tight">{debt.name}</h3>
               {debt.bank && (
-                <p className="text-xs text-white/70 truncate">{debt.bank}</p>
+                <p className="text-[10px] text-white/70 truncate">{debt.bank}</p>
               )}
             </div>
             {/* Type icon */}
-            <div className="size-8 rounded-lg bg-white/15 flex items-center justify-center">
+            <div className="size-7 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
               {typeIcons[debt.type] || typeIcons.other}
             </div>
           </div>
 
           {/* Utilization bar */}
-          <div className="mb-3">
-            <div className="flex items-center justify-between text-xs text-white/70 mb-1">
+          <div className="mb-2">
+            <div className="flex items-center justify-between text-[10px] text-white/70 mb-1">
               <span>{isCreditCard ? "Utilizado" : "Progreso"}</span>
               <span>{utilization}%</span>
             </div>
-            <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+            <div className="h-1 bg-white/20 rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-white/70 rounded-full"
+                className="h-full bg-white/75 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(utilization, 100)}%` }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
@@ -103,90 +103,62 @@ export function DebtCard({ debt, onClick }: DebtCardProps) {
           </div>
 
           {/* Amounts row */}
-          <div className="flex items-end justify-between mb-3 min-w-0 gap-2">
+          <div className="flex items-end justify-between mb-2 min-w-0 gap-2">
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-white/60">
+              <p className="text-[10px] text-white/60 leading-none mb-0.5">
                 {isCreditCard ? "Saldo en Deuda" : "Saldo Actual"}
               </p>
-              <p className="text-xl font-bold tracking-tight break-all">
+              <p className="text-base font-bold tracking-tight break-all leading-none">
                 {formatCurrency(debt.currentBalance)}
               </p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-xs text-white/60">
+              <p className="text-[10px] text-white/60 leading-none mb-0.5">
                 {isCreditCard ? "Cupo Total" : "Monto Total"}
               </p>
-              <p className="text-sm font-medium text-white/80">
+              <p className="text-xs font-semibold text-white/80">
                 {formatCurrency(debt.totalAmount)}
               </p>
             </div>
           </div>
 
-          {/* Cupo (available credit) - only for credit cards */}
-          {isCreditCard && (
-            <div className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
-              <Wallet className="size-3.5 text-emerald-300" />
-              <span className="text-xs text-white/70">Cupo:</span>
-              <span className="text-sm font-bold text-emerald-300">
-                {formatCurrency(cupo)}
-              </span>
-            </div>
-          )}
-
-          {/* Dates row for credit cards */}
-          {isCreditCard && (debt.cutoffDate || debt.paymentDate) && (
-            <div className="flex items-center gap-4 mt-3">
-              {debt.cutoffDate && (
-                <div className="flex items-center gap-1">
-                  <Calendar className="size-3 text-white/50" />
-                  <span className="text-xs text-white/60">
-                    Corte: {debt.cutoffDate}
+          {/* Bottom details row (aligned at the bottom) */}
+          <div className="mt-auto pt-2 border-t border-white/10 flex items-center justify-between min-w-0 gap-2">
+            {isCreditCard ? (
+              <>
+                <div className="flex items-center gap-1 min-w-0 shrink-0">
+                  <Wallet className="size-3 text-emerald-300 shrink-0" />
+                  <span className="text-[10px] text-white/70 truncate">Cupo:</span>
+                  <span className="text-[11px] font-bold text-emerald-300">
+                    {formatCurrency(cupo)}
                   </span>
                 </div>
-              )}
-              {debt.paymentDate && (
-                <div className="flex items-center gap-1">
-                  <Calendar className="size-3 text-white/50" />
-                  <span className="text-xs text-white/60">
-                    Pago: {debt.paymentDate}
-                  </span>
+                {/* Dates */}
+                <div className="flex items-center gap-2 shrink-0 text-[9px] text-white/60">
+                  {debt.cutoffDate && <span>Cort: {debt.cutoffDate}</span>}
+                  {debt.paymentDate && <span>Pag: {debt.paymentDate}</span>}
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Loan info */}
-          {isLoan && debt.monthlyPayment && (
-            <div className="flex items-center gap-2 mt-2 min-w-0">
-              <span className="text-xs text-white/60 truncate">
-                {isLoanFixed ? "Cuota fija" : "Cuota mensual"}: {formatCurrency(debt.monthlyPayment)}
-              </span>
-              {debt.remainingPayments && (
-                <span className="text-xs text-white/50">
-                  ({debt.remainingPayments} restantes)
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Loan interest rate */}
-          {isLoan && debt.interestRate && (
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-xs text-white/50">
-                Tasa: {debt.interestRate}% NMV
-              </span>
-            </div>
-          )}
-
-          {/* Loan payment day */}
-          {isLoan && debt.paymentDate && (
-            <div className="flex items-center gap-1 mt-1">
-              <Calendar className="size-2.5 text-white/40" />
-              <span className="text-xs text-white/50">
-                Pago: día {debt.paymentDate}
-              </span>
-            </div>
-          )}
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-1 min-w-0 truncate">
+                  <span className="text-[10px] text-white/80 truncate">
+                    {isLoanFixed ? "Cuota fija" : "Cuota"}: <strong>{formatCurrency(debt.monthlyPayment || 0)}</strong>
+                  </span>
+                  {debt.remainingPayments && (
+                    <span className="text-[9px] text-white/50 shrink-0">
+                      ({debt.remainingPayments} rest.)
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 text-[9px] text-white/60 shrink-0">
+                  <Calendar className="size-2.5 text-white/40" />
+                  <span>Día {debt.paymentDate || 1}</span>
+                  {debt.interestRate && <span className="opacity-80">| {debt.interestRate}%</span>}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </motion.button>

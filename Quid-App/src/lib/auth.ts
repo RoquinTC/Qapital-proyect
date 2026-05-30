@@ -1,5 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { compare } from "bcryptjs";
 import { db } from "@/lib/db";
 import { isSecureCookieEnabled, SESSION_COOKIE_NAME } from "@/lib/auth-cookie";
@@ -127,8 +128,69 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    }),
   ],
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google") {
+        if (!user.email) return false;
+
+        const existingUser = await db.user.findUnique({
+          where: { email: user.email },
+          include: { settings: true },
+        });
+
+        if (existingUser) {
+          user.id = existingUser.id;
+          user.name = existingUser.name;
+          user.image = existingUser.avatar;
+          (user as any).currency = existingUser.currency;
+          (user as any).onboardingCompleted = Boolean(existingUser.onboardingCompleted);
+          (user as any).onboardingStep = existingUser.onboardingStep;
+          (user as any).pinEnabled = existingUser.settings?.pinEnabled ?? false;
+          (user as any).biometricEnabled = existingUser.settings?.biometricEnabled ?? false;
+          return true;
+        } else {
+          // Create new user with safe random password (since they log in via Google)
+          const randomPassword = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+          const { hash } = await import("bcryptjs");
+          const securePassword = await hash(randomPassword, 10);
+
+          const newUser = await db.user.create({
+            data: {
+              email: user.email,
+              name: user.name || "Usuario de Google",
+              password: securePassword,
+              avatar: user.image || null,
+              onboardingCompleted: false,
+              onboardingStep: 1,
+              currency: "COP",
+            },
+          });
+
+          // Create UserSettings for new user
+          await db.userSettings.create({
+            data: {
+              userId: newUser.id,
+              biometricEnabled: false,
+              pinEnabled: false,
+            },
+          });
+
+          user.id = newUser.id;
+          (user as any).currency = "COP";
+          (user as any).onboardingCompleted = false;
+          (user as any).onboardingStep = 1;
+          (user as any).pinEnabled = false;
+          (user as any).biometricEnabled = false;
+          return true;
+        }
+      }
+      return true;
+    },
     async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;

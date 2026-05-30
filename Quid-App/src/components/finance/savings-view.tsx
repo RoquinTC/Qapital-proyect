@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, PiggyBank, Sparkles, Loader2, ShieldCheck } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,6 +71,7 @@ export function SavingsView() {
   const [emergencyInitialGoal, setEmergencyInitialGoal] = useState<any | null>(null);
   const [emergencyCoverageMonths, setEmergencyCoverageMonths] = useState("3");
   const [emergencyBuildMonths, setEmergencyBuildMonths] = useState("6");
+  const [showEmergencyDetails, setShowEmergencyDetails] = useState(false);
 
   const totalSaved = goals.reduce((sum, g) => sum + g.currentAmount, 0);
   const totalTarget = goals.reduce((sum, g) => sum + g.targetAmount, 0);
@@ -191,123 +192,35 @@ export function SavingsView() {
         <Card className="border-0 shadow-lg rounded-2xl bg-gradient-to-br from-purple-600 to-violet-500 text-white overflow-hidden relative">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.1),transparent)] pointer-events-none" />
           <CardContent className="p-5 relative z-10">
-            <div className="flex items-center gap-2 mb-1">
-              <PiggyBank className="size-4 text-purple-200" />
-              <span className="text-sm text-purple-100">Total Ahorrado</span>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <PiggyBank className="size-4 text-purple-200" />
+                  <span className="text-sm text-purple-100 font-medium">Total Ahorrado</span>
+                </div>
+                <p className="text-3xl font-bold tracking-tight">
+                  {formatCurrency(totalSaved)}
+                </p>
+                {totalTarget > 0 && (
+                  <p className="text-xs text-purple-200 mt-1">
+                    Meta total: {formatCurrency(totalTarget)}
+                  </p>
+                )}
+              </div>
+              <Button 
+                onClick={handleCreateNew} 
+                size="sm" 
+                className="bg-white/20 hover:bg-white/30 text-white text-xs rounded-xl h-9 cursor-pointer flex items-center gap-1 font-bold border-0"
+              >
+                <Plus className="size-3.5" />
+                Nueva Meta
+              </Button>
             </div>
-            <p className="text-3xl font-bold tracking-tight">
-              {formatCurrency(totalSaved)}
-            </p>
-            {totalTarget > 0 && (
-              <p className="text-xs text-purple-200 mt-1">
-                Meta total: {formatCurrency(totalTarget)}
-              </p>
-            )}
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* AI Suggestion Card */}
-      {emergencySuggestion && !hasEmergencyGoal && (
-        <motion.div variants={itemVariants}>
-          <Card className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 shadow-sm dark:border-sky-900/40 dark:from-sky-950/30 dark:to-cyan-950/20">
-            <CardContent className="p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <ShieldCheck className="size-4 text-sky-600" />
-                <span className="text-sm font-semibold text-sky-800 dark:text-sky-200">
-                  Fondo de emergencia inteligente
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
-                {emergencySuggestion.aiSuggestion}
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
-                  <p className="text-gray-500">Meta sugerida</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.recommendedTarget)}</p>
-                </div>
-                <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
-                  <p className="text-gray-500">Aporte sugerido</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.monthlyContribution)}</p>
-                </div>
-                <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
-                  <p className="text-gray-500">Ingreso real prom.</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.averageMonthlyRealIncome)}</p>
-                </div>
-                <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
-                  <p className="text-gray-500">10% ingreso real</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.incomeBasedContribution)}</p>
-                </div>
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <p className="text-[11px] font-medium text-gray-500">Cubrir</p>
-                  <Select value={emergencyCoverageMonths} onValueChange={setEmergencyCoverageMonths}>
-                    <SelectTrigger className="h-9 rounded-xl bg-white/80 text-xs dark:bg-gray-900/60">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 mes</SelectItem>
-                      <SelectItem value="3">3 meses</SelectItem>
-                      <SelectItem value="6">6 meses</SelectItem>
-                      <SelectItem value="12">12 meses</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[11px] font-medium text-gray-500">Construir en</p>
-                  <Select value={emergencyBuildMonths} onValueChange={setEmergencyBuildMonths}>
-                    <SelectTrigger className="h-9 rounded-xl bg-white/80 text-xs dark:bg-gray-900/60">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="3">3 meses</SelectItem>
-                      <SelectItem value="6">6 meses</SelectItem>
-                      <SelectItem value="9">9 meses</SelectItem>
-                      <SelectItem value="12">12 meses</SelectItem>
-                      <SelectItem value="18">18 meses</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
-                El aporte divide la meta pendiente entre los meses elegidos. {emergencySuggestion.configuredRealIncomeRules || emergencySuggestion.configuredFixedExpenseRules
-                  ? "El cálculo ya está usando las categorías marcadas para fondo de emergencia."
-                  : "Marca ingresos reales y gastos fijos en Presupuesto para afinar el cálculo."}
-              </p>
-              <Button
-                onClick={handleCreateEmergencyFund}
-                disabled={emergencyLoading}
-                className="mt-3 w-full rounded-xl bg-sky-600 hover:bg-sky-700"
-              >
-                <ShieldCheck className="mr-2 size-4" />
-                Configurar fondo sugerido
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
-      {/* AI Suggestion Card */}
-      {goals.some((g) => g.aiSuggestion) && (
-        <motion.div variants={itemVariants}>
-          <Card className="border-0 shadow-md rounded-2xl bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="size-4 text-purple-500" />
-                <span className="text-sm font-semibold text-purple-700 dark:text-purple-400">
-                  Plan IA
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">
-                {goals.find((g) => g.aiSuggestion)?.aiSuggestion}
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
-      {/* Goals List */}
+      {/* Goals List (Placed first as requested by user to be easily accessible!) */}
       {goals.length === 0 ? (
         <motion.div variants={itemVariants}>
           <Card className="border-0 shadow-md rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20">
@@ -345,6 +258,134 @@ export function SavingsView() {
             </motion.div>
           ))}
         </div>
+      )}
+
+      {/* AI Suggestion Card (Repositioned below the goals and collapsible) */}
+      {emergencySuggestion && !hasEmergencyGoal && (
+        <motion.div variants={itemVariants}>
+          <Card className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 shadow-sm dark:border-sky-900/40 dark:from-sky-950/30 dark:to-cyan-950/20 overflow-hidden">
+            <CardContent className="p-4 space-y-3">
+              {/* Header with expand/collapse trigger */}
+              <div 
+                className="flex items-center justify-between cursor-pointer select-none"
+                onClick={() => setShowEmergencyDetails(!showEmergencyDetails)}
+              >
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="size-4.5 text-sky-600 dark:text-sky-400" />
+                  <span className="text-xs sm:text-sm font-bold text-sky-800 dark:text-sky-200">
+                    Fondo de emergencia inteligente
+                  </span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-[10px] h-7 px-2 font-bold bg-white/60 hover:bg-white/80 dark:bg-sky-900/20 dark:text-sky-400 rounded-lg flex items-center gap-1 cursor-pointer"
+                >
+                  <Sparkles className="size-3 text-sky-500" />
+                  {showEmergencyDetails ? "Contraer" : "Ver sugerencia de IA"}
+                </Button>
+              </div>
+
+              {/* Collapsible Details */}
+              <AnimatePresence>
+                {showEmergencyDetails && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden pt-2 space-y-3 border-t border-sky-100/50 dark:border-sky-900/30"
+                  >
+                    <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+                      {emergencySuggestion.aiSuggestion}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
+                        <p className="text-gray-500 text-[10px]">Meta sugerida</p>
+                        <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.recommendedTarget)}</p>
+                      </div>
+                      <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
+                        <p className="text-gray-500 text-[10px]">Aporte sugerido</p>
+                        <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.monthlyContribution)}</p>
+                      </div>
+                      <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
+                        <p className="text-gray-500 text-[10px]">Ingreso real prom.</p>
+                        <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.averageMonthlyRealIncome)}</p>
+                      </div>
+                      <div className="rounded-xl bg-white/70 p-2 dark:bg-gray-900/50">
+                        <p className="text-gray-500 text-[10px]">10% ingreso real</p>
+                        <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(emergencySuggestion.incomeBasedContribution)}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Cobertura sugerida</p>
+                        <Select value={emergencyCoverageMonths} onValueChange={setEmergencyCoverageMonths}>
+                          <SelectTrigger className="h-9 rounded-xl bg-white/80 text-xs dark:bg-gray-900/60">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1 mes</SelectItem>
+                            <SelectItem value="3">3 meses</SelectItem>
+                            <SelectItem value="6">6 meses</SelectItem>
+                            <SelectItem value="12">12 meses</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Construir en</p>
+                        <Select value={emergencyBuildMonths} onValueChange={setEmergencyBuildMonths}>
+                          <SelectTrigger className="h-9 rounded-xl bg-white/80 text-xs dark:bg-gray-900/60">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="3">3 meses</SelectItem>
+                            <SelectItem value="6">6 meses</SelectItem>
+                            <SelectItem value="9">9 meses</SelectItem>
+                            <SelectItem value="12">12 meses</SelectItem>
+                            <SelectItem value="18">18 meses</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                      El aporte divide la meta pendiente entre los meses elegidos. {emergencySuggestion.configuredRealIncomeRules || emergencySuggestion.configuredFixedExpenseRules
+                        ? "El cálculo ya está usando las categorías marcadas para fondo de emergencia."
+                        : "Marca ingresos reales y gastos fijos en Presupuesto para afinar el cálculo."}
+                    </p>
+                    <Button
+                      onClick={handleCreateEmergencyFund}
+                      disabled={emergencyLoading}
+                      className="w-full rounded-xl bg-sky-600 hover:bg-sky-700 text-white cursor-pointer font-bold border-0"
+                    >
+                      <ShieldCheck className="mr-2 size-4" />
+                      Configurar fondo sugerido
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* AI Suggestion Card (Repositioned below the goals) */}
+      {goals.some((g) => g.aiSuggestion) && (
+        <motion.div variants={itemVariants}>
+          <Card className="border-0 shadow-md rounded-2xl bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="size-4 text-purple-500" />
+                <span className="text-sm font-semibold text-purple-700 dark:text-purple-400">
+                  Plan IA de Ahorros
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">
+                {goals.find((g) => g.aiSuggestion)?.aiSuggestion}
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {/* Goal Form Dialog */}

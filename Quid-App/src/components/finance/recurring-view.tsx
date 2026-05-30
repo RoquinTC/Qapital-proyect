@@ -653,110 +653,143 @@ export function RecurringView() {
       </motion.div>
 
       {/* Payroll Groups Section */}
-      {payrollGroups.length > 0 && (
-        <motion.div variants={itemVariants}>
-          <div className="flex items-center gap-2 mb-3">
-            <Briefcase className="size-4 text-emerald-600" />
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Nóminas
-            </h2>
-          </div>
-          <div className="space-y-2">
-            {payrollGroups.map((pg) => {
-              const freqLabels: Record<string, string> = { monthly: "Mensual", biweekly: "Quincenal", weekly: "Semanal" };
-              const nextPayment = pg.recurringPayments?.[0];
-              // Parse schedules for display
-              let scheduleText = "";
-              try {
-                const scheds = JSON.parse(pg.schedules);
-                if (pg.frequency === "monthly" && scheds[0]?.day) {
-                  scheduleText = `Día ${scheds[0].day}`;
-                } else if (pg.frequency === "biweekly" && scheds.length === 2) {
-                  scheduleText = `Días ${scheds[0].day} y ${scheds[1].day}`;
-                } else if (pg.frequency === "weekly" && scheds[0]?.dayOfWeek !== undefined) {
-                  const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-                  scheduleText = `Cada ${dayNames[scheds[0].dayOfWeek]}`;
-                }
-              } catch {}
+      <motion.div variants={itemVariants}>
+        {payrollGroups.length > 0 ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Briefcase className="size-4 text-emerald-600" />
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Nóminas
+                </h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 font-semibold rounded-xl flex items-center gap-1 cursor-pointer h-7 px-2.5"
+                onClick={() => {
+                  setEditingPayrollGroup(null);
+                  setShowPayrollForm(true);
+                }}
+              >
+                <Plus className="size-3.5" />
+                Registrar nueva nómina
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {payrollGroups.map((pg) => {
+                const freqLabels: Record<string, string> = { monthly: "Mensual", biweekly: "Quincenal", weekly: "Semanal" };
+                const nextPayment = pg.recurringPayments?.[0];
+                // Parse schedules for display
+                let scheduleText = "";
+                try {
+                  const scheds = JSON.parse(pg.schedules);
+                  if (pg.frequency === "monthly" && scheds[0]?.day) {
+                    scheduleText = `Día ${scheds[0].day}`;
+                  } else if (pg.frequency === "biweekly" && scheds.length === 2) {
+                    scheduleText = `Días ${scheds[0].day} y ${scheds[1].day}`;
+                  } else if (pg.frequency === "weekly" && scheds[0]?.dayOfWeek !== undefined) {
+                    const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+                    scheduleText = `Cada ${dayNames[scheds[0].dayOfWeek]}`;
+                  }
+                } catch {}
 
-              return (
-                <Card key={pg.id} className="border-0 shadow-md rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-sm text-emerald-800 dark:text-emerald-300">{pg.description}</h3>
-                          <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[11px] border-0 px-1.5 py-0">
-                            {freqLabels[pg.frequency] || pg.frequency}
-                          </Badge>
+                return (
+                  <Card key={pg.id} className="border-0 shadow-md rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-sm text-emerald-800 dark:text-emerald-300">{pg.description}</h3>
+                            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-[11px] border-0 px-1.5 py-0">
+                              {freqLabels[pg.frequency] || pg.frequency}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                            {scheduleText && (
+                              <p>{scheduleText}</p>
+                            )}
+                            {pg.account && (
+                              <p>Cuenta: {pg.account.name}{pg.subAccount ? ` / ${pg.subAccount.name}` : ""}</p>
+                            )}
+                            {pg.category && (
+                              <p>Categoría: {pg.category}{pg.subCategory ? ` / ${pg.subCategory}` : ""}</p>
+                            )}
+                            {nextPayment && (
+                              <p>Próximo pago: {formatDate(nextPayment.scheduledDate)}</p>
+                            )}
+                            {pg.adjustToBusinessDay && (
+                              <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                                Ajuste: día hábil {pg.businessDayDirection === "before" ? "anterior" : "siguiente"} (Ley Emiliani)
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-                          {scheduleText && (
-                            <p>{scheduleText}</p>
-                          )}
-                          {pg.account && (
-                            <p>Cuenta: {pg.account.name}{pg.subAccount ? ` / ${pg.subAccount.name}` : ""}</p>
-                          )}
-                          {pg.category && (
-                            <p>Categoría: {pg.category}{pg.subCategory ? ` / ${pg.subCategory}` : ""}</p>
-                          )}
-                          {nextPayment && (
-                            <p>Próximo pago: {formatDate(nextPayment.scheduledDate)}</p>
-                          )}
-                          {pg.adjustToBusinessDay && (
-                            <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                              Ajuste: día hábil {pg.businessDayDirection === "before" ? "anterior" : "siguiente"} (Ley Emiliani)
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="text-lg font-bold text-emerald-600">
-                          {formatCurrency(pg.totalAmount)}
-                          <span className="text-xs font-normal text-emerald-500 ml-0.5">/mes</span>
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-gray-400 hover:text-blue-500"
-                            onClick={() => {
-                              setEditingPayrollGroup(pg);
-                              setShowPayrollForm(true);
-                            }}
-                            title="Editar nómina"
-                          >
-                            <Pencil className="size-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
-                            onClick={async () => {
-                              if (confirm("¿Eliminar esta nómina? Se eliminarán todos los pagos futuros pendientes.")) {
-                                try {
-                                  await apiFetch(`/api/payroll/${pg.id}`, { method: "DELETE" });
-                                  fetchPayrollGroups();
-                                  fetchPayments();
-                                } catch (e) {
-                                  console.error("Error deleting payroll group:", e);
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="text-lg font-bold text-emerald-600">
+                            {formatCurrency(pg.totalAmount)}
+                            <span className="text-xs font-normal text-emerald-500 ml-0.5">/mes</span>
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-gray-400 hover:text-blue-500"
+                              onClick={() => {
+                                setEditingPayrollGroup(pg);
+                                setShowPayrollForm(true);
+                              }}
+                              title="Editar nómina"
+                            >
+                              <Pencil className="size-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
+                              onClick={async () => {
+                                if (confirm("¿Eliminar esta nómina? Se eliminarán todos los pagos futuros pendientes.")) {
+                                  try {
+                                    await apiFetch(`/api/payroll/${pg.id}`, { method: "DELETE" });
+                                    fetchPayrollGroups();
+                                    fetchPayments();
+                                  } catch (e) {
+                                    console.error("Error deleting payroll group:", e);
+                                  }
                                 }
-                              }
-                            }}
-                            title="Eliminar nómina"
-                          >
-                            <Trash2 className="size-3" />
-                          </Button>
+                              }}
+                              title="Eliminar nómina"
+                            >
+                              <Trash2 className="size-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
-        </motion.div>
-      )}
+        ) : (
+          <Card className="border border-dashed border-emerald-300 dark:border-emerald-800 bg-emerald-50/10 dark:bg-emerald-950/5 rounded-2xl overflow-hidden cursor-pointer" onClick={() => { setEditingPayrollGroup(null); setShowPayrollForm(true); }}>
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/10 shrink-0">
+                  <Briefcase className="size-5" />
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white leading-tight">Registra tus ingresos de nómina</p>
+                  <p className="text-[10px] sm:text-xs text-gray-400">Automatiza la proyección de tus ingresos de salario y nómina</p>
+                </div>
+              </div>
+              <Button size="sm" className="rounded-xl text-xs h-8 bg-gradient-to-r from-emerald-600 to-teal-500 shrink-0 ml-2">
+                Comenzar
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </motion.div>
 
       {/* Upcoming Payments Section */}
       {pendingPayments.length > 0 && (
@@ -1337,20 +1370,7 @@ export function RecurringView() {
         </motion.div>
       )}
 
-      <motion.div variants={itemVariants} className="flex justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setEditingPayrollGroup(null);
-            setShowPayrollForm(true);
-          }}
-          className="rounded-xl"
-        >
-          <Briefcase className="mr-1 size-4" />
-          Nueva nómina
-        </Button>
-      </motion.div>
+
 
       {/* Empty State */}
       {payments.length === 0 && (
