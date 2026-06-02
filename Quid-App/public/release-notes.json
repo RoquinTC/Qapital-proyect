@@ -1,6 +1,17 @@
 {
-  "currentVersion": "quid-v6-server-reminders",
+  "currentVersion": "quid-v7-native-android",
   "releases": [
+    {
+      "version": "quid-v7-native-android",
+      "date": "2026-06-01",
+      "title": "Acceso más rápido y citas mejor organizadas",
+      "changes": [
+        "En Android, ahora puedes desbloquear Quid más rápido usando directamente la huella de tu teléfono.",
+        "Al guardar una cita médica puedes añadirla también al calendario sincronizado de tu celular.",
+        "Tus citas pueden generar recordatorios locales para que recibas el aviso incluso cuando Quid esté cerrado.",
+        "Los rendimientos pendientes siguen visibles hasta que confirmes el valor recibido y sus proyecciones son más precisas."
+      ]
+    },
     {
       "version": "quid-v6-server-reminders",
       "date": "2026-05-21",
