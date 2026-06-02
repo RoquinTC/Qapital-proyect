@@ -60,6 +60,8 @@ export function YieldManager({ accounts }: YieldManagerProps) {
   const [isConfirmedExpanded, setIsConfirmedExpanded] = useState(false);
   const [reversingId, setReversingId] = useState<string | null>(null);
   const [confirmReverseId, setConfirmReverseId] = useState<string | null>(null);
+  const getItemKey = (item: YieldItem) =>
+    item.id || `${item.isPreviousMonth ? "prev-" : ""}${item.accountId || item.subAccountId || ""}`;
 
   const fetchYields = useCallback(async () => {
     try {
@@ -79,7 +81,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
   }, [fetchYields]);
 
   const handleConfirm = async (item: YieldItem) => {
-    const actualYield = editingId === (item.accountId || item.subAccountId)
+    const actualYield = editingId === getItemKey(item)
       ? parseFloat(editValue) || item.projectedYield
       : item.actualYield || item.projectedYield;
 
@@ -98,6 +100,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
           yieldPercentage: item.yieldPercentage,
           projectedYield: item.projectedYield,
           parentAccountId: item.parentAccountId,
+          settlementMonth: item.previousMonth,
         }),
       });
 
@@ -240,7 +243,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                           className="overflow-hidden space-y-2"
                         >
                           {previousMonthPending.map((item) => {
-                            const itemKey = `prev-${item.accountId || item.subAccountId || ""}`;
+                            const itemKey = getItemKey(item);
                             const isEditing = editingId === itemKey;
                             const monthLabel = item.previousMonth
                               ? new Date(item.previousMonth).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
@@ -372,7 +375,7 @@ export function YieldManager({ accounts }: YieldManagerProps) {
                               className="overflow-hidden space-y-2"
                             >
                               {currentMonthPending.map((item) => {
-                                const itemKey = item.accountId || item.subAccountId || "";
+                                const itemKey = getItemKey(item);
                                 const isEditing = editingId === itemKey;
 
                                 return (

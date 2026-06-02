@@ -13,9 +13,11 @@ import { consumeWebAuthnLoginToken } from "@/lib/webauthn-login-tokens";
  *   - LOCAL: http://localhost:5678 (direct access, no tunnel needed)
  *   - TUNNEL: https://quid.roquintc.app (Cloudflare tunnel, when available)
  *
- * Strategy: Use SameSite=Lax cookies with an opt-in Secure flag.
+ * Strategy: Use SameSite=Lax cookies locally and SameSite=None cookies when
+ * the HTTPS backend is serving the packaged Capacitor app cross-origin.
  * This works for both HTTP and HTTPS because:
- *   - SameSite=Lax is compatible with direct browser access (both HTTP and HTTPS)
+ *   - SameSite=Lax is compatible with direct local browser access
+ *   - SameSite=None + Secure lets the Capacitor WebView call the HTTPS backend
  *   - No __Secure- prefix keeps cookie names stable for HTTP local testing
  *   - The tunnel proxies to the same container, so cookies are shared
  *
@@ -25,23 +27,24 @@ import { consumeWebAuthnLoginToken } from "@/lib/webauthn-login-tokens";
 
 function getCookieConfig() {
   const secure = isSecureCookieEnabled();
+  const sameSite = secure ? "none" as const : "lax" as const;
 
   return {
     sessionToken: {
       name: SESSION_COOKIE_NAME,
-      options: { httpOnly: true, sameSite: "lax" as const, path: "/", secure },
+      options: { httpOnly: true, sameSite, path: "/", secure },
     },
     callbackUrl: {
       name: "next-auth.callback-url",
-      options: { httpOnly: true, sameSite: "lax" as const, path: "/", secure },
+      options: { httpOnly: true, sameSite, path: "/", secure },
     },
     csrfToken: {
       name: "next-auth.csrf-token",
-      options: { httpOnly: true, sameSite: "lax" as const, path: "/", secure },
+      options: { httpOnly: true, sameSite, path: "/", secure },
     },
     pkceCodeVerifier: {
       name: "next-auth.pkce.code_verifier",
-      options: { httpOnly: true, sameSite: "lax" as const, path: "/", secure },
+      options: { httpOnly: true, sameSite, path: "/", secure },
     },
   };
 }

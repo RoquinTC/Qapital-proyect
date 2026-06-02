@@ -4,7 +4,18 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: process.env.STATIC_EXPORT === "true" ? "export" : "standalone",
+  images: {
+    unoptimized: process.env.STATIC_EXPORT === "true",
+  },
+  webpack: (config) => {
+    if (process.env.STATIC_EXPORT === "true") {
+      const path = require("path");
+      config.resolve.alias["next-auth/react"] = path.resolve(process.cwd(), "src/lib/mocks/next-auth-react.tsx");
+      config.resolve.alias["next-intl/server"] = path.resolve(process.cwd(), "src/lib/mocks/next-intl-server.ts");
+    }
+    return config;
+  },
   typescript: {
     ignoreBuildErrors: false,
   },

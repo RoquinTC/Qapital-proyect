@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
 import type { SecurityStatus, AuthCredentialInfo } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
+import { isNativeAndroid, isNativeBiometricAvailable } from "@/lib/native/biometric";
 
 export function SecuritySettings() {
   const [status, setStatus] = useState<SecurityStatus | null>(null);
@@ -125,6 +126,20 @@ export function SecuritySettings() {
   const handleBiometricRegister = useCallback(async () => {
     setSaving(true);
     try {
+      if (isNativeAndroid()) {
+        if (!await isNativeBiometricAvailable()) {
+          toast.error("Configura primero tu huella o rostro en los ajustes de Android");
+          return;
+        }
+        await apiFetch("/api/settings", {
+          method: "PUT",
+          body: JSON.stringify({ biometricEnabled: true }),
+        });
+        toast.success("Biometría nativa activada");
+        fetchStatus();
+        return;
+      }
+
       // Step 1: Get registration options
       const options = await apiFetch<any>("/api/auth/webauthn/register-options");
 
@@ -208,6 +223,21 @@ export function SecuritySettings() {
     if (enabled) {
       handleBiometricRegister();
     } else {
+      if (isNativeAndroid()) {
+        setSaving(true);
+        apiFetch("/api/settings", {
+          method: "PUT",
+          body: JSON.stringify({ biometricEnabled: false }),
+        })
+          .then(() => {
+            toast.success("Biometría nativa desactivada");
+            fetchStatus();
+          })
+          .catch(() => toast.error("Error al desactivar biometría"))
+          .finally(() => setSaving(false));
+        return;
+      }
+
       // Disable biometric by deleting all credentials
       if (status?.credentials?.length) {
         // Delete all credentials
@@ -291,7 +321,9 @@ export function SecuritySettings() {
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-900 dark:text-white">Autenticación biométrica</p>
-                <p className="text-xs text-gray-400">Usar huella o rostro para desbloquear</p>
+                <p className="text-xs text-gray-400">
+                  {isNativeAndroid() ? "Usar el lector biométrico de Android" : "Usar huella o rostro para desbloquear"}
+                </p>
               </div>
             </div>
             <Switch

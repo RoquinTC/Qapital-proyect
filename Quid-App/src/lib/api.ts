@@ -295,9 +295,43 @@ async function applyOptimisticWrite(url: string, options: RequestInit): Promise<
   }
 }
 
+function resolveApiUrl(url: string): string {
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  if (typeof window !== "undefined") {
+    const origin = window.location.origin;
+    const capacitor = (window as any).Capacitor;
+    const isCapacitor =
+      origin.startsWith("capacitor://") ||
+      origin.startsWith("file://") ||
+      capacitor?.isNativePlatform?.() === true;
+
+    if (isCapacitor) {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://quid.roquintc.app";
+      return `${backendUrl}${url}`;
+    }
+  }
+  return url;
+}
+
 // Generic fetch wrapper for API calls — OFFLINE-AWARE
 export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const resolvedUrl = resolveApiUrl(url);
+  const isCrossOrigin = resolvedUrl.startsWith("http://") || resolvedUrl.startsWith("https://");
   const isGet = isGetRequest(options);
+
+  const fetchOptions: RequestInit = {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  };
+
+  if (isCrossOrigin) {
+    fetchOptions.credentials = "include";
+  }
 
   // For GET requests: try server, fall back to IndexedDB
   if (isGet) {
@@ -305,13 +339,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
     await ensureLocalDB();
     let response: Response;
     try {
-      response = await fetch(url, {
-        headers: {
-          "Content-Type": "application/json",
-          ...options?.headers,
-        },
-        ...options,
-      });
+      response = await fetch(resolvedUrl, fetchOptions);
     } catch {
       const localData = await readFromLocalDB<T>(url);
       if (localData !== null) {
@@ -348,13 +376,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
   await ensureLocalDB();
   let response: Response;
   try {
-    response = await fetch(url, {
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
-      ...options,
-    });
+    response = await fetch(resolvedUrl, fetchOptions);
   } catch {
     // Server unreachable — queue mutation and apply optimistically
     console.log(`[Offline] Server unreachable, queuing ${options?.method} ${url}`);
@@ -393,10 +415,6 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
     return undefined as T;
   }
 }
-
-/**
- * Cache a successful GET response into IndexedDB for offline use.
- */
 async function cacheGetResponse(url: string, data: unknown): Promise<void> {
   const { tableName, isCollection } = parseApiUrl(url);
   if (!tableName || !_localDB) return;

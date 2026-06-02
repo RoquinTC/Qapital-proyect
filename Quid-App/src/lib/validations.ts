@@ -455,6 +455,7 @@ export const yieldCreateSchema = z.object({
   projectedYield: z.number().nullable().optional(),
   parentAccountId: z.string().nullable().optional(),
   yieldRecordId: z.string().nullable().optional(),
+  settlementMonth: z.string().datetime().nullable().optional(),
 });
 
 export const yieldReverseSchema = z.object({

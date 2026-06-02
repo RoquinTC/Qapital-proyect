@@ -230,6 +230,13 @@ export function LoginForm() {
     }
   }, []);
 
+  const handleGoogleLogin = async () => {
+    const result = await signIn("google");
+    if (result?.error === "GoogleNativeUnavailable") {
+      toast.info("El ingreso con Google estará disponible cuando terminemos la integración nativa de Android.");
+    }
+  };
+
   return (
     <div className="min-h-dvh flex items-center justify-center p-4 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <div className="w-full max-w-sm">
@@ -356,7 +363,7 @@ export function LoginForm() {
               type="button"
               variant="outline"
               className="w-full h-11 rounded-xl border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900/50 gap-2 transition-all duration-200 flex items-center justify-center font-semibold bg-white dark:bg-transparent"
-              onClick={() => signIn("google")}
+              onClick={handleGoogleLogin}
               disabled={loading || biometricLoading}
             >
               <svg className="size-4 shrink-0" viewBox="0 0 24 24">

@@ -9,13 +9,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { BiometricPrompt } from "./biometric-prompt";
+import { isNativeAndroid } from "@/lib/native/biometric";
 
 interface OfflineLockScreenProps {
   cachedSession: CachedSession;
   onUnlock: () => void;
 }
 
-type AuthMethod = "pin" | "password";
+type AuthMethod = "biometric" | "pin" | "password";
 
 /**
  * Offline Lock Screen — shown when the online session is unavailable
@@ -28,7 +30,10 @@ type AuthMethod = "pin" | "password";
  * in the Zustand store — no page reload needed.
  */
 export function OfflineLockScreen({ cachedSession, onUnlock }: OfflineLockScreenProps) {
-  const [method, setMethod] = useState<AuthMethod>(cachedSession.user.pinEnabled ? "pin" : "password");
+  const nativeBiometricEnabled = isNativeAndroid() && !!cachedSession.user.biometricEnabled;
+  const [method, setMethod] = useState<AuthMethod>(
+    nativeBiometricEnabled ? "biometric" : cachedSession.user.pinEnabled ? "pin" : "password"
+  );
   const [pinError, setPinError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
@@ -148,6 +153,23 @@ export function OfflineLockScreen({ cachedSession, onUnlock }: OfflineLockScreen
             </motion.div>
           )}
 
+          {method === "biometric" && nativeBiometricEnabled && (
+            <motion.div
+              key="biometric"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="flex flex-col items-center gap-6"
+            >
+              <BiometricPrompt
+                userId={userId}
+                onSuccess={handleUnlockSuccess}
+                onFallback={() => setMethod(pinEnabled ? "pin" : "password")}
+                autoStartNative
+              />
+            </motion.div>
+          )}
+
           {method === "password" && (
             <motion.div
               key="password"
@@ -200,6 +222,14 @@ export function OfflineLockScreen({ cachedSession, onUnlock }: OfflineLockScreen
 
         {/* Switch between methods */}
         <div className="flex gap-3">
+          {nativeBiometricEnabled && method !== "biometric" && (
+            <button
+              onClick={() => setMethod("biometric")}
+              className="text-xs text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1"
+            >
+              Usar huella
+            </button>
+          )}
           {pinEnabled && method === "password" && (
             <button
               onClick={() => setMethod("pin")}

@@ -1,28 +1,40 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Fingerprint, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { toast } from "sonner";
+import { authenticateWithNativeBiometric, isNativeAndroid } from "@/lib/native/biometric";
 
 interface BiometricPromptProps {
   userId?: string;
   onSuccess: (userId: string, email: string) => void;
   onFallback?: () => void;
   onError?: (error: string) => void;
+  autoStartNative?: boolean;
 }
 
-export function BiometricPrompt({ userId, onSuccess, onFallback, onError }: BiometricPromptProps) {
+export function BiometricPrompt({ userId, onSuccess, onFallback, onError, autoStartNative = false }: BiometricPromptProps) {
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const didAutoStart = useRef(false);
 
   const handleBiometricAuth = useCallback(async () => {
     setLoading(true);
     setFailed(false);
 
     try {
+      if (isNativeAndroid()) {
+        const authenticated = await authenticateWithNativeBiometric();
+        if (authenticated) {
+          onSuccess(userId || "", "");
+          return;
+        }
+        throw new Error("No se pudo validar la biometría");
+      }
+
       // Step 1: Get authentication options from the server
       const params = userId ? `?userId=${encodeURIComponent(userId)}` : "";
       const optionsRes = await fetch(`/api/auth/webauthn/auth-options${params}`);
@@ -68,6 +80,12 @@ export function BiometricPrompt({ userId, onSuccess, onFallback, onError }: Biom
       setLoading(false);
     }
   }, [userId, onSuccess, onError]);
+
+  useEffect(() => {
+    if (!autoStartNative || !isNativeAndroid() || didAutoStart.current) return;
+    didAutoStart.current = true;
+    handleBiometricAuth();
+  }, [autoStartNative, handleBiometricAuth]);
 
   return (
     <div className="flex flex-col items-center gap-4">

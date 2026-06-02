@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getColombiaNow, getColombiaTodayString, createColombiaDate, calculateProportionalYield, getDaysInMonth } from "@/lib/api";
+import { getColombiaNow, getColombiaTodayString, createColombiaDate, calculateMonthlyYield, calculateProportionalYield, getDaysInMonth } from "@/lib/api";
 import { toNumber } from "@/lib/decimal-serializer";
 import { validateBody, yieldCreateSchema } from "@/lib/validations";
 
@@ -16,9 +16,8 @@ export async function GET() {
     // Get current month and days remaining
     const now = getColombiaNow();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const daysInMonth = getDaysInMonth(now.getFullYear(), now.getMonth());
-    const currentDay = now.getDate();
-    const daysRemaining = daysInMonth - currentDay + 1; // Include today
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthDays = getDaysInMonth(previousMonthStart.getFullYear(), previousMonthStart.getMonth());
 
     // Result array
     const yields: Array<{
@@ -55,7 +54,7 @@ export async function GET() {
 
     for (const account of highYieldAccounts) {
       const existingRecord = account.yieldHistory[0];
-      const projectedYield = calculateProportionalYield(toNumber(account.balance), toNumber(account.yieldPercentage) || 0, daysRemaining);
+      const projectedYield = calculateMonthlyYield(toNumber(account.balance), toNumber(account.yieldPercentage) || 0);
       const key = `acc-${account.id}`;
 
       yields.push({
@@ -90,7 +89,7 @@ export async function GET() {
 
     for (const subAccount of highYieldSubAccounts) {
       const existingRecord = subAccount.yieldHistory[0];
-      const projectedYield = calculateProportionalYield(toNumber(subAccount.balance), toNumber(subAccount.yieldPercentage) || 0, daysRemaining);
+      const projectedYield = calculateMonthlyYield(toNumber(subAccount.balance), toNumber(subAccount.yieldPercentage) || 0);
       const key = `sub-${subAccount.id}`;
 
       yields.push({
@@ -109,7 +108,46 @@ export async function GET() {
       addedKeys.add(key);
     }
 
-    // ── 3. Current-month yield records NOT already covered above ──
+    // ── 3. Materialize last month's pending settlement ──
+    // The bank can post the real value several days into the new month. Store
+    // the estimate so it remains confirmable until the user enters that value.
+    for (const account of highYieldAccounts) {
+      if (account.createdAt >= monthStart) continue;
+
+      const existingRecord = await db.yieldRecord.findFirst({
+        where: { accountId: account.id, subAccountId: null, month: previousMonthStart },
+      });
+      if (!existingRecord) {
+        await db.yieldRecord.create({
+          data: {
+            accountId: account.id,
+            month: previousMonthStart,
+            projectedYield: calculateProportionalYield(toNumber(account.balance), toNumber(account.yieldPercentage) || 0, previousMonthDays),
+            yieldPercentage: toNumber(account.yieldPercentage) || 0,
+          },
+        });
+      }
+    }
+
+    for (const subAccount of highYieldSubAccounts) {
+      if (subAccount.createdAt >= monthStart) continue;
+
+      const existingRecord = await db.yieldRecord.findFirst({
+        where: { accountId: null, subAccountId: subAccount.id, month: previousMonthStart },
+      });
+      if (!existingRecord) {
+        await db.yieldRecord.create({
+          data: {
+            subAccountId: subAccount.id,
+            month: previousMonthStart,
+            projectedYield: calculateProportionalYield(toNumber(subAccount.balance), toNumber(subAccount.yieldPercentage) || 0, previousMonthDays),
+            yieldPercentage: toNumber(subAccount.yieldPercentage) || 0,
+          },
+        });
+      }
+    }
+
+    // ── 4. Current-month yield records NOT already covered above ──
     // This catches confirmed yields for accounts that are no longer isHighYield,
     // or any other yield records that exist for the current month.
     const currentMonthRecords = await db.yieldRecord.findMany({
@@ -158,7 +196,7 @@ export async function GET() {
       addedKeys.add(key);
     }
 
-    // ── 4. Unconfirmed yields from PREVIOUS months (always visible as overdue) ──
+    // ── 5. Unconfirmed yields from PREVIOUS months (always visible as overdue) ──
     const previousUnconfirmed = await db.yieldRecord.findMany({
       where: {
         isConfirmed: false,
@@ -206,7 +244,7 @@ export async function GET() {
       });
     }
 
-    // ── 5. Recently confirmed yields from last 3 months (including current month) ──
+    // ── 6. Recently confirmed yields from last 3 months (including current month) ──
     const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
     const recentConfirmed = await db.yieldRecord.findMany({
       where: {
@@ -278,6 +316,12 @@ export async function POST(req: NextRequest) {
 
     const now = getColombiaNow();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const settlementDate = body.settlementMonth ? new Date(body.settlementMonth) : monthStart;
+    const settlementMonth = new Date(settlementDate.getFullYear(), settlementDate.getMonth(), 1);
+
+    if (settlementMonth > monthStart) {
+      return NextResponse.json({ error: "No se puede confirmar un rendimiento futuro" }, { status: 400 });
+    }
 
     // Determine target account and sub-account for the transaction
     const isSubAccount = !!subAccountId;
@@ -298,7 +342,7 @@ export async function POST(req: NextRequest) {
       create: {
         accountId: accountId || null,
         subAccountId: subAccountId || null,
-        month: monthStart,
+        month: settlementMonth,
         projectedYield: projectedYield || 0,
         actualYield,
         yieldPercentage: yieldPercentage || 0,
@@ -316,7 +360,7 @@ export async function POST(req: NextRequest) {
 
     // Add income transaction for the yield
     if (actualYield > 0) {
-      const monthLabel = monthStart.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+      const monthLabel = settlementMonth.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
       const description = isSubAccount
         ? `Rendimiento bolsillo - ${monthLabel}`
         : `Rendimiento cuenta - ${monthLabel}`;

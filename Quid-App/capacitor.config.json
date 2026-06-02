@@ -1,0 +1,8 @@
+{
+  "appId": "app.quid.finance",
+  "appName": "Quid",
+  "webDir": "out",
+  "server": {
+    "androidScheme": "https"
+  }
+}

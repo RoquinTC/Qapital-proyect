@@ -73,17 +73,43 @@ const PUBLIC_ROUTES = [
 ];
 
 // ---------------------------------------------------------------------------
+function addCorsHeaders(response: NextResponse, request: NextRequest) {
+  const origin = request.headers.get("origin") || "";
+  if (!origin) return response;
+
+  const isAllowedOrigin =
+    origin.startsWith("capacitor://") ||
+    origin.startsWith("http://localhost") ||
+    origin.startsWith("https://localhost") ||
+    origin === "file://" ||
+    origin.endsWith(".roquintc.app");
+
+  if (isAllowedOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", origin);
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-aura-token, x-user-id");
+  }
+  return response;
+}
+
+// ---------------------------------------------------------------------------
 // Proxy
 // ---------------------------------------------------------------------------
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Allow CORS preflight immediately before any other middleware logic
+  if (request.method === "OPTIONS") {
+    return addCorsHeaders(new NextResponse(null, { status: 204 }), request);
+  }
+
   // Only process API routes (auth + rate limiting)
   // Page routes pass through - intl middleware will be activated when
   // the app is restructured with [locale] route segment in the future.
   if (!pathname.startsWith("/api/")) {
-    return NextResponse.next();
+    return addCorsHeaders(NextResponse.next(), request);
   }
 
   // ---- Aura AI Bypass ----
@@ -92,7 +118,7 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith("/api/aura/sync") || pathname === "/api/aura/chat") {
     const auraToken = request.headers.get("x-aura-token");
     if (auraToken === process.env.AURA_API_KEY) {
-      return NextResponse.next();
+      return addCorsHeaders(NextResponse.next(), request);
     }
   }
 
@@ -105,17 +131,12 @@ export async function proxy(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
     const token = request.nextUrl.searchParams.get("token");
     if (cronSecret && (authHeader === `Bearer ${cronSecret}` || token === cronSecret)) {
-      return NextResponse.next();
+      return addCorsHeaders(NextResponse.next(), request);
     }
   }
 
   // Allow public routes (still apply lighter rate limiting below)
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
-
-  // Allow CORS preflight
-  if (request.method === "OPTIONS") {
-    return NextResponse.next();
-  }
 
   // ---- Rate Limiting ----
   // For public routes: rate limit by IP
@@ -124,15 +145,15 @@ export async function proxy(request: NextRequest) {
     const ip = getClientIp(request);
     const { allowed, retryAfterMs } = checkRateLimit(`ip:${ip}`, PUBLIC_RATE_MAX_REQUESTS);
     if (!allowed) {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." },
         {
           status: 429,
           headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) },
         }
-      );
+      ), request);
     }
-    return NextResponse.next();
+    return addCorsHeaders(NextResponse.next(), request);
   }
 
   // ---- Authentication ----
@@ -151,37 +172,37 @@ export async function proxy(request: NextRequest) {
     });
 
     if (!token) {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: "No autorizado - Inicia sesion para continuar" },
         { status: 401 }
-      );
+      ), request);
     }
 
     // Rate limit by user ID (more accurate than IP)
     const userId = token.id as string;
     const { allowed, retryAfterMs } = checkRateLimit(`user:${userId}`, AUTH_RATE_MAX_REQUESTS);
     if (!allowed) {
-      return NextResponse.json(
+      return addCorsHeaders(NextResponse.json(
         { error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." },
         {
           status: 429,
           headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) },
         }
-      );
+      ), request);
     }
 
     // Add user ID to request headers for downstream use
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-user-id", userId);
 
-    return NextResponse.next({
+    return addCorsHeaders(NextResponse.next({
       request: { headers: requestHeaders },
-    });
+    }), request);
   } catch {
-    return NextResponse.json(
+    return addCorsHeaders(NextResponse.json(
       { error: "Error de autenticacion" },
       { status: 401 }
-    );
+    ), request);
   }
 }
 

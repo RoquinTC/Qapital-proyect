@@ -50,6 +50,8 @@ services:
       - AUTH_COOKIE_SECURE=${AUTH_COOKIE_SECURE:-false}
       - CRON_SECRET=${CRON_SECRET:-local-cron-secret-change-me}
       - MEDICATION_REMINDER_WINDOW_MINUTES=${MEDICATION_REMINDER_WINDOW_MINUTES:-2}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

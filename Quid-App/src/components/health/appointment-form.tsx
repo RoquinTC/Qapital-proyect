@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/select";
 import { apiFetch } from "@/lib/api";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { hasNativeCalendarEvent, syncNativeAppointment } from "@/lib/native/device-integrations";
+import { isNativeAndroid } from "@/lib/native/biometric";
 
 interface AppointmentFormProps {
   open: boolean;
@@ -102,6 +105,7 @@ export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: 
     appointment?.copayAmount != null ? String(appointment.copayAmount) : ""
   );
   const [reminderEnabled, setReminderEnabled] = useState(appointment?.reminderEnabled ?? true);
+  const [calendarEnabled, setCalendarEnabled] = useState(() => hasNativeCalendarEvent(appointment?.id));
 
   const isEditing = !!appointment;
 
@@ -114,6 +118,7 @@ export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: 
     setNotes(appointment?.notes || "");
     setCopayAmount(appointment?.copayAmount != null ? String(appointment.copayAmount) : "");
     setReminderEnabled(appointment?.reminderEnabled ?? true);
+    setCalendarEnabled(hasNativeCalendarEvent(appointment?.id));
   }, [appointment, open]);
 
   const handleSubmit = async () => {
@@ -131,15 +136,17 @@ export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: 
       };
 
       if (isEditing && appointment) {
-        await apiFetch(`/api/appointments/${appointment.id}`, {
+        const savedAppointment = await apiFetch<{ id: string }>(`/api/appointments/${appointment.id}`, {
           method: "PUT",
           body: JSON.stringify(data),
         });
+        await syncAppointmentOnDevice(savedAppointment.id, data);
       } else {
-        await apiFetch("/api/appointments", {
+        const savedAppointment = await apiFetch<{ id: string }>("/api/appointments", {
           method: "POST",
           body: JSON.stringify(data),
         });
+        await syncAppointmentOnDevice(savedAppointment.id, data);
       }
 
       await onSuccess?.();
@@ -149,6 +156,31 @@ export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: 
       console.error("Error saving appointment:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncAppointmentOnDevice = async (appointmentId: string, data: {
+    doctorName: string | null;
+    specialty: string | null;
+    location: string | null;
+    date: string;
+    notes: string | null;
+    reminderEnabled: boolean;
+  }) => {
+    if (!isNativeAndroid()) return;
+    try {
+      await syncNativeAppointment({
+        appointmentId,
+        title: data.specialty || data.doctorName || "Cita médica",
+        description: data.notes || undefined,
+        location: data.location || undefined,
+        date: new Date(data.date),
+        reminderEnabled: data.reminderEnabled,
+        calendarEnabled,
+      });
+    } catch (error) {
+      console.warn("Native appointment sync failed:", error);
+      toast.warning("La cita se guardó en Quid, pero Android no pudo completar el recordatorio o calendario.");
     }
   };
 
@@ -266,6 +298,18 @@ export function AppointmentForm({ open, onOpenChange, appointment, onSuccess }: 
             </div>
             <Switch checked={reminderEnabled} onCheckedChange={setReminderEnabled} />
           </div>
+
+          {isNativeAndroid() && (
+            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+              <div>
+                <Label className="text-sm">Calendario del teléfono</Label>
+                <p className="text-xs text-gray-400">
+                  Guardar también en tu calendario sincronizado
+                </p>
+              </div>
+              <Switch checked={calendarEnabled} onCheckedChange={setCalendarEnabled} />
+            </div>
+          )}
 
           {/* Submit */}
           <Button

@@ -40,6 +40,7 @@ import { motion } from "framer-motion";
 import { formatDate } from "@/lib/api";
 import type { MedicalAppointment, Medication } from "@/lib/types";
 import type { PaymentMethodType } from "@/lib/types/transport";
+import { removeNativeAppointmentIntegrations } from "@/lib/native/device-integrations";
 
 type Appointment = MedicalAppointment;
 
@@ -124,6 +125,9 @@ export function AppointmentsView() {
     if (!confirmed) return;
     try {
       await apiFetch(`/api/appointments/${id}`, { method: "DELETE" });
+      await removeNativeAppointmentIntegrations(id).catch((error) => {
+        console.warn("Native appointment cleanup failed:", error);
+      });
       fetchAppointments();
       setSelectedAppointment(null);
     } catch (error) {
@@ -145,6 +149,11 @@ export function AppointmentsView() {
         method: "PUT",
         body: JSON.stringify({ status, ...payload }),
       });
+      if (status === "cancelled") {
+        await removeNativeAppointmentIntegrations(id).catch((error) => {
+          console.warn("Native appointment cleanup failed:", error);
+        });
+      }
       const refreshed = await fetchAppointments();
       if (selectedAppointment?.id === id) {
         setSelectedAppointment(refreshed.find((a) => a.id === id) || null);

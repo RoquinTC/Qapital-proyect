@@ -9,6 +9,7 @@ import { apiFetch } from "@/lib/api";
 import { cacheOfflinePinHash, getCachedPinHash } from "@/lib/offline-session";
 import { performLogout } from "@/lib/logout";
 import { compare } from "bcryptjs";
+import { isNativeAndroid } from "@/lib/native/biometric";
 
 interface LockScreenProps {
   onUnlock: () => void;
@@ -25,11 +26,12 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
   const pinEnabled = session?.user?.pinEnabled ?? false;
   const biometricEnabled = session?.user?.biometricEnabled ?? false;
 
-  // PIN is intentionally the fast default on the web. Browser WebAuthn remains
-  // available as an explicit option and can be replaced by native biometrics
-  // when the Android shell is introduced.
+  // Android opens the system biometric prompt first. Web keeps PIN as the fast
+  // default because its WebAuthn flow still needs a server challenge.
   useEffect(() => {
-    if (pinEnabled) {
+    if (biometricEnabled && isNativeAndroid()) {
+      setMethod("biometric");
+    } else if (pinEnabled) {
       setMethod("pin");
     } else if (biometricEnabled) {
       setMethod("biometric");
@@ -131,6 +133,7 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
                 userId={session?.user?.id}
                 onSuccess={handleBiometricSuccess}
                 onFallback={handleBiometricFallback}
+                autoStartNative
               />
             </motion.div>
           )}
