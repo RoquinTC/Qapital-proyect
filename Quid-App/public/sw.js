@@ -1,10 +1,10 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'quid-v7-native-android';
-const STATIC_CACHE = 'quid-static-v7-native-android';
-const DYNAMIC_CACHE = 'quid-dynamic-v7-native-android';
-const API_CACHE = 'quid-api-v7-native-android';
-const AUTH_CACHE = 'quid-auth-v7-native-android';
+const CACHE_NAME = 'quid-v7-native-android-ready';
+const STATIC_CACHE = 'quid-static-v7-native-android-ready';
+const DYNAMIC_CACHE = 'quid-dynamic-v7-native-android-ready';
+const API_CACHE = 'quid-api-v7-native-android-ready';
+const AUTH_CACHE = 'quid-auth-v7-native-android-ready';
 
 // Assets to cache on install (app shell)
 const APP_SHELL = [

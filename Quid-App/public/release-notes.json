@@ -1,8 +1,8 @@
 {
-  "currentVersion": "quid-v7-native-android",
+  "currentVersion": "quid-v7-native-android-ready",
   "releases": [
     {
-      "version": "quid-v7-native-android",
+      "version": "quid-v7-native-android-ready",
       "date": "2026-06-01",
       "title": "Acceso más rápido y citas mejor organizadas",
       "changes": [
