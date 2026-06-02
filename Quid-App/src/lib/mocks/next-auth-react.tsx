@@ -1,4 +1,9 @@
 import React, { createContext, useState, useEffect } from "react";
+import {
+  apiRequest,
+  clearMobileSessionToken,
+  setMobileSessionToken,
+} from "@/lib/api-url";
 
 const SessionContext = createContext<any>({ data: null, status: "loading" });
 
@@ -17,11 +22,9 @@ export function useSession() {
 
   useEffect(() => {
     let isMounted = true;
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://quid.roquintc.app";
-
     const refreshSession = async () => {
       try {
-        const res = await fetch(`${backendUrl}/api/auth/session`, { credentials: "include" });
+        const res = await apiRequest("/api/auth/mobile/session");
         if (!res.ok) throw new Error();
         const data = await res.json();
         if (!isMounted) return;
@@ -60,31 +63,26 @@ export function useSession() {
 
 export async function signIn(provider: string, options: any) {
   console.log("Mock signIn called for provider:", provider);
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://quid.roquintc.app";
 
   if (provider === "credentials") {
     try {
-      // 1. Obtener token CSRF del backend remoto
-      const csrfRes = await fetch(`${backendUrl}/api/auth/csrf`, { credentials: "include" });
-      if (!csrfRes.ok) {
-        return { error: "No se pudo contactar al servidor de autenticación" };
-      }
-      const { csrfToken } = await csrfRes.json();
-
-      // 2. Enviar credenciales
-      const res = await fetch(`${backendUrl}/api/auth/callback/credentials`, {
+      const res = await apiRequest("/api/auth/mobile/login", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          ...options,
-          csrfToken,
-          json: "true",
-        }),
-        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(options),
       });
 
       const data = await res.json().catch(() => ({}));
-      if (res.ok && !data.error) {
+      if (res.ok && data.token) {
+        setMobileSessionToken(data.token);
+        const sessionRes = await apiRequest("/api/auth/mobile/session");
+        const session = sessionRes.ok ? await sessionRes.json().catch(() => null) : null;
+        if (!session?.user) {
+          clearMobileSessionToken();
+          return {
+            error: "La sesión móvil no pudo validarse. Intenta nuevamente.",
+          };
+        }
         window.dispatchEvent(new Event("quid-session-refresh"));
         return { error: null, ok: true, status: res.status, url: data.url };
       } else {
@@ -102,20 +100,7 @@ export async function signIn(provider: string, options: any) {
 
 export async function signOut(options?: any) {
   console.log("Mock signOut called");
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://quid.roquintc.app";
-
-  try {
-    const csrfRes = await fetch(`${backendUrl}/api/auth/csrf`, { credentials: "include" });
-    const { csrfToken } = await csrfRes.json();
-    await fetch(`${backendUrl}/api/auth/signout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ csrfToken }),
-      credentials: "include",
-    });
-  } catch (err) {
-    console.warn("Fallo al llamar signout remoto:", err);
-  }
+  clearMobileSessionToken();
 
   if (options?.redirect !== false) {
     if (typeof window !== "undefined") {

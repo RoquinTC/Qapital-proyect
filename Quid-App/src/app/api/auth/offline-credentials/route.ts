@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -13,15 +14,18 @@ import { db } from "@/lib/db";
  * the already-authenticated user. The hash is stored in localStorage on the
  * user's own device and used for offline password verification via bcrypt.compare().
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const userId = session?.user?.id || (token?.id as string | undefined);
+
+    if (!userId) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     const user = await db.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       select: { email: true, password: true },
     });
 
@@ -32,7 +36,7 @@ export async function GET() {
     return NextResponse.json({
       email: user.email,
       passwordHash: user.password,
-      userId: session.user.id,
+      userId,
     });
   } catch (error) {
     console.error("Get offline credentials error:", error);

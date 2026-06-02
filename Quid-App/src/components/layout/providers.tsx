@@ -5,6 +5,7 @@ import { SyncProvider } from "@/lib/local/sync/provider";
 import { PWAProvider } from "@/components/pwa";
 import { AutoBackupHandler } from "@/components/settings/auto-backup-handler";
 import { NativeDeviceBridge } from "@/components/native/native-device-bridge";
+import { installNativeApiFetchBridge } from "@/lib/api-url";
 
 function resolveSessionBasePath(): string {
   if (typeof window !== "undefined") {
@@ -16,6 +17,7 @@ function resolveSessionBasePath(): string {
       capacitor?.isNativePlatform?.() === true;
 
     if (isCapacitor) {
+      installNativeApiFetchBridge();
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://quid.roquintc.app";
       // Globally set __NEXTAUTH so that next-auth/react functions like signIn and signOut work
       (window as any).__NEXTAUTH = {

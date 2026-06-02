@@ -4,7 +4,7 @@
 
 // Data event bus for instant UI updates
 import { emitMutationEvent } from "@/lib/data-events";
-import { resolveApiUrl } from "@/lib/api-url";
+import { apiRequest, resolveApiUrl } from "@/lib/api-url";
 // This wrapper makes ALL existing apiFetch calls work offline:
 //   - GET requests: Try server first, fall back to IndexedDB cache on network error
 //   - POST/PUT/DELETE: Try server first, queue in mutation queue on network error
@@ -320,7 +320,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
     await ensureLocalDB();
     let response: Response;
     try {
-      response = await fetch(resolvedUrl, fetchOptions);
+      response = await apiRequest(resolvedUrl, fetchOptions);
     } catch {
       const localData = await readFromLocalDB<T>(url);
       if (localData !== null) {
@@ -357,7 +357,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
   await ensureLocalDB();
   let response: Response;
   try {
-    response = await fetch(resolvedUrl, fetchOptions);
+    response = await apiRequest(resolvedUrl, fetchOptions);
   } catch {
     // Server unreachable — queue mutation and apply optimistically
     console.log(`[Offline] Server unreachable, queuing ${options?.method} ${url}`);
