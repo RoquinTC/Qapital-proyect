@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { apiRequest } from "@/lib/api-url";
 
 const steps = [
   {
@@ -127,7 +128,7 @@ export function OnboardingFlow() {
   const handleComplete = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/user/onboarding", {
+      const res = await apiRequest("/api/user/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

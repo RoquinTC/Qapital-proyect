@@ -21,6 +21,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiRequest } from "@/lib/api-url";
 
 type Step = "email" | "reset" | "success";
 
@@ -44,7 +45,7 @@ export function ForgotPasswordForm() {
     setVerifyingEmail(true);
     try {
       // Check if user exists by attempting a lightweight check
-      const res = await fetch(
+      const res = await apiRequest(
         `/api/auth/reset-password`,
         {
           method: "POST",
@@ -95,7 +96,7 @@ export function ForgotPasswordForm() {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/auth/reset-password`, {
+      const res = await apiRequest(`/api/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, newPassword, confirmPassword }),

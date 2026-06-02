@@ -18,34 +18,44 @@ export function useSession() {
   useEffect(() => {
     let isMounted = true;
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://quid.roquintc.app";
-    
-    fetch(`${backendUrl}/api/auth/session`, { credentials: "include" })
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error();
-      })
-      .then((data) => {
+
+    const refreshSession = async () => {
+      try {
+        const res = await fetch(`${backendUrl}/api/auth/session`, { credentials: "include" });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
         if (!isMounted) return;
         if (data && Object.keys(data).length > 0 && data.user) {
           setSession(data);
           setStatus("authenticated");
-        } else {
+          return;
+        }
+      } catch {
+        if (!isMounted) return;
+      }
+
+      if (isMounted) {
           setSession(null);
           setStatus("unauthenticated");
-        }
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setSession(null);
-        setStatus("unauthenticated");
-      });
+      }
+    };
+
+    refreshSession();
+    window.addEventListener("quid-session-refresh", refreshSession);
 
     return () => {
       isMounted = false;
+      window.removeEventListener("quid-session-refresh", refreshSession);
     };
   }, []);
 
-  return { data: session, status };
+  return {
+    data: session,
+    status,
+    update: async () => {
+      window.dispatchEvent(new Event("quid-session-refresh"));
+    },
+  };
 }
 
 export async function signIn(provider: string, options: any) {
@@ -75,6 +85,7 @@ export async function signIn(provider: string, options: any) {
 
       const data = await res.json().catch(() => ({}));
       if (res.ok && !data.error) {
+        window.dispatchEvent(new Event("quid-session-refresh"));
         return { error: null, ok: true, status: res.status, url: data.url };
       } else {
         return { error: data.error || "Fallo de autenticación" };

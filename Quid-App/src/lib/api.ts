@@ -4,6 +4,7 @@
 
 // Data event bus for instant UI updates
 import { emitMutationEvent } from "@/lib/data-events";
+import { resolveApiUrl } from "@/lib/api-url";
 // This wrapper makes ALL existing apiFetch calls work offline:
 //   - GET requests: Try server first, fall back to IndexedDB cache on network error
 //   - POST/PUT/DELETE: Try server first, queue in mutation queue on network error
@@ -293,26 +294,6 @@ async function applyOptimisticWrite(url: string, options: RequestInit): Promise<
     console.warn("[Offline] Optimistic write failed:", err);
     return {};
   }
-}
-
-function resolveApiUrl(url: string): string {
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
-  }
-  if (typeof window !== "undefined") {
-    const origin = window.location.origin;
-    const capacitor = (window as any).Capacitor;
-    const isCapacitor =
-      origin.startsWith("capacitor://") ||
-      origin.startsWith("file://") ||
-      capacitor?.isNativePlatform?.() === true;
-
-    if (isCapacitor) {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://quid.roquintc.app";
-      return `${backendUrl}${url}`;
-    }
-  }
-  return url;
 }
 
 // Generic fetch wrapper for API calls — OFFLINE-AWARE

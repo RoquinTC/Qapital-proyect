@@ -19,10 +19,11 @@ import {
   clearOfflineCredentials,
   type CachedSession,
 } from "@/lib/offline-session";
+import { apiRequest } from "@/lib/api-url";
 
 async function cacheCurrentSessionForOffline() {
   try {
-    const sessionRes = await fetch("/api/auth/session");
+    const sessionRes = await apiRequest("/api/auth/session");
     if (sessionRes.ok) {
       const sessionData = await sessionRes.json();
       if (sessionData?.user) {
@@ -57,7 +58,7 @@ export function LoginForm() {
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/auth/providers")
+    apiRequest("/api/auth/providers")
       .then((response) => (response.ok ? response.json() : null))
       .then((providers) => {
         if (!cancelled) setGoogleAvailable(Boolean(providers?.google));
@@ -147,7 +148,7 @@ export function LoginForm() {
 
         // Cache credentials for offline login (fetch password hash from server)
         try {
-          const credsResponse = await fetch("/api/auth/offline-credentials");
+          const credsResponse = await apiRequest("/api/auth/offline-credentials");
           if (credsResponse.ok) {
             const creds = await credsResponse.json();
             if (creds.passwordHash && creds.email && creds.userId) {
@@ -195,7 +196,7 @@ export function LoginForm() {
       // Try to authenticate without asking for email first.
 
       // Step 1: Get authentication options WITHOUT userId
-      const optionsRes = await fetch("/api/auth/webauthn/auth-options");
+      const optionsRes = await apiRequest("/api/auth/webauthn/auth-options");
       if (!optionsRes.ok) {
         throw new Error("No se pudieron obtener las opciones de autenticación");
       }
@@ -215,7 +216,7 @@ export function LoginForm() {
       }
 
       // Step 3: Verify with server
-      const verifyRes = await fetch("/api/auth/webauthn/auth-verify", {
+      const verifyRes = await apiRequest("/api/auth/webauthn/auth-verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credential: asseResp }),

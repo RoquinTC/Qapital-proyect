@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Mail, Lock, User, UserPlus, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { apiRequest } from "@/lib/api-url";
 
 export function RegisterForm() {
   const { setAuthView } = useAppStore();
@@ -38,7 +39,7 @@ export function RegisterForm() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await apiRequest("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
